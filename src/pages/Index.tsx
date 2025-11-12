@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
-import MarketMapLive from "@/components/MarketMapLive";
 import SearchBar from "@/components/SearchBar";
 import AnalyticsLive from "@/components/AnalyticsLive";
 import HowItWorks from "@/components/HowItWorks";
@@ -13,9 +12,6 @@ const Index = () => {
       <Header />
       <div id="home">
         <Hero />
-      </div>
-      <div id="markets">
-        <MarketMapLive />
       </div>
       <SearchBar />
       <div id="analytics">
