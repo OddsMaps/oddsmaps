@@ -54,8 +54,9 @@ export const AllTransactions = () => {
         .from('wallet_transactions')
         .select(`
           *,
-          market:markets(title, market_id)
+          market:markets!inner(title, market_id, source)
         `)
+        .eq('market.source', 'polymarket')
         .order('timestamp', { ascending: false })
         .limit(100);
 

@@ -37,26 +37,28 @@ Deno.serve(async (req) => {
       .from('markets')
       .select('id, market_id, title')
       .eq('source', 'polymarket')
-      .limit(50);
+      .eq('status', 'active')
+      .limit(100);
 
     if (!markets || markets.length === 0) {
       console.log('No Polymarket markets found');
       return new Response(
-        JSON.stringify({ success: true, processed: 0, message: 'No markets to fetch transactions for' }),
+        JSON.stringify({ success: true, processed: 0, totalFetched: 0, marketsProcessed: 0, message: 'No markets to fetch transactions for' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     let totalProcessed = 0;
+    let totalFetched = 0;
 
-    // Fetch trades for each market
+    // Fetch trades for each market (process in batches to avoid timeout)
     for (const market of markets) {
       const conditionId = market.market_id.replace('polymarket-', '');
       
       try {
-        // Fetch recent trades from Polymarket CLOB API
+        // Fetch recent trades from Polymarket trades endpoint
         const tradesResponse = await fetch(
-          `https://clob.polymarket.com/trades?condition_id=${conditionId}&limit=100`,
+          `https://gamma-api.polymarket.com/markets/${conditionId}/trades?limit=50`,
           {
             headers: {
               'Accept': 'application/json',
@@ -69,7 +71,9 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const trades: PolymarketTrade[] = await tradesResponse.json();
+        const tradesData = await tradesResponse.json();
+        const trades: PolymarketTrade[] = Array.isArray(tradesData) ? tradesData : (tradesData.trades || []);
+        totalFetched += trades.length;
         console.log(`Fetched ${trades.length} trades for market: ${market.title}`);
 
         // Process and store transactions
@@ -140,12 +144,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Successfully processed ${totalProcessed} new transactions`);
+    console.log(`Successfully processed ${totalProcessed} new transactions from ${totalFetched} total trades`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         processed: totalProcessed,
+        totalFetched: totalFetched,
+        marketsProcessed: markets.length,
         message: 'Polymarket transactions synced successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

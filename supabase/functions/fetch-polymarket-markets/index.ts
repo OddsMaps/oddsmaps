@@ -42,14 +42,19 @@ Deno.serve(async (req) => {
     }
 
     const responseData = await polymarketResponse.json();
-    console.log('Polymarket API response type:', typeof responseData);
+    console.log('Polymarket API response structure:', Object.keys(responseData || {}));
     
     // Handle both array and object responses
     let polymarketData: PolymarketMarket[] = [];
     if (Array.isArray(responseData)) {
       polymarketData = responseData;
+      console.log('Response is array with', polymarketData.length, 'items');
     } else if (responseData && Array.isArray(responseData.data)) {
       polymarketData = responseData.data;
+      console.log('Response.data is array with', polymarketData.length, 'items');
+    } else if (responseData && responseData.length !== undefined) {
+      polymarketData = [responseData];
+      console.log('Response is single object, converted to array');
     } else {
       console.error('Unexpected response format from Polymarket API:', responseData);
       throw new Error('Unexpected response format from Polymarket API');
@@ -57,18 +62,26 @@ Deno.serve(async (req) => {
 
     console.log(`Fetched ${polymarketData.length} markets from Polymarket`);
 
+    // Log first market to see structure
+    if (polymarketData.length > 0) {
+      console.log('Sample market structure:', JSON.stringify(polymarketData[0], null, 2).substring(0, 500));
+    }
+
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Process and store markets - be more lenient with filtering
+    // Process and store markets - accept ALL markets unless explicitly closed
     const processedMarkets = polymarketData
       .filter(market => {
-        // Accept if not explicitly closed
-        const isActive = market.active !== false && market.closed !== true;
-        return isActive;
+        // Very permissive filter - only exclude if explicitly marked as closed
+        const shouldInclude = market.closed !== true;
+        if (!shouldInclude) {
+          console.log('Filtering out closed market:', market.question);
+        }
+        return shouldInclude;
       })
       .slice(0, 100)
       .map(market => {

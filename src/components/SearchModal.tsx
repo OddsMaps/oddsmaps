@@ -19,6 +19,7 @@ interface Transaction {
   price: number;
   side: string;
   timestamp: string;
+  transaction_hash?: string;
   market: {
     title: string;
     market_id: string;
@@ -31,19 +32,21 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const navigate = useNavigate();
 
-  // Fetch transactions for search
+  // Fetch ALL transactions for search
   useEffect(() => {
     const fetchTransactions = async () => {
       const { data } = await supabase
         .from('wallet_transactions')
         .select(`
           *,
-          market:markets(title, market_id)
+          market:markets!inner(title, market_id, source)
         `)
+        .eq('market.source', 'polymarket')
         .order('timestamp', { ascending: false })
-        .limit(1000);
+        .limit(5000);
       
       setTransactions(data || []);
+      console.log(`Loaded ${data?.length || 0} Polymarket transactions for search`);
     };
 
     if (open) {
@@ -51,21 +54,23 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
     }
   }, [open]);
 
-  // Filter markets based on search query
+  // Filter Polymarket markets based on search query
   const filteredMarkets = markets?.filter(market => 
-    market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.market_id.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 15) || [];
+    market.source === 'polymarket' && (
+      market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.market_id.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  ).slice(0, 10) || [];
 
-  // Filter transactions based on search query
+  // Filter Polymarket transactions/bets based on search query
   const filteredTransactions = transactions?.filter(tx => 
     tx.market?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tx.wallet_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.side.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 10) || [];
+    tx.side.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.transaction_hash?.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 20) || [];
 
   // Reset search when modal closes
   useEffect(() => {
@@ -140,13 +145,73 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
             {searchQuery ? (
               allResults.length > 0 ? (
                 <div className="p-2">
+                  {/* Transactions - Show First */}
+                  {filteredTransactions.length > 0 && (
+                    <div className="mb-4">
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
+                        <Activity className="w-3 h-3" />
+                        Polymarket Bets ({filteredTransactions.length})
+                      </div>
+                      {filteredTransactions.map((tx, txIndex) => {
+                        return (
+                          <button
+                            key={tx.id}
+                            onClick={() => {
+                              navigate(`/wallet/${tx.wallet_address}`);
+                              onOpenChange(false);
+                            }}
+                            className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                              txIndex === selectedIndex
+                                ? "bg-muted scale-[1.02]"
+                                : "hover:bg-muted/30"
+                            }`}
+                            onMouseEnter={() => setSelectedIndex(txIndex)}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge className={`text-xs ${
+                                    tx.side === 'yes' 
+                                      ? 'bg-green-500/20 text-green-500 border-green-500/20' 
+                                      : 'bg-red-500/20 text-red-500 border-red-500/20'
+                                  }`}>
+                                    {tx.side.toUpperCase()} BET
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(tx.timestamp).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <h3 className="font-semibold mb-1 line-clamp-1 text-sm">
+                                  {tx.market?.title}
+                                </h3>
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {tx.wallet_address.slice(0, 8)}...{tx.wallet_address.slice(-6)}
+                                </p>
+                              </div>
+                              
+                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                <div className="font-bold text-sm">
+                                  ${tx.amount.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  @ ${tx.price.toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Markets */}
                   {filteredMarkets.length > 0 && (
-                    <div className="mb-4">
+                    <div>
                       <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                        Markets ({filteredMarkets.length})
+                        Polymarket Markets ({filteredMarkets.length})
                       </div>
-                      {filteredMarkets.map((market, index) => {
+                      {filteredMarkets.map((market, marketIndex) => {
+                    const index = filteredTransactions.length + marketIndex;
                     const change = ((market.yes_price - 0.5) * 100).toFixed(1);
                     const isPositive = parseFloat(change) > 0;
                     
@@ -165,7 +230,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <Badge variant="outline" className="text-xs uppercase">
-                                {market.source}
+                                POLYMARKET
                               </Badge>
                               {market.category && (
                                 <Badge variant="secondary" className="text-xs">
@@ -204,63 +269,6 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                   })}
                     </div>
                   )}
-
-                  {/* Transactions */}
-                  {filteredTransactions.length > 0 && (
-                    <div>
-                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                        Recent Bets ({filteredTransactions.length})
-                      </div>
-                      {filteredTransactions.map((tx, txIndex) => {
-                        const index = filteredMarkets.length + txIndex;
-                        return (
-                          <button
-                            key={tx.id}
-                            onClick={() => {
-                              navigate(`/wallet/${tx.wallet_address}`);
-                              onOpenChange(false);
-                            }}
-                            className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
-                              index === selectedIndex
-                                ? "bg-muted scale-[1.02]"
-                                : "hover:bg-muted/30"
-                            }`}
-                            onMouseEnter={() => setSelectedIndex(index)}
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge className={`text-xs ${
-                                    tx.side === 'yes' 
-                                      ? 'bg-green-500/20 text-green-500 border-green-500/20' 
-                                      : 'bg-red-500/20 text-red-500 border-red-500/20'
-                                  }`}>
-                                    {tx.side.toUpperCase()}
-                                  </Badge>
-                                  <Activity className="w-3 h-3 text-muted-foreground" />
-                                </div>
-                                <h3 className="font-semibold mb-1 line-clamp-1 text-sm">
-                                  {tx.market?.title}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                  {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
-                                </p>
-                              </div>
-                              
-                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                <div className="font-bold text-sm">
-                                  ${tx.amount.toLocaleString()}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  @ ${tx.price.toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="p-12 text-center">
@@ -273,9 +281,12 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
             ) : (
               <div className="p-12 text-center">
                 <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-muted-foreground mb-2">Search markets and bets</p>
+                <p className="text-muted-foreground mb-2">Search Polymarket Bets & Markets</p>
                 <p className="text-sm text-muted-foreground/60">
-                  Search {markets?.length || 0}+ markets and {transactions.length}+ live bets
+                  Search {transactions.length.toLocaleString()}+ live bets from Polymarket
+                </p>
+                <p className="text-xs text-muted-foreground/40 mt-2">
+                  Try searching by market name, wallet address, or bet type
                 </p>
               </div>
             )}
