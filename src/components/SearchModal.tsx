@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Command, TrendingUp, TrendingDown, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 
 interface SearchModalProps {
   open: boolean;
@@ -14,6 +14,7 @@ interface SearchModalProps {
 const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets } = useMarkets();
+  const navigate = useNavigate();
 
   // Filter markets based on search query
   const filteredMarkets = markets?.filter(market => 
@@ -52,9 +53,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   }, [filteredMarkets, selectedIndex, onOpenChange]);
 
   const handleSelectMarket = (market: any) => {
-    toast.success(`Selected: ${market.title}`, {
-      description: `${market.source} • ${(market.yes_price * 100).toFixed(1)}¢`,
-    });
+    navigate(`/market/${market.market_id}`);
     onOpenChange(false);
   };
 
