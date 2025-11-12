@@ -16,12 +16,14 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const { data: markets } = useMarkets();
   const navigate = useNavigate();
 
-  // Filter markets based on search query
+  // Filter markets based on search query - search all fields
   const filteredMarkets = markets?.filter(market => 
     market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 8) || [];
+    market.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    market.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    market.market_id.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 20) || []; // Increased to 20 results
 
   // Reset search when modal closes
   useEffect(() => {
@@ -157,7 +159,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                 <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
                 <p className="text-muted-foreground mb-2">Search prediction markets</p>
                 <p className="text-sm text-muted-foreground/60">
-                  Start typing to find markets from Kalshi and Polymarket
+                  Search all {markets?.length || 0}+ markets from Kalshi and Polymarket
                 </p>
               </div>
             )}

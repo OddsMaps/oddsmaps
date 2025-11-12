@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const source = url.searchParams.get('source');
     const category = url.searchParams.get('category');
-    const limit = parseInt(url.searchParams.get('limit') || '20');
+    const limit = parseInt(url.searchParams.get('limit') || '200'); // Increased default limit
 
     // Build query
     let query = supabaseClient

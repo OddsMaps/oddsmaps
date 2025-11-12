@@ -30,8 +30,8 @@ Deno.serve(async (req) => {
   try {
     console.log('Fetching markets from Polymarket API...');
 
-    // Fetch from Polymarket API
-    const polymarketResponse = await fetch('https://clob.polymarket.com/markets', {
+    // Fetch from Polymarket CLOB API - this returns a single object with markets array
+    const polymarketResponse = await fetch('https://gamma-api.polymarket.com/markets?limit=100&active=true', {
       headers: {
         'Accept': 'application/json',
       },
@@ -41,7 +41,20 @@ Deno.serve(async (req) => {
       throw new Error(`Polymarket API error: ${polymarketResponse.status}`);
     }
 
-    const polymarketData: PolymarketMarket[] = await polymarketResponse.json();
+    const responseData = await polymarketResponse.json();
+    console.log('Polymarket API response type:', typeof responseData);
+    
+    // Handle both array and object responses
+    let polymarketData: PolymarketMarket[] = [];
+    if (Array.isArray(responseData)) {
+      polymarketData = responseData;
+    } else if (responseData && Array.isArray(responseData.data)) {
+      polymarketData = responseData.data;
+    } else {
+      console.error('Unexpected response format from Polymarket API:', responseData);
+      throw new Error('Unexpected response format from Polymarket API');
+    }
+
     console.log(`Fetched ${polymarketData.length} markets from Polymarket`);
 
     // Initialize Supabase client
@@ -53,7 +66,7 @@ Deno.serve(async (req) => {
     // Process and store markets
     const processedMarkets = polymarketData
       .filter(market => market.active && !market.closed)
-      .slice(0, 50) // Limit to top 50 markets
+      .slice(0, 100) // Increased to 100 markets
       .map(market => {
         const yesToken = market.tokens?.find(t => t.outcome === 'Yes');
         const noToken = market.tokens?.find(t => t.outcome === 'No');
@@ -70,6 +83,8 @@ Deno.serve(async (req) => {
           no_price: noToken ? parseFloat(noToken.price) : 0.5,
           volume_24h: parseFloat(market.volume) || 0,
           liquidity: parseFloat(market.liquidity) || 0,
+          trades_24h: 0,
+          volatility: Math.abs((yesToken ? parseFloat(yesToken.price) : 0.5) - 0.5) * 100,
         };
       });
 
@@ -140,8 +155,8 @@ Deno.serve(async (req) => {
             no_price: market.no_price,
             volume_24h: market.volume_24h,
             liquidity: market.liquidity,
-            trades_24h: 0,
-            volatility: Math.abs(market.yes_price - 0.5) * 100,
+            trades_24h: market.trades_24h,
+            volatility: market.volatility,
           });
       }
     }

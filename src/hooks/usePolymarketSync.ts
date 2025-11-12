@@ -6,12 +6,12 @@ export const usePolymarketSync = () => {
     const syncPolymarketData = async () => {
       try {
         console.log('Syncing Polymarket data...');
-        const { error } = await supabase.functions.invoke('fetch-polymarket-markets');
+        const { data, error } = await supabase.functions.invoke('fetch-polymarket-markets');
         
         if (error) {
           console.error('Error syncing Polymarket data:', error);
         } else {
-          console.log('Polymarket data synced successfully');
+          console.log('Polymarket data synced successfully:', data);
         }
       } catch (error) {
         console.error('Failed to sync Polymarket data:', error);
@@ -21,8 +21,8 @@ export const usePolymarketSync = () => {
     // Sync immediately on mount
     syncPolymarketData();
 
-    // Set up periodic sync every 5 minutes
-    const interval = setInterval(syncPolymarketData, 5 * 60 * 1000);
+    // Set up periodic sync every 2 minutes for real-time updates
+    const interval = setInterval(syncPolymarketData, 2 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);

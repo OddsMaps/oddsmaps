@@ -114,8 +114,14 @@ const AnalyticsLive = () => {
             <span className="gradient-text">Real-Time Analytics</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Live market movements, liquidity flows, and trader sentiment from Kalshi & Polymarket.
+            Live market movements, liquidity flows, and trader sentiment across all Polymarket and Kalshi markets.
           </p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-sm font-medium text-muted-foreground">
+              Tracking {markets?.length || 0} live markets • Updates every 5s
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
