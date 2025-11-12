@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Command, TrendingUp, TrendingDown, X, Activity } from "lucide-react";
+import { Search, Command, TrendingUp, TrendingDown, X, Activity, Filter, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface SearchModalProps {
   open: boolean;
@@ -28,6 +30,14 @@ interface Transaction {
 
 const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [walletFilter, setWalletFilter] = useState("");
+  const [marketKeyword, setMarketKeyword] = useState("");
+  const [betSideFilter, setBetSideFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sortBy, setSortBy] = useState<string>("time-desc");
+  const [showFilters, setShowFilters] = useState(false);
+  
   const { data: markets } = useMarkets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const navigate = useNavigate();
@@ -82,28 +92,82 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
     }
   }, [open]);
 
-  // Filter Polymarket markets based on search query
-  const filteredMarkets = markets?.filter(market => 
-    market.source === 'polymarket' && (
+  // Filter Polymarket markets based on all filters
+  const filteredMarkets = markets?.filter(market => {
+    if (market.source !== 'polymarket') return false;
+    
+    // Search query filter
+    const matchesSearch = !searchQuery || 
       market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       market.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      market.market_id.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  ).slice(0, 10) || [];
+      market.market_id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Market keyword filter
+    const matchesKeyword = !marketKeyword || 
+      market.title.toLowerCase().includes(marketKeyword.toLowerCase()) ||
+      market.description?.toLowerCase().includes(marketKeyword.toLowerCase());
+    
+    return matchesSearch && matchesKeyword;
+  }).slice(0, 10) || [];
 
-  // Filter Polymarket transactions/bets based on search query
-  const filteredTransactions = transactions?.filter(tx => 
-    tx.market?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.wallet_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.side.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.transaction_hash?.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 20) || [];
+  // Filter Polymarket transactions/bets based on all filters
+  let filteredTransactions = transactions?.filter(tx => {
+    // Search query filter
+    const matchesSearch = !searchQuery || 
+      tx.market?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.wallet_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.side.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.transaction_hash?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Wallet address filter
+    const matchesWallet = !walletFilter || 
+      tx.wallet_address.toLowerCase().includes(walletFilter.toLowerCase());
+    
+    // Market keyword filter
+    const matchesMarketKeyword = !marketKeyword || 
+      tx.market?.title.toLowerCase().includes(marketKeyword.toLowerCase());
+    
+    // Bet side filter
+    const matchesSide = betSideFilter === 'all' || 
+      tx.side.toLowerCase() === betSideFilter.toLowerCase();
+    
+    // Date range filter
+    const txDate = new Date(tx.timestamp);
+    const matchesDateFrom = !dateFrom || txDate >= new Date(dateFrom);
+    const matchesDateTo = !dateTo || txDate <= new Date(dateTo + 'T23:59:59');
+    
+    return matchesSearch && matchesWallet && matchesMarketKeyword && 
+           matchesSide && matchesDateFrom && matchesDateTo;
+  }) || [];
+
+  // Sort filtered transactions
+  filteredTransactions = filteredTransactions.sort((a, b) => {
+    switch (sortBy) {
+      case 'time-desc':
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      case 'time-asc':
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      case 'amount-desc':
+        return b.amount - a.amount;
+      case 'amount-asc':
+        return a.amount - b.amount;
+      default:
+        return 0;
+    }
+  }).slice(0, 20);
 
   // Reset search when modal closes
   useEffect(() => {
     if (!open) {
       setSearchQuery("");
+      setWalletFilter("");
+      setMarketKeyword("");
+      setBetSideFilter("all");
+      setDateFrom("");
+      setDateTo("");
+      setSortBy("time-desc");
+      setShowFilters(false);
     }
   }, [open]);
 
@@ -144,27 +208,133 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 bg-background/95 backdrop-blur-xl border-border shadow-2xl">
+      <DialogContent className="max-w-3xl p-0 gap-0 bg-background/95 backdrop-blur-xl border-border shadow-2xl">
         <DialogTitle className="sr-only">Search Markets and Bets</DialogTitle>
         <div className="rounded-2xl overflow-hidden">
           {/* Search Input */}
-          <div className="flex items-center gap-3 p-4 border-b border-border/50 bg-background">
-            <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            <Input
-              placeholder="Search markets... (e.g., 'Trump', 'Bitcoin', 'Fed')"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-0 text-lg focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 px-0"
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="p-1 rounded-lg hover:bg-muted/50 transition-colors"
+          <div className="p-4 border-b border-border/50 bg-background space-y-3">
+            <div className="flex items-center gap-3">
+              <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              <Input
+                placeholder="Search markets and bets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="bg-transparent border-0 text-lg focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 px-0"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
               >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
+                <Filter className="w-4 h-4" />
+                Filters
+              </Button>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="space-y-3 pt-3 border-t border-border/50">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Wallet Address</label>
+                    <Input
+                      placeholder="0x..."
+                      value={walletFilter}
+                      onChange={(e) => setWalletFilter(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Market Keyword</label>
+                    <Input
+                      placeholder="e.g., Trump, Bitcoin"
+                      value={marketKeyword}
+                      onChange={(e) => setMarketKeyword(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Bet Side</label>
+                    <Select value={betSideFilter} onValueChange={setBetSideFilter}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">From Date</label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">To Date</label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <ArrowUpDown className="w-3 h-3" />
+                      Sort By
+                    </label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="time-desc">Time (Newest First)</SelectItem>
+                        <SelectItem value="time-asc">Time (Oldest First)</SelectItem>
+                        <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
+                        <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setWalletFilter("");
+                      setMarketKeyword("");
+                      setBetSideFilter("all");
+                      setDateFrom("");
+                      setDateTo("");
+                      setSortBy("time-desc");
+                    }}
+                    className="mt-auto"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
 
