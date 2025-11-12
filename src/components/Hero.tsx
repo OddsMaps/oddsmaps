@@ -29,25 +29,25 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 text-center space-y-8 animate-fade-in">
-        <div className="flex justify-center mb-8">
-          <img src={logo} alt="OddsMap" className="h-24 w-auto animate-float" />
+      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center space-y-6 animate-fade-in">
+        <div className="flex justify-center mb-6">
+          <img src={logo} alt="OddsMap" className="h-16 w-auto" />
         </div>
         
-        <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold leading-tight">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
           <span className="gradient-text">Visual Intelligence</span>
           <br />
           <span className="text-foreground">for Prediction Markets</span>
         </h1>
         
-        <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Turn odds and transactions into intuitive visual maps — spot liquidity flows and market momentum in real time.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
           <Button 
             size="lg" 
-            className="glass-strong glow-gradient hover:scale-105 transition-all duration-300 group px-8 py-6 text-lg"
+            className="glass-strong glow-gradient hover:scale-105 transition-all duration-300 group px-6 py-4 text-base"
           >
             Explore Live Maps
             <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -55,7 +55,7 @@ const Hero = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group px-8 py-6 text-lg"
+            className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group px-6 py-4 text-base"
           >
             <TrendingUp className="mr-2" />
             View Trending Bets
@@ -63,7 +63,7 @@ const Hero = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-12 max-w-3xl mx-auto">
           {[
             { label: "Active Markets", value: "1,234+" },
             { label: "Total Volume", value: "$12.5M" },
@@ -71,11 +71,11 @@ const Hero = () => {
           ].map((stat, i) => (
             <div 
               key={i} 
-              className="glass p-6 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105"
+              className="glass p-4 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105"
               style={{ animationDelay: `${i * 0.2}s` }}
             >
-              <div className="text-3xl font-bold gradient-text">{stat.value}</div>
-              <div className="text-sm text-muted-foreground mt-2">{stat.label}</div>
+              <div className="text-2xl font-bold gradient-text">{stat.value}</div>
+              <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
