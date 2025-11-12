@@ -1,40 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const usePolymarketSync = () => {
-  useEffect(() => {
-    const syncPolymarketData = async () => {
-      try {
-        console.log('Syncing Polymarket data...');
-        
-        // Sync markets
-        const { data: marketsData, error: marketsError } = await supabase.functions.invoke('fetch-polymarket-markets');
-        
-        if (marketsError) {
-          console.error('Error syncing Polymarket markets:', marketsError);
-        } else {
-          console.log('Polymarket markets synced successfully:', marketsData);
-        }
+  const queryClient = useQueryClient();
 
-        // Sync transactions
-        const { data: transactionsData, error: transactionsError } = await supabase.functions.invoke('fetch-polymarket-transactions');
-        
-        if (transactionsError) {
-          console.error('Error syncing Polymarket transactions:', transactionsError);
-        } else {
-          console.log('Polymarket transactions synced successfully:', transactionsData);
-        }
-      } catch (error) {
-        console.error('Failed to sync Polymarket data:', error);
+  const syncPolymarketData = useCallback(async () => {
+    try {
+      console.log('Syncing Polymarket data...');
+      
+      // Sync markets and transactions in parallel for better performance
+      const [marketsResult, transactionsResult] = await Promise.allSettled([
+        supabase.functions.invoke('fetch-polymarket-markets'),
+        supabase.functions.invoke('fetch-polymarket-transactions')
+      ]);
+
+      if (marketsResult.status === 'fulfilled' && !marketsResult.value.error) {
+        console.log('Markets synced:', marketsResult.value.data);
+        // Invalidate markets cache to trigger refetch
+        queryClient.invalidateQueries({ queryKey: ['markets'] });
+      } else {
+        console.error('Markets sync failed:', marketsResult);
       }
-    };
 
-    // Sync immediately on mount
+      if (transactionsResult.status === 'fulfilled' && !transactionsResult.value.error) {
+        console.log('Transactions synced:', transactionsResult.value.data);
+      } else {
+        console.error('Transactions sync failed:', transactionsResult);
+      }
+    } catch (error) {
+      console.error('Failed to sync Polymarket data:', error);
+    }
+  }, [queryClient]);
+
+  useEffect(() => {
+    // Initial sync on mount
     syncPolymarketData();
 
-    // Set up periodic sync every 2 minutes for real-time updates
-    const interval = setInterval(syncPolymarketData, 2 * 60 * 1000);
+    // Optimized sync every 5 minutes (reduced from 2 minutes for better performance)
+    const interval = setInterval(syncPolymarketData, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [syncPolymarketData]);
+
+  return { syncPolymarketData };
 };

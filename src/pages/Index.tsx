@@ -6,8 +6,12 @@ import { AllTransactions } from "@/components/AllTransactions";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
 import Footer from "@/components/Footer";
+import { usePolymarketSync } from "@/hooks/usePolymarketSync";
 
 const Index = () => {
+  // Initialize Polymarket data sync
+  usePolymarketSync();
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Header />

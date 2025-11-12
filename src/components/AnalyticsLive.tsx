@@ -1,15 +1,12 @@
-import { TrendingUp, TrendingDown, Activity, Zap } from "lucide-react";
+import { memo, useMemo } from "react";
+import { TrendingUp, Activity, Zap } from "lucide-react";
 import { useMarkets } from "@/hooks/useMarkets";
-import { usePolymarketSync } from "@/hooks/usePolymarketSync";
 import { usePriceChanges } from "@/hooks/usePriceChanges";
-import { useMemo } from "react";
 
-const AnalyticsLive = () => {
-  const { data: markets } = useMarkets();
+const AnalyticsLive = memo(() => {
+  // Only fetch Polymarket markets for better performance
+  const { data: markets } = useMarkets('polymarket');
   const { priceChanges, activeMarkets } = usePriceChanges(markets);
-  
-  // Sync Polymarket data on mount and periodically
-  usePolymarketSync();
 
   // Calculate trending markets (most active this hour)
   const trendingMarkets = useMemo(() => {
@@ -34,12 +31,12 @@ const AnalyticsLive = () => {
           isActive,
         };
       })
-      .sort((a, b) => b.trades - a.trades) // Sort by most trades (activity)
+      .sort((a, b) => b.trades - a.trades)
       .slice(0, 4);
   }, [markets, priceChanges, activeMarkets]);
 
   // Calculate liquidity flows by category
-  const liquidityFlows = useMemo(() => {
+  const liquidityFlowsWithPercentage = useMemo(() => {
     if (!markets) return [];
 
     const categoryTotals: Record<string, { liquidity: number; count: number }> = {};
@@ -52,7 +49,7 @@ const AnalyticsLive = () => {
       categoryTotals[category].count += 1;
     });
 
-    return Object.entries(categoryTotals)
+    const flows = Object.entries(categoryTotals)
       .sort(([, a], [, b]) => b.liquidity - a.liquidity)
       .slice(0, 5)
       .map(([category, data]) => ({
@@ -60,18 +57,14 @@ const AnalyticsLive = () => {
         liquidity: data.liquidity,
         amount: `$${(data.liquidity / 1000).toFixed(1)}K`,
         markets: data.count,
-        percentage: 0, // Will calculate after
       }));
-  }, [markets]);
 
-  // Calculate percentages for liquidity
-  const liquidityFlowsWithPercentage = useMemo(() => {
-    const total = liquidityFlows.reduce((sum, flow) => sum + flow.liquidity, 0);
-    return liquidityFlows.map(flow => ({
+    const total = flows.reduce((sum, flow) => sum + flow.liquidity, 0);
+    return flows.map(flow => ({
       ...flow,
       percentage: total > 0 ? Math.round((flow.liquidity / total) * 100) : 0,
     }));
-  }, [liquidityFlows]);
+  }, [markets]);
 
   // Calculate sentiment by category
   const sentimentData = useMemo(() => {
@@ -109,31 +102,31 @@ const AnalyticsLive = () => {
   return (
     <section className="relative py-24 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16 space-y-4 animate-slide-up">
+        <div className="text-center mb-16 space-y-4 animate-fade-in">
           <h2 className="text-5xl font-bold">
-            <span className="gradient-text">Real-Time Analytics</span>
+            <span className="gradient-text">Real-Time Polymarket Analytics</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Live market movements, liquidity flows, and trader sentiment across all Polymarket and Kalshi markets.
+            Live market movements, liquidity flows, and trader sentiment across Polymarket.
           </p>
           <div className="flex items-center justify-center gap-2 mt-4">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-sm font-medium text-muted-foreground">
-              Tracking {markets?.length || 0} live markets • Updates every 5s
+              Tracking {markets.length} live markets • Updates every 5min
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Trending Now */}
-          <div className="glass-strong rounded-3xl p-8 space-y-6 hover:scale-[1.02] transition-all duration-300">
+          <div className="glass-strong rounded-2xl p-8 space-y-6 hover:scale-[1.01] transition-all duration-300 border border-border/50">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent glow-pink">
-                <Zap className="w-6 h-6" />
+              <div className="p-3 rounded-xl bg-primary/20 border border-primary/30">
+                <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold gradient-text">Trending Now</h3>
-                <p className="text-sm text-muted-foreground">Most active markets this hour</p>
+                <h3 className="text-2xl font-bold">Trending Now</h3>
+                <p className="text-sm text-muted-foreground">Most active markets</p>
               </div>
             </div>
 
@@ -142,25 +135,24 @@ const AnalyticsLive = () => {
                 <div
                   key={market.id}
                   className={`glass p-5 rounded-xl hover:glass-strong transition-all duration-300 cursor-pointer group relative overflow-hidden ${
-                    market.isActive ? 'animate-glow-pulse' : ''
+                    market.isActive ? 'border border-primary/30' : ''
                   }`}
                 >
-                  {/* Active indicator pulse */}
                   {market.isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 animate-pulse pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 animate-pulse pointer-events-none" />
                   )}
                   
                   <div className="relative z-10">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="font-semibold mb-2 group-hover:gradient-text transition-all line-clamp-2">
+                        <div className="font-semibold mb-2 line-clamp-2">
                           {market.event}
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-2xl font-bold gradient-text">{market.odds}</span>
                           <span className={`text-sm font-semibold ${
                             market.isIncreasing ? 'text-green-400' : 'text-red-400'
-                          } ${market.isActive ? 'animate-pulse' : ''}`}>
+                          }`}>
                             {market.change}
                           </span>
                         </div>
@@ -168,32 +160,25 @@ const AnalyticsLive = () => {
                           {market.trades} trades • ${(market.volume / 1000).toFixed(1)}K volume
                         </div>
                       </div>
-                      <div className={`flex-shrink-0 w-16 h-16 rounded-full glass-strong flex items-center justify-center transition-transform ${
-                        market.isActive ? 'scale-110' : 'group-hover:scale-110'
+                      <div className={`flex-shrink-0 w-14 h-14 rounded-xl glass-strong flex items-center justify-center ${
+                        market.isActive ? 'border border-primary/30' : ''
                       }`}>
-                        <div className="text-xs text-center">
-                          <div className="font-bold">#{ i + 1}</div>
+                        <div className="text-xs text-center font-bold">
+                          #{i + 1}
                         </div>
                       </div>
                     </div>
 
-                    {/* Activity Bar */}
                     <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
-                        className={`h-full bg-gradient-to-r from-primary via-secondary to-accent ${
-                          market.isActive ? 'animate-shimmer' : ''
-                        }`}
-                        style={{ 
-                          width: market.odds,
-                          backgroundSize: '200% 100%',
-                        }}
+                        className="h-full bg-gradient-to-r from-primary via-secondary to-accent"
+                        style={{ width: market.odds }}
                       />
                     </div>
 
-                    {/* Live indicator */}
                     {market.isActive && (
                       <div className="absolute top-2 right-2">
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/20 border border-primary/30">
                           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                           <span className="text-xs font-semibold text-primary">LIVE</span>
                         </div>
@@ -204,17 +189,16 @@ const AnalyticsLive = () => {
               ))}
             </div>
 
-            {/* Live Stats */}
             <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
               <div className="text-center">
                 <div className="text-2xl font-bold gradient-text">
-                  {markets?.length || 0}
+                  {markets.length}
                 </div>
                 <div className="text-sm text-muted-foreground">Active Markets</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold gradient-text">
-                  ${((markets?.reduce((sum, m) => sum + m.volume_24h, 0) || 0) / 1000000).toFixed(1)}M
+                  ${((markets.reduce((sum, m) => sum + m.volume_24h, 0)) / 1000000).toFixed(1)}M
                 </div>
                 <div className="text-sm text-muted-foreground">24h Volume</div>
               </div>
@@ -222,13 +206,13 @@ const AnalyticsLive = () => {
           </div>
 
           {/* Liquidity by Category */}
-          <div className="glass-strong rounded-3xl p-8 space-y-6 hover:scale-[1.02] transition-all duration-300">
+          <div className="glass-strong rounded-2xl p-8 space-y-6 hover:scale-[1.01] transition-all duration-300 border border-border/50">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-secondary to-accent glow-purple">
-                <Activity className="w-6 h-6" />
+              <div className="p-3 rounded-xl bg-secondary/20 border border-secondary/30">
+                <Activity className="w-6 h-6 text-secondary" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold gradient-text">Liquidity by Category</h3>
+                <h3 className="text-2xl font-bold">Liquidity by Category</h3>
                 <p className="text-sm text-muted-foreground">Capital distribution</p>
               </div>
             </div>
@@ -248,11 +232,8 @@ const AnalyticsLive = () => {
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-secondary to-accent animate-shimmer transition-all duration-500"
-                      style={{ 
-                        width: `${flow.percentage}%`,
-                        backgroundSize: '200% 100%',
-                      }}
+                      className="h-full bg-gradient-to-r from-secondary to-accent transition-all duration-500"
+                      style={{ width: `${flow.percentage}%` }}
                     />
                   </div>
                 </div>
@@ -261,13 +242,13 @@ const AnalyticsLive = () => {
           </div>
 
           {/* Sentiment Waves */}
-          <div className="lg:col-span-2 glass-strong rounded-3xl p-8 hover:scale-[1.01] transition-all duration-300">
+          <div className="lg:col-span-2 glass-strong rounded-2xl p-8 hover:scale-[1.01] transition-all duration-300 border border-border/50">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-accent to-primary glow-blue">
-                <TrendingUp className="w-6 h-6" />
+              <div className="p-3 rounded-xl bg-accent/20 border border-accent/30">
+                <TrendingUp className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold gradient-text">Sentiment by Category</h3>
+                <h3 className="text-2xl font-bold">Sentiment by Category</h3>
                 <p className="text-sm text-muted-foreground">Market positioning across categories</p>
               </div>
             </div>
@@ -280,11 +261,11 @@ const AnalyticsLive = () => {
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full">
                       <div className="flex gap-2 items-end justify-center h-24">
                         <div 
-                          className="w-1/2 bg-gradient-to-t from-green-400 to-green-600 rounded-t-lg transition-all duration-500 hover:scale-105"
+                          className="w-1/2 bg-gradient-to-t from-green-500 to-green-600 rounded-t-lg transition-all duration-500 hover:scale-105"
                           style={{ height: `${sentiment.bullish}%` }}
                         />
                         <div 
-                          className="w-1/2 bg-gradient-to-t from-red-400 to-red-600 rounded-t-lg transition-all duration-500 hover:scale-105"
+                          className="w-1/2 bg-gradient-to-t from-red-500 to-red-600 rounded-t-lg transition-all duration-500 hover:scale-105"
                           style={{ height: `${sentiment.bearish}%` }}
                         />
                       </div>
@@ -302,6 +283,8 @@ const AnalyticsLive = () => {
       </div>
     </section>
   );
-};
+});
+
+AnalyticsLive.displayName = 'AnalyticsLive';
 
 export default AnalyticsLive;
