@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Wallet, DollarSign, ExternalLink } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, DollarSign, ExternalLink, Clock, Activity } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
 interface WalletBubbleMapProps {
   market: Market;
@@ -134,115 +135,65 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     };
   }, [market.id, market.source]);
 
-  // Generate wallet data (real or mock)
+  // Generate wallet data from real Polymarket data only
   const wallets = useMemo(() => {
-    // If we have real wallet data for Polymarket, use it
-    if (realWallets.length > 0) {
-      const yesTraders: WalletData[] = [];
-      const noTraders: WalletData[] = [];
+    if (realWallets.length === 0) return [];
 
-      // Find earliest and latest entry times for color mapping
-      const now = new Date();
-      const times = realWallets.map(w => w.firstEntry.getTime());
-      const oldestTime = Math.min(...times);
-      const newestTime = Math.max(...times);
-      const timeRange = newestTime - oldestTime || 1;
-
-      // Function to get time-based color (blue=recent, purple=older, red=oldest)
-      const getTimeColor = (entryTime: Date): string => {
-        const age = now.getTime() - entryTime.getTime();
-        const normalizedAge = Math.min(1, age / timeRange);
-        
-        // Color gradient: blue (recent) -> cyan -> purple -> red (old)
-        if (normalizedAge < 0.25) return "from-blue-400 to-blue-600";
-        if (normalizedAge < 0.5) return "from-cyan-400 to-cyan-600";
-        if (normalizedAge < 0.75) return "from-purple-400 to-purple-600";
-        return "from-pink-400 to-pink-600";
-      };
-
-      realWallets.forEach((wallet, i) => {
-        const size = Math.min(120, Math.max(40, wallet.volume / 100));
-        const isYes = wallet.side === 'yes';
-        
-        const walletData: WalletData = {
-          id: `${wallet.address}-${i}`,
-          address: wallet.address,
-          side: isYes ? "yes" : "no",
-          amount: wallet.volume,
-          size,
-          x: isYes ? Math.random() * 35 + 10 : Math.random() * 35 + 55,
-          y: Math.random() * 80 + 10,
-          color: isYes ? "from-green-400 to-green-600" : "from-red-400 to-red-600",
-          trades: wallet.trades,
-          avgPrice: wallet.avgPrice,
-          profit: (Math.random() - 0.3) * wallet.volume * 0.3,
-          entryTime: wallet.firstEntry,
-          timeColor: getTimeColor(wallet.firstEntry),
-        };
-
-        if (isYes) {
-          yesTraders.push(walletData);
-        } else {
-          noTraders.push(walletData);
-        }
-      });
-
-      return [...yesTraders, ...noTraders];
-    }
-
-    // Otherwise, generate mock data
     const yesTraders: WalletData[] = [];
     const noTraders: WalletData[] = [];
-    const totalLiquidity = market.liquidity;
-    const now = new Date();
-    
-    // Generate YES side wallets
-    for (let i = 0; i < 12; i++) {
-      const amount = (Math.random() * totalLiquidity * 0.15) + 1000;
-      const size = Math.min(120, Math.max(40, amount / 100));
-      const daysAgo = Math.random() * 30;
-      const entryTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-      
-      yesTraders.push({
-        id: `yes-${i}`,
-        address: `0x${Math.random().toString(16).substr(2, 8)}`,
-        side: "yes",
-        amount,
-        size,
-        x: Math.random() * 35 + 10,
-        y: Math.random() * 80 + 10,
-        color: "from-green-400 to-green-600",
-        trades: Math.floor(Math.random() * 50) + 5,
-        avgPrice: market.yes_price * (0.9 + Math.random() * 0.2),
-        profit: (Math.random() - 0.3) * amount * 0.3,
-        entryTime,
-        timeColor: daysAgo < 7 ? "from-blue-400 to-blue-600" : daysAgo < 14 ? "from-cyan-400 to-cyan-600" : daysAgo < 21 ? "from-purple-400 to-purple-600" : "from-pink-400 to-pink-600",
-      });
-    }
 
-    // Generate NO side wallets
-    for (let i = 0; i < 12; i++) {
-      const amount = (Math.random() * totalLiquidity * 0.15) + 1000;
-      const size = Math.min(120, Math.max(40, amount / 100));
-      const daysAgo = Math.random() * 30;
-      const entryTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    // Find earliest and latest entry times for color mapping
+    const now = new Date();
+    const times = realWallets.map(w => w.firstEntry.getTime());
+    const oldestTime = Math.min(...times);
+    const newestTime = Math.max(...times);
+    const timeRange = newestTime - oldestTime || 1;
+
+    // Function to get time-based color (blue=recent, purple=older, pink=oldest)
+    const getTimeColor = (entryTime: Date): string => {
+      const age = now.getTime() - entryTime.getTime();
+      const normalizedAge = Math.min(1, age / timeRange);
       
-      noTraders.push({
-        id: `no-${i}`,
-        address: `0x${Math.random().toString(16).substr(2, 8)}`,
-        side: "no",
-        amount,
+      // Color gradient: blue (recent) -> cyan -> purple -> pink (old)
+      if (normalizedAge < 0.25) return "from-blue-500 to-blue-600";
+      if (normalizedAge < 0.5) return "from-cyan-500 to-cyan-600";
+      if (normalizedAge < 0.75) return "from-purple-500 to-purple-600";
+      return "from-pink-500 to-pink-600";
+    };
+
+    // Calculate profit based on current price vs entry price
+    const calculateProfit = (wallet: any, isYes: boolean): number => {
+      const currentPrice = isYes ? market.yes_price : market.no_price;
+      const entryPrice = wallet.avgPrice;
+      return wallet.volume * (currentPrice - entryPrice);
+    };
+
+    realWallets.forEach((wallet, i) => {
+      const size = Math.min(100, Math.max(50, Math.sqrt(wallet.volume) * 2));
+      const isYes = wallet.side === 'yes';
+      
+      const walletData: WalletData = {
+        id: `${wallet.address}-${i}`,
+        address: wallet.address,
+        side: isYes ? "yes" : "no",
+        amount: wallet.volume,
         size,
-        x: Math.random() * 35 + 55,
-        y: Math.random() * 80 + 10,
-        color: "from-red-400 to-red-600",
-        trades: Math.floor(Math.random() * 50) + 5,
-        avgPrice: market.no_price * (0.9 + Math.random() * 0.2),
-        profit: (Math.random() - 0.3) * amount * 0.3,
-        entryTime,
-        timeColor: daysAgo < 7 ? "from-blue-400 to-blue-600" : daysAgo < 14 ? "from-cyan-400 to-cyan-600" : daysAgo < 21 ? "from-purple-400 to-purple-600" : "from-pink-400 to-pink-600",
-      });
-    }
+        x: isYes ? Math.random() * 38 + 6 : Math.random() * 38 + 56,
+        y: Math.random() * 75 + 12,
+        color: isYes ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
+        trades: wallet.trades,
+        avgPrice: wallet.avgPrice,
+        profit: calculateProfit(wallet, isYes),
+        entryTime: wallet.firstEntry,
+        timeColor: getTimeColor(wallet.firstEntry),
+      };
+
+      if (isYes) {
+        yesTraders.push(walletData);
+      } else {
+        noTraders.push(walletData);
+      }
+    });
 
     return [...yesTraders, ...noTraders];
   }, [market, realWallets]);
@@ -252,139 +203,196 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   const yesTotal = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
   const noTotal = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.amount, 0);
+  const totalProfit = wallets.reduce((sum, w) => sum + w.profit, 0);
+
+  // Show loading or no data message for non-Polymarket or empty data
+  if (!isPolymarket) {
+    return (
+      <div className="glass-strong rounded-3xl p-12 text-center">
+        <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-xl font-semibold mb-2">Blockchain Data Unavailable</h3>
+        <p className="text-muted-foreground">
+          Wallet distribution is only available for Polymarket markets with on-chain transaction data.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="glass-strong rounded-3xl p-12 text-center">
+        <Activity className="w-16 h-16 mx-auto mb-4 text-primary animate-pulse" />
+        <h3 className="text-xl font-semibold mb-2">Loading Real-Time Data</h3>
+        <p className="text-muted-foreground">Fetching Polymarket transactions...</p>
+      </div>
+    );
+  }
+
+  if (!hasRealData) {
+    return (
+      <div className="glass-strong rounded-3xl p-12 text-center">
+        <Wallet className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-xl font-semibold mb-2">No Transaction Data</h3>
+        <p className="text-muted-foreground">
+          {error || "No wallet transactions have been recorded for this market yet. Check back soon!"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-green-400 to-green-600">
-              <TrendingUp className="w-6 h-6 text-white" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="glass-strong rounded-xl p-5 border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 rounded-lg bg-green-500/20">
+              <TrendingUp className="w-5 h-5 text-green-400" />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">YES Side</div>
-              <div className="text-2xl font-bold text-green-400">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">YES Volume</div>
+              <div className="text-xl font-bold text-green-400">
                 ${(yesTotal / 1000).toFixed(1)}K
               </div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {wallets.filter(w => w.side === "yes").length} traders
+          <div className="text-xs text-muted-foreground">
+            {wallets.filter(w => w.side === "yes").length} wallets
           </div>
         </div>
 
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-red-400 to-red-600">
-              <TrendingDown className="w-6 h-6 text-white" />
+        <div className="glass-strong rounded-xl p-5 border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 rounded-lg bg-red-500/20">
+              <TrendingDown className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">NO Side</div>
-              <div className="text-2xl font-bold text-red-400">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">NO Volume</div>
+              <div className="text-xl font-bold text-red-400">
                 ${(noTotal / 1000).toFixed(1)}K
               </div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {wallets.filter(w => w.side === "no").length} traders
+          <div className="text-xs text-muted-foreground">
+            {wallets.filter(w => w.side === "no").length} wallets
           </div>
         </div>
 
-        <div className="glass-strong rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary">
-              <DollarSign className="w-6 h-6 text-white" />
+        <div className="glass-strong rounded-xl p-5 border border-primary/20 hover:border-primary/40 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 rounded-lg bg-primary/20">
+              <DollarSign className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Total Volume</div>
-              <div className="text-2xl font-bold gradient-text">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Total Volume</div>
+              <div className="text-xl font-bold gradient-text">
                 ${((yesTotal + noTotal) / 1000).toFixed(1)}K
               </div>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {wallets.length} total traders
+          <div className="text-xs text-muted-foreground">
+            {wallets.length} total wallets
+          </div>
+        </div>
+
+        <div className={`glass-strong rounded-xl p-5 border transition-all duration-300 ${
+          totalProfit >= 0 ? 'border-green-500/20 hover:border-green-500/40' : 'border-red-500/20 hover:border-red-500/40'
+        }`}>
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`p-2.5 rounded-lg ${totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+              <Activity className={`w-5 h-5 ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`} />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Total P&L</div>
+              <div className={`text-xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {totalProfit >= 0 ? '+' : ''}${(totalProfit / 1000).toFixed(1)}K
+              </div>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Live unrealized
           </div>
         </div>
       </div>
 
       {/* Bubble Map */}
-      <div className="glass-strong rounded-3xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-2xl font-bold gradient-text">Wallet Distribution</h3>
-            {isPolymarket && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {loading ? (
-                  "Loading real-time Polymarket data..."
-                ) : hasRealData ? (
-                  "✓ Live data from Polymarket transactions"
-                ) : error ? (
-                  `⚠ ${error}`
-                ) : (
-                  "Waiting for transaction data..."
-                )}
-              </p>
-            )}
-            {!isPolymarket && (
-              <p className="text-sm text-muted-foreground mt-1">
-                ℹ Blockchain data only available for Polymarket (Kalshi is centralized)
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-green-400" />
-                <span>YES</span>
+      <div className="glass-strong rounded-2xl overflow-hidden border border-border/50">
+        <div className="bg-gradient-to-r from-background/80 to-background/40 p-6 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-2xl font-bold">Live Wallet Distribution</h3>
+                <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-xs font-semibold text-green-400">LIVE</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-red-400" />
-                <span>NO</span>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Real-time Polymarket transaction data • Updated every 2 minutes
+              </p>
             </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="font-semibold">Entry Time:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 to-blue-600" />
-                <span>Recent</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground font-medium">Position:</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-green-400" />
+                  <span>YES</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-red-400" />
+                  <span>NO</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-600" />
-                <span>Days ago</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-purple-400 to-purple-600" />
-                <span>Weeks ago</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-400 to-pink-600" />
-                <span>Oldest</span>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-muted-foreground font-medium">Entry Time:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" />
+                  <span>Recent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600" />
+                  <span>Days</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600" />
+                  <span>Weeks</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-pink-600" />
+                  <span>Oldest</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Map Container */}
-        <div className="relative glass rounded-2xl min-h-[600px] overflow-hidden">
+        <div className="relative bg-background/30 min-h-[600px] overflow-hidden">
           {/* Side Labels */}
-          <div className="absolute top-8 left-8 glass px-4 py-2 rounded-lg z-10">
-            <div className="text-sm font-semibold text-green-400">YES SIDE</div>
+          <div className="absolute top-6 left-6 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 z-10">
+            <div className="text-sm font-bold text-green-400 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              YES SIDE
+            </div>
           </div>
-          <div className="absolute top-8 right-8 glass px-4 py-2 rounded-lg z-10">
-            <div className="text-sm font-semibold text-red-400">NO SIDE</div>
+          <div className="absolute top-6 right-6 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 z-10">
+            <div className="text-sm font-bold text-red-400 flex items-center gap-2">
+              NO SIDE
+              <TrendingDown className="w-4 h-4" />
+            </div>
           </div>
 
           {/* Center Divider */}
-          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-transparent via-border to-transparent" />
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-transparent via-border/50 to-transparent" />
 
           {/* Wallet Bubbles */}
           <div className="relative w-full h-full min-h-[600px] p-8">
             {wallets.map((wallet) => (
               <div
                 key={wallet.id}
-                className="absolute cursor-pointer transition-all duration-500 group"
+                className="absolute cursor-pointer group"
                 style={{
                   left: `${wallet.x}%`,
                   top: `${wallet.y}%`,
@@ -392,65 +400,106 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 }}
                 onMouseEnter={() => setHoveredWallet(wallet)}
                 onMouseLeave={() => setHoveredWallet(null)}
+                onClick={() => navigate(`/wallet/${wallet.address}`)}
               >
                 <div
-                  className={`rounded-full bg-gradient-to-br ${wallet.timeColor} opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 flex items-center justify-center shadow-lg border-2 ${
-                    wallet.side === 'yes' ? 'border-green-400' : 'border-red-400'
-                  }`}
+                  className={`rounded-full bg-gradient-to-br ${wallet.timeColor} 
+                    flex items-center justify-center 
+                    border-[3px] transition-all duration-300 ease-out
+                    ${wallet.side === 'yes' ? 'border-green-400/60' : 'border-red-400/60'}
+                    group-hover:border-${wallet.side === 'yes' ? 'green' : 'red'}-400 
+                    group-hover:scale-125 group-hover:shadow-2xl
+                    shadow-lg backdrop-blur-sm
+                    animate-fade-in`}
                   style={{
                     width: `${wallet.size}px`,
                     height: `${wallet.size}px`,
+                    opacity: hoveredWallet?.id === wallet.id ? 1 : 0.85,
                   }}
                 >
-                  <Wallet className="w-4 h-4 text-white" />
+                  <Wallet className="w-4 h-4 text-white drop-shadow-lg" />
                 </div>
+                {/* Pulse ring on hover */}
+                {hoveredWallet?.id === wallet.id && (
+                  <div 
+                    className={`absolute inset-0 rounded-full border-2 animate-ping ${
+                      wallet.side === 'yes' ? 'border-green-400' : 'border-red-400'
+                    }`}
+                    style={{
+                      width: `${wallet.size}px`,
+                      height: `${wallet.size}px`,
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
 
-          {/* Hover Info */}
+          {/* Hover Info Card */}
           {hoveredWallet && (
-            <div className="absolute bottom-8 left-8 right-8 glass-strong p-6 rounded-2xl animate-fade-in border border-primary/30 z-20">
+            <div className="absolute bottom-6 left-6 right-6 glass-strong p-6 rounded-xl animate-fade-in border-2 border-primary/50 shadow-2xl z-20 backdrop-blur-xl">
               <div className="flex items-start justify-between gap-6">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Wallet className="w-5 h-5 text-muted-foreground" />
-                    <code className="text-lg font-mono">{hoveredWallet.address}</code>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      hoveredWallet.side === "yes" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2 rounded-lg ${
+                      hoveredWallet.side === "yes" ? "bg-green-500/20" : "bg-red-500/20"
+                    }`}>
+                      <Wallet className={`w-4 h-4 ${
+                        hoveredWallet.side === "yes" ? "text-green-400" : "text-red-400"
+                      }`} />
+                    </div>
+                    <code className="text-base font-mono font-semibold">{hoveredWallet.address}</code>
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold tracking-wide ${
+                      hoveredWallet.side === "yes" 
+                        ? "bg-green-500/20 text-green-400 border border-green-500/30" 
+                        : "bg-red-500/20 text-red-400 border border-red-500/30"
                     }`}>
                       {hoveredWallet.side.toUpperCase()}
                     </span>
                     <button
                       onClick={() => navigate(`/wallet/${hoveredWallet.address}`)}
-                      className="ml-auto flex items-center gap-2 px-3 py-1 glass hover:glass-strong rounded-lg transition-all duration-300 text-sm"
+                      className="ml-auto flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-300 text-sm font-medium"
                     >
                       View Profile
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-5 gap-6">
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">Position Size</div>
-                      <div className="text-xl font-semibold">${(hoveredWallet.amount / 1000).toFixed(2)}K</div>
+                  <div className="grid grid-cols-5 gap-5">
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
+                        <DollarSign className="w-3 h-3" />
+                        Position
+                      </div>
+                      <div className="text-xl font-bold">${(hoveredWallet.amount / 1000).toFixed(2)}K</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">Trades</div>
-                      <div className="text-xl font-semibold">{hoveredWallet.trades}</div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        Trades
+                      </div>
+                      <div className="text-xl font-bold">{hoveredWallet.trades}</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">First Entry</div>
-                      <div className="text-xl font-semibold">
-                        {Math.floor((new Date().getTime() - hoveredWallet.entryTime.getTime()) / (1000 * 60 * 60 * 24))}d ago
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        Entry
+                      </div>
+                      <div className="text-xl font-bold">
+                        {formatDistanceToNow(hoveredWallet.entryTime, { addSuffix: true })}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">Avg Price</div>
-                      <div className="text-xl font-semibold">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Avg Price</div>
+                      <div className="text-xl font-bold">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">P&L</div>
-                      <div className={`text-xl font-semibold ${hoveredWallet.profit >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+                        Unrealized P&L
+                      </div>
+                      <div className={`text-xl font-bold flex items-center gap-1 ${
+                        hoveredWallet.profit >= 0 ? "text-green-400" : "text-red-400"
+                      }`}>
+                        {hoveredWallet.profit >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         {hoveredWallet.profit >= 0 ? "+" : ""}${(hoveredWallet.profit / 1000).toFixed(2)}K
                       </div>
                     </div>
