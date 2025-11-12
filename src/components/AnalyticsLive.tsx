@@ -1,9 +1,13 @@
 import { TrendingUp, TrendingDown, Activity, Zap } from "lucide-react";
 import { useMarkets } from "@/hooks/useMarkets";
+import { usePolymarketSync } from "@/hooks/usePolymarketSync";
 import { useMemo } from "react";
 
 const AnalyticsLive = () => {
   const { data: markets } = useMarkets();
+  
+  // Sync Polymarket data on mount and periodically
+  usePolymarketSync();
 
   // Calculate top movers based on volatility and price change
   const topMovers = useMemo(() => {
@@ -25,26 +29,36 @@ const AnalyticsLive = () => {
   const liquidityFlows = useMemo(() => {
     if (!markets) return [];
 
-    const categoryTotals: Record<string, number> = {};
+    const categoryTotals: Record<string, { liquidity: number; count: number }> = {};
     markets.forEach(market => {
-      const category = market.category || 'general';
-      categoryTotals[category] = (categoryTotals[category] || 0) + market.liquidity;
+      const category = market.category || 'General';
+      if (!categoryTotals[category]) {
+        categoryTotals[category] = { liquidity: 0, count: 0 };
+      }
+      categoryTotals[category].liquidity += market.liquidity || 0;
+      categoryTotals[category].count += 1;
     });
 
-    const sortedCategories = Object.entries(categoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3);
-
-    return sortedCategories.map(([category, amount], index, array) => {
-      const nextCategory = array[(index + 1) % array.length];
-      return {
-        from: category.charAt(0).toUpperCase() + category.slice(1),
-        to: nextCategory[0].charAt(0).toUpperCase() + nextCategory[0].slice(1),
-        amount: `$${(amount / 1000).toFixed(1)}K`,
-        color: ['from-primary to-secondary', 'from-secondary to-accent', 'from-accent to-primary'][index % 3],
-      };
-    });
+    return Object.entries(categoryTotals)
+      .sort(([, a], [, b]) => b.liquidity - a.liquidity)
+      .slice(0, 5)
+      .map(([category, data]) => ({
+        category: category.charAt(0).toUpperCase() + category.slice(1),
+        liquidity: data.liquidity,
+        amount: `$${(data.liquidity / 1000).toFixed(1)}K`,
+        markets: data.count,
+        percentage: 0, // Will calculate after
+      }));
   }, [markets]);
+
+  // Calculate percentages for liquidity
+  const liquidityFlowsWithPercentage = useMemo(() => {
+    const total = liquidityFlows.reduce((sum, flow) => sum + flow.liquidity, 0);
+    return liquidityFlows.map(flow => ({
+      ...flow,
+      percentage: total > 0 ? Math.round((flow.liquidity / total) * 100) : 0,
+    }));
+  }, [liquidityFlows]);
 
   // Calculate sentiment by category
   const sentimentData = useMemo(() => {
@@ -131,7 +145,7 @@ const AnalyticsLive = () => {
             </div>
           </div>
 
-          {/* Liquidity Flow */}
+          {/* Liquidity by Category */}
           <div className="glass-strong rounded-3xl p-8 space-y-6 hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 rounded-xl bg-gradient-to-br from-secondary to-accent glow-purple">
@@ -143,19 +157,25 @@ const AnalyticsLive = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
-              {liquidityFlows.map((flow, i) => (
-                <div key={i} className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{flow.from}</span>
-                    <span className="font-bold gradient-text">{flow.amount}</span>
+            <div className="space-y-4">
+              {liquidityFlowsWithPercentage.map((flow, i) => (
+                <div key={i} className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg">{flow.category}</div>
+                      <div className="text-sm text-muted-foreground">{flow.markets} markets</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold gradient-text text-xl">{flow.amount}</div>
+                      <div className="text-sm text-muted-foreground">{flow.percentage}%</div>
+                    </div>
                   </div>
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className={`absolute inset-0 bg-gradient-to-r ${flow.color} animate-shimmer`}
+                      className="h-full bg-gradient-to-r from-secondary to-accent animate-shimmer transition-all duration-500"
                       style={{ 
+                        width: `${flow.percentage}%`,
                         backgroundSize: '200% 100%',
-                        animation: 'shimmer 2s linear infinite'
                       }}
                     />
                   </div>

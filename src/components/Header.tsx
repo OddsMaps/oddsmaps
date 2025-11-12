@@ -15,7 +15,6 @@ const Header = () => {
   }, []);
 
   const navItems = [
-    { label: "Markets", href: "#markets" },
     { label: "Analytics", href: "#analytics" },
     { label: "How It Works", href: "#how-it-works" },
     { label: "Community", href: "#community" },
