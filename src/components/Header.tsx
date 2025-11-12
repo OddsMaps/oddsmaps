@@ -45,7 +45,7 @@ const Header = () => {
               <img 
                 src={logo} 
                 alt="OddsMap" 
-                className="h-16 w-auto transition-transform duration-300 group-hover:scale-105"
+                className="h-24 w-auto transition-transform duration-300 group-hover:scale-105"
               />
             </a>
 
