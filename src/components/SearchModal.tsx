@@ -1,29 +1,71 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Command, TrendingUp, TrendingDown, X } from "lucide-react";
+import { Search, Command, TrendingUp, TrendingDown, X, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface Transaction {
+  id: string;
+  wallet_address: string;
+  amount: number;
+  price: number;
+  side: string;
+  timestamp: string;
+  market: {
+    title: string;
+    market_id: string;
+  };
+}
+
 const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets } = useMarkets();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const navigate = useNavigate();
 
-  // Filter markets based on search query - search all fields
+  // Fetch transactions for search
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const { data } = await supabase
+        .from('wallet_transactions')
+        .select(`
+          *,
+          market:markets(title, market_id)
+        `)
+        .order('timestamp', { ascending: false })
+        .limit(1000);
+      
+      setTransactions(data || []);
+    };
+
+    if (open) {
+      fetchTransactions();
+    }
+  }, [open]);
+
+  // Filter markets based on search query
   const filteredMarkets = markets?.filter(market => 
     market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     market.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     market.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     market.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
     market.market_id.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 20) || []; // Increased to 20 results
+  ).slice(0, 15) || [];
+
+  // Filter transactions based on search query
+  const filteredTransactions = transactions?.filter(tx => 
+    tx.market?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.wallet_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.side.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 10) || [];
 
   // Reset search when modal closes
   useEffect(() => {
@@ -35,6 +77,8 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   // Keyboard navigation
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  const allResults = [...filteredMarkets, ...filteredTransactions];
+
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchQuery]);
@@ -42,17 +86,23 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex(prev => Math.min(prev + 1, filteredMarkets.length - 1));
+      setSelectedIndex(prev => Math.min(prev + 1, allResults.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex(prev => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && filteredMarkets[selectedIndex]) {
+    } else if (e.key === "Enter" && allResults[selectedIndex]) {
       e.preventDefault();
-      handleSelectMarket(filteredMarkets[selectedIndex]);
+      const result = allResults[selectedIndex];
+      if ('wallet_address' in result) {
+        navigate(`/wallet/${result.wallet_address}`);
+      } else {
+        handleSelectMarket(result);
+      }
+      onOpenChange(false);
     } else if (e.key === "Escape") {
       onOpenChange(false);
     }
-  }, [filteredMarkets, selectedIndex, onOpenChange]);
+  }, [allResults, selectedIndex, onOpenChange, navigate]);
 
   const handleSelectMarket = (market: any) => {
     navigate(`/market/${market.market_id}`);
@@ -62,6 +112,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 gap-0 bg-background/95 backdrop-blur-xl border-border shadow-2xl">
+        <DialogTitle className="sr-only">Search Markets and Bets</DialogTitle>
         <div className="rounded-2xl overflow-hidden">
           {/* Search Input */}
           <div className="flex items-center gap-3 p-4 border-b border-border/50 bg-background">
@@ -87,9 +138,15 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
           {/* Search Results */}
           <div className="max-h-[500px] overflow-y-auto bg-background">
             {searchQuery ? (
-              filteredMarkets.length > 0 ? (
+              allResults.length > 0 ? (
                 <div className="p-2">
-                  {filteredMarkets.map((market, index) => {
+                  {/* Markets */}
+                  {filteredMarkets.length > 0 && (
+                    <div className="mb-4">
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Markets ({filteredMarkets.length})
+                      </div>
+                      {filteredMarkets.map((market, index) => {
                     const change = ((market.yes_price - 0.5) * 100).toFixed(1);
                     const isPositive = parseFloat(change) > 0;
                     
@@ -145,6 +202,65 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                       </button>
                     );
                   })}
+                    </div>
+                  )}
+
+                  {/* Transactions */}
+                  {filteredTransactions.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                        Recent Bets ({filteredTransactions.length})
+                      </div>
+                      {filteredTransactions.map((tx, txIndex) => {
+                        const index = filteredMarkets.length + txIndex;
+                        return (
+                          <button
+                            key={tx.id}
+                            onClick={() => {
+                              navigate(`/wallet/${tx.wallet_address}`);
+                              onOpenChange(false);
+                            }}
+                            className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                              index === selectedIndex
+                                ? "bg-muted scale-[1.02]"
+                                : "hover:bg-muted/30"
+                            }`}
+                            onMouseEnter={() => setSelectedIndex(index)}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge className={`text-xs ${
+                                    tx.side === 'yes' 
+                                      ? 'bg-green-500/20 text-green-500 border-green-500/20' 
+                                      : 'bg-red-500/20 text-red-500 border-red-500/20'
+                                  }`}>
+                                    {tx.side.toUpperCase()}
+                                  </Badge>
+                                  <Activity className="w-3 h-3 text-muted-foreground" />
+                                </div>
+                                <h3 className="font-semibold mb-1 line-clamp-1 text-sm">
+                                  {tx.market?.title}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
+                                </p>
+                              </div>
+                              
+                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                <div className="font-bold text-sm">
+                                  ${tx.amount.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  @ ${tx.price.toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-12 text-center">
@@ -157,9 +273,9 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
             ) : (
               <div className="p-12 text-center">
                 <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-muted-foreground mb-2">Search prediction markets</p>
+                <p className="text-muted-foreground mb-2">Search markets and bets</p>
                 <p className="text-sm text-muted-foreground/60">
-                  Search all {markets?.length || 0}+ markets from Kalshi and Polymarket
+                  Search {markets?.length || 0}+ markets and {transactions.length}+ live bets
                 </p>
               </div>
             )}
@@ -183,7 +299,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
               </div>
             </div>
             <div className="text-muted-foreground/60">
-              {filteredMarkets.length} {filteredMarkets.length === 1 ? 'result' : 'results'}
+              {allResults.length} {allResults.length === 1 ? 'result' : 'results'}
             </div>
           </div>
         </div>

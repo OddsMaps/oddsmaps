@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.get-markets]
 verify_jwt = false
+
+[functions.fetch-polymarket-markets]
+verify_jwt = false
+
+[functions.fetch-polymarket-transactions]
+verify_jwt = false
+
+[functions.get-wallet-profile]
+verify_jwt = false
+
+[functions.fetch-wallet-data]
+verify_jwt = false

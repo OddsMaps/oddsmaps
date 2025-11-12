@@ -30,8 +30,8 @@ Deno.serve(async (req) => {
   try {
     console.log('Fetching markets from Polymarket API...');
 
-    // Fetch from Polymarket CLOB API - this returns a single object with markets array
-    const polymarketResponse = await fetch('https://gamma-api.polymarket.com/markets?limit=100&active=true', {
+    // Fetch from Polymarket CLOB API - using a different endpoint that returns active markets
+    const polymarketResponse = await fetch('https://gamma-api.polymarket.com/markets?limit=100', {
       headers: {
         'Accept': 'application/json',
       },
@@ -63,10 +63,14 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Process and store markets
+    // Process and store markets - be more lenient with filtering
     const processedMarkets = polymarketData
-      .filter(market => market.active && !market.closed)
-      .slice(0, 100) // Increased to 100 markets
+      .filter(market => {
+        // Accept if not explicitly closed
+        const isActive = market.active !== false && market.closed !== true;
+        return isActive;
+      })
+      .slice(0, 100)
       .map(market => {
         const yesToken = market.tokens?.find(t => t.outcome === 'Yes');
         const noToken = market.tokens?.find(t => t.outcome === 'No');
