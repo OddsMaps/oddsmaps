@@ -56,9 +56,9 @@ Deno.serve(async (req) => {
       const conditionId = market.market_id.replace('polymarket-', '');
       
       try {
-        // Fetch recent trades from Polymarket trades endpoint
+        // Fetch recent trades from Polymarket CLOB trades endpoint
         const tradesResponse = await fetch(
-          `https://gamma-api.polymarket.com/markets/${conditionId}/trades?limit=50`,
+          `https://clob.polymarket.com/trades?condition_id=${conditionId}&limit=100`,
           {
             headers: {
               'Accept': 'application/json',

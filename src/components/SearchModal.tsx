@@ -35,6 +35,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   // Fetch ALL transactions for search
   useEffect(() => {
     const fetchTransactions = async () => {
+      // Try DB first
       const { data } = await supabase
         .from('wallet_transactions')
         .select(`
@@ -45,8 +46,35 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
         .order('timestamp', { ascending: false })
         .limit(5000);
       
-      setTransactions(data || []);
-      console.log(`Loaded ${data?.length || 0} Polymarket transactions for search`);
+      if (data && data.length > 0) {
+        setTransactions(data as any);
+        console.log(`Loaded ${data.length} Polymarket transactions from DB for search`);
+        return;
+      }
+
+      // Fallback: live fetch from blockchain logs if DB is empty
+      try {
+        const { data: live } = await supabase.functions.invoke('fetch-wallet-data', {
+          body: { marketId: 'polymarket', contractAddress: '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E' }
+        });
+
+        const mapped: Transaction[] = (live?.transactions || []).map((t: any) => ({
+          id: t.id,
+          wallet_address: t.address,
+          amount: t.amount,
+          price: 0, // unknown from logs
+          side: t.side || 'yes',
+          timestamp: t.timestamp,
+          transaction_hash: t.hash,
+          market: { title: 'Polymarket Trade', market_id: 'polymarket' },
+        }));
+
+        setTransactions(mapped);
+        console.log(`Loaded ${mapped.length} live Polymarket transactions (fallback)`);
+      } catch (e) {
+        console.error('Fallback live fetch failed', e);
+        setTransactions([]);
+      }
     };
 
     if (open) {

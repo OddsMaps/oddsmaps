@@ -5,21 +5,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PolymarketMarket {
-  condition_id: string;
-  question: string;
-  description: string;
-  category: string;
-  end_date_iso: string;
-  active: boolean;
-  closed: boolean;
-  tokens: Array<{
-    token_id: string;
-    outcome: string;
-    price: string;
-  }>;
-  volume: string;
-  liquidity: string;
+// Flexible type to handle different market shapes from Polymarket APIs
+interface AnyMarket {
+  id?: string;
+  condition_id?: string; // snake_case
+  conditionId?: string;  // camelCase
+  question?: string;
+  title?: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  active?: boolean;
+  closed?: boolean;
+  end_date_iso?: string;
+  endDate?: string | number;
+  endTime?: string | number;
+  volume?: string | number;
+  volume24hr?: string | number;
+  liquidity?: string | number;
+  outcomes?: Array<{ name?: string; price?: string | number }>;
+  tokens?: Array<{ outcome?: string; price?: string | number }>;
+}
+
+function toNumber(v: unknown, fallback = 0): number {
+  const n = typeof v === 'string' ? parseFloat(v) : typeof v === 'number' ? v : NaN;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function getYesNoPrices(m: AnyMarket) {
+  // Try multiple possible shapes
+  const tokens = m.tokens || [];
+  const outcomes = m.outcomes || [];
+
+  let yes = 0.5;
+  let no = 0.5;
+
+  const fromTokensYes = tokens.find(t => (t.outcome || '').toLowerCase() === 'yes');
+  const fromTokensNo = tokens.find(t => (t.outcome || '').toLowerCase() === 'no');
+  if (fromTokensYes) yes = toNumber(fromTokensYes.price, yes);
+  if (fromTokensNo) no = toNumber(fromTokensNo.price, no);
+
+  // Some APIs list generic outcomes; try first two as yes/no if not found above
+  if (!fromTokensYes && outcomes.length >= 2) {
+    yes = toNumber(outcomes[0]?.price, yes);
+    no = toNumber(outcomes[1]?.price, no);
+  }
+
+  return { yes_price: yes, no_price: no };
 }
 
 Deno.serve(async (req) => {
@@ -28,171 +61,166 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('Fetching markets from Polymarket API...');
+    console.log('Fetching markets from Polymarket CLOB API...');
 
-    // Fetch from Polymarket CLOB API - using a different endpoint that returns active markets
-    const polymarketResponse = await fetch('https://gamma-api.polymarket.com/markets?limit=100', {
-      headers: {
-        'Accept': 'application/json',
-      },
+    // Prefer CLOB markets endpoint; fall back to gamma if needed
+    const clobResp = await fetch('https://clob.polymarket.com/markets?limit=200', {
+      headers: { Accept: 'application/json' },
     });
 
-    if (!polymarketResponse.ok) {
-      throw new Error(`Polymarket API error: ${polymarketResponse.status}`);
+    let marketsRaw: AnyMarket[] = [];
+
+    if (clobResp.ok) {
+      const body = await clobResp.json();
+      marketsRaw = Array.isArray(body) ? body : Array.isArray((body as any)?.markets) ? (body as any).markets : [];
+      console.log('CLOB markets fetched:', marketsRaw.length);
     }
 
-    const responseData = await polymarketResponse.json();
-    console.log('Polymarket API response structure:', Object.keys(responseData || {}));
-    
-    // Handle both array and object responses
-    let polymarketData: PolymarketMarket[] = [];
-    if (Array.isArray(responseData)) {
-      polymarketData = responseData;
-      console.log('Response is array with', polymarketData.length, 'items');
-    } else if (responseData && Array.isArray(responseData.data)) {
-      polymarketData = responseData.data;
-      console.log('Response.data is array with', polymarketData.length, 'items');
-    } else if (responseData && responseData.length !== undefined) {
-      polymarketData = [responseData];
-      console.log('Response is single object, converted to array');
-    } else {
-      console.error('Unexpected response format from Polymarket API:', responseData);
-      throw new Error('Unexpected response format from Polymarket API');
+    // Fallback to gamma if CLOB returned none or failed
+    if (!clobResp.ok || marketsRaw.length === 0) {
+      console.log('Falling back to Gamma markets API...');
+      const gammaResp = await fetch('https://gamma-api.polymarket.com/markets?limit=200&active=true&closed=false&archived=false', {
+        headers: { Accept: 'application/json' },
+      });
+      if (!gammaResp.ok) throw new Error('Gamma API failed: ' + gammaResp.status);
+      const g = await gammaResp.json();
+      marketsRaw = Array.isArray(g)
+        ? g
+        : Array.isArray((g as any)?.data)
+        ? (g as any).data
+        : Array.isArray((g as any)?.markets)
+        ? (g as any).markets
+        : [];
+      console.log('Gamma markets fetched:', marketsRaw.length);
     }
 
-    console.log(`Fetched ${polymarketData.length} markets from Polymarket`);
-
-    // Log first market to see structure
-    if (polymarketData.length > 0) {
-      console.log('Sample market structure:', JSON.stringify(polymarketData[0], null, 2).substring(0, 500));
+    if (!marketsRaw || marketsRaw.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, processed: 0, message: 'No markets returned from Polymarket' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Process and store markets - accept ALL markets unless explicitly closed
-    const processedMarkets = polymarketData
-      .filter(market => {
-        // Very permissive filter - only exclude if explicitly marked as closed
-        const shouldInclude = market.closed !== true;
-        if (!shouldInclude) {
-          console.log('Filtering out closed market:', market.question);
-        }
-        return shouldInclude;
-      })
-      .slice(0, 100)
-      .map(market => {
-        const yesToken = market.tokens?.find(t => t.outcome === 'Yes');
-        const noToken = market.tokens?.find(t => t.outcome === 'No');
+    // Very permissive include: exclude only explicitly closed if present
+    const processed = marketsRaw
+      .filter((m) => m.closed !== true)
+      .slice(0, 200)
+      .map((m) => {
+        const conditionId = m.condition_id || m.conditionId || m.id || '';
+        const title = m.question || m.title || m.name || 'Polymarket Market';
+        const description = m.description || '';
+        const category = m.category || (m.tags && m.tags[0]) || 'General';
+
+        const endRaw = m.end_date_iso || m.endDate || m.endTime;
+        const endDate = endRaw ? new Date(endRaw as any).toISOString() : null;
+
+        const { yes_price, no_price } = getYesNoPrices(m);
+        const volume_24h = toNumber((m as any).volume24hr ?? (m as any).volume, 0);
+        const liquidity = toNumber((m as any).liquidity, 0);
+        const trades_24h = toNumber((m as any).trades24hr, 0);
+        const volatility = Math.abs(yes_price - 0.5) * 100;
 
         return {
-          market_id: `polymarket-${market.condition_id}`,
+          market_id: `polymarket-${conditionId}`,
           source: 'polymarket',
-          title: market.question,
-          description: market.description || '',
-          category: market.category || 'General',
-          end_date: market.end_date_iso ? new Date(market.end_date_iso).toISOString() : null,
+          title,
+          description,
+          category,
+          end_date: endDate,
           status: 'active',
-          yes_price: yesToken ? parseFloat(yesToken.price) : 0.5,
-          no_price: noToken ? parseFloat(noToken.price) : 0.5,
-          volume_24h: parseFloat(market.volume) || 0,
-          liquidity: parseFloat(market.liquidity) || 0,
-          trades_24h: 0,
-          volatility: Math.abs((yesToken ? parseFloat(yesToken.price) : 0.5) - 0.5) * 100,
+          yes_price,
+          no_price,
+          volume_24h,
+          liquidity,
+          trades_24h,
+          volatility,
         };
       });
 
-    console.log(`Processing ${processedMarkets.length} active markets`);
+    let upserts = 0;
 
-    // Upsert markets
-    for (const market of processedMarkets) {
-      // Check if market exists
-      const { data: existingMarket } = await supabaseClient
+    for (const m of processed) {
+      if (!m.market_id || m.market_id === 'polymarket-') continue;
+
+      // Find existing market
+      const { data: existing } = await supabase
         .from('markets')
         .select('id')
-        .eq('market_id', market.market_id)
+        .eq('market_id', m.market_id)
         .single();
 
-      if (existingMarket) {
-        // Update existing market
-        await supabaseClient
+      if (existing) {
+        // Update core info
+        await supabase
           .from('markets')
           .update({
-            title: market.title,
-            description: market.description,
-            category: market.category,
-            end_date: market.end_date,
-            status: market.status,
+            title: m.title,
+            description: m.description,
+            category: m.category,
+            end_date: m.end_date,
+            status: m.status,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existingMarket.id);
+          .eq('id', existing.id);
 
-        // Insert new market data snapshot
-        await supabaseClient
-          .from('market_data')
-          .insert({
-            market_id: existingMarket.id,
-            yes_price: market.yes_price,
-            no_price: market.no_price,
-            volume_24h: market.volume_24h,
-            liquidity: market.liquidity,
-            trades_24h: 0, // Polymarket doesn't provide this directly
-            volatility: Math.abs(market.yes_price - 0.5) * 100,
-          });
+        // Insert a new data snapshot
+        await supabase.from('market_data').insert({
+          market_id: existing.id,
+          yes_price: m.yes_price,
+          no_price: m.no_price,
+          volume_24h: m.volume_24h,
+          liquidity: m.liquidity,
+          trades_24h: m.trades_24h,
+          volatility: m.volatility,
+        });
       } else {
-        // Insert new market
-        const { data: newMarket, error: marketError } = await supabaseClient
+        // Insert market then snapshot
+        const { data: newM, error: marketErr } = await supabase
           .from('markets')
           .insert({
-            market_id: market.market_id,
-            source: market.source,
-            title: market.title,
-            description: market.description,
-            category: market.category,
-            end_date: market.end_date,
-            status: market.status,
+            market_id: m.market_id,
+            source: m.source,
+            title: m.title,
+            description: m.description,
+            category: m.category,
+            end_date: m.end_date,
+            status: m.status,
           })
           .select()
           .single();
 
-        if (marketError) {
-          console.error('Error inserting market:', marketError);
-          continue;
-        }
+        if (marketErr || !newM) continue;
 
-        // Insert initial market data
-        await supabaseClient
-          .from('market_data')
-          .insert({
-            market_id: newMarket.id,
-            yes_price: market.yes_price,
-            no_price: market.no_price,
-            volume_24h: market.volume_24h,
-            liquidity: market.liquidity,
-            trades_24h: market.trades_24h,
-            volatility: market.volatility,
-          });
+        await supabase.from('market_data').insert({
+          market_id: newM.id,
+          yes_price: m.yes_price,
+          no_price: m.no_price,
+          volume_24h: m.volume_24h,
+          liquidity: m.liquidity,
+          trades_24h: m.trades_24h,
+          volatility: m.volatility,
+        });
       }
+
+      upserts++;
     }
 
-    console.log('Successfully synced Polymarket data');
+    console.log('Polymarket markets upserts:', upserts);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        processed: processedMarkets.length,
-        message: 'Polymarket data synced successfully'
-      }),
+      JSON.stringify({ success: true, processed: upserts, message: 'Polymarket markets synced' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in fetch-polymarket-markets:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const msg = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
