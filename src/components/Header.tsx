@@ -42,7 +42,7 @@ const Header = () => {
         {/* Glass Background */}
         <div className="absolute inset-0 glass-strong border-b border-border/50 backdrop-blur-xl" />
         
-        <div className="relative max-w-7xl mx-auto px-6 py-6">
+        <div className="relative max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <a 
@@ -56,7 +56,7 @@ const Header = () => {
               <img 
                 src={logo} 
                 alt="OddsMap" 
-                className="h-32 w-auto transition-transform duration-300 group-hover:scale-110"
+                className="h-40 w-auto transition-transform duration-300 group-hover:scale-110"
               />
             </a>
 
