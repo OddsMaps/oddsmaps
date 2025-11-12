@@ -31,7 +31,7 @@ const Header = () => {
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-background/95 backdrop-blur-xl border-b border-border/50' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-2">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <a 
@@ -45,7 +45,7 @@ const Header = () => {
               <img 
                 src={logo} 
                 alt="OddsMap" 
-                className="h-32 w-auto transition-transform duration-300 group-hover:scale-105"
+                className="h-40 w-auto transition-transform duration-300 group-hover:scale-105"
               />
             </a>
 
