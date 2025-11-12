@@ -29,7 +29,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch real wallet data for Polymarket markets
+  // Fetch real wallet data from database for Polymarket markets
   useEffect(() => {
     const fetchWalletData = async () => {
       const isPolymarket = market.source.toLowerCase() === 'polymarket';
@@ -43,21 +43,55 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         setLoading(true);
         setError(null);
         
-        const { data, error: functionError } = await supabase.functions.invoke('fetch-wallet-data', {
-          body: { 
-            marketId: market.market_id,
-            contractAddress: null // Could be extracted from market data if available
-          }
-        });
+        // Fetch all transactions for this market from the database
+        const { data: transactions, error: txError } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('market_id', market.id)
+          .order('timestamp', { ascending: false });
 
-        if (functionError) {
-          throw functionError;
-        }
+        if (txError) throw txError;
 
-        if (data?.wallets && data.wallets.length > 0) {
-          setRealWallets(data.wallets);
+        if (transactions && transactions.length > 0) {
+          // Aggregate transactions by wallet address
+          const walletMap = new Map<string, {
+            address: string;
+            volume: number;
+            trades: number;
+            side: 'yes' | 'no';
+            avgPrice: number;
+            totalCost: number;
+          }>();
+
+          transactions.forEach(tx => {
+            const existing = walletMap.get(tx.wallet_address);
+            if (existing) {
+              existing.volume += Number(tx.amount);
+              existing.trades += 1;
+              existing.totalCost += Number(tx.amount) * Number(tx.price);
+            } else {
+              walletMap.set(tx.wallet_address, {
+                address: tx.wallet_address,
+                volume: Number(tx.amount),
+                trades: 1,
+                side: tx.side as 'yes' | 'no',
+                avgPrice: Number(tx.price),
+                totalCost: Number(tx.amount) * Number(tx.price)
+              });
+            }
+          });
+
+          // Convert to array and calculate averages
+          const walletsArray = Array.from(walletMap.values()).map(w => ({
+            ...w,
+            avgPrice: w.totalCost / w.volume
+          }));
+
+          setRealWallets(walletsArray);
+        } else {
+          setError('No transaction data available yet');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching wallet data:', err);
         setError(err.message);
       } finally {
@@ -66,7 +100,29 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     };
 
     fetchWalletData();
-  }, [market.market_id, market.source]);
+
+    // Set up realtime subscription for new transactions
+    const channel = supabase
+      .channel('wallet-transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `market_id=eq.${market.id}`
+        },
+        () => {
+          // Refetch when new transactions arrive
+          fetchWalletData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [market.id, market.source]);
 
   // Generate wallet data (real or mock)
   const wallets = useMemo(() => {
@@ -221,13 +277,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             {isPolymarket && (
               <p className="text-sm text-muted-foreground mt-1">
                 {loading ? (
-                  "Loading real blockchain data..."
+                  "Loading real-time Polymarket data..."
                 ) : hasRealData ? (
-                  "✓ Real on-chain data from Polygon network"
+                  "✓ Live data from Polymarket transactions"
                 ) : error ? (
-                  `⚠ ${error} - Showing mock data`
+                  `⚠ ${error}`
                 ) : (
-                  "Showing mock data"
+                  "Waiting for transaction data..."
                 )}
               </p>
             )}
