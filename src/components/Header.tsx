@@ -42,7 +42,7 @@ const Header = () => {
         {/* Glass Background */}
         <div className="absolute inset-0 glass-strong border-b border-border/50 backdrop-blur-xl" />
         
-        <div className="relative max-w-7xl mx-auto px-6 py-3">
+        <div className="relative max-w-7xl mx-auto px-6 py-1">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <a 
