@@ -1,10 +1,12 @@
 import { TrendingUp, TrendingDown, Activity, Zap } from "lucide-react";
 import { useMarkets } from "@/hooks/useMarkets";
 import { usePolymarketSync } from "@/hooks/usePolymarketSync";
+import { usePriceChanges } from "@/hooks/usePriceChanges";
 import { useMemo } from "react";
 
 const AnalyticsLive = () => {
   const { data: markets } = useMarkets();
+  const { priceChanges, activeMarkets } = usePriceChanges(markets);
   
   // Sync Polymarket data on mount and periodically
   usePolymarketSync();
@@ -14,16 +16,29 @@ const AnalyticsLive = () => {
     if (!markets) return [];
     
     return markets
-      .map(market => ({
-        name: market.title,
-        change: `${((market.yes_price - 0.5) * 100).toFixed(1)}%`,
-        direction: market.yes_price > 0.5 ? 'up' : 'down',
-        volume: `$${(market.volume_24h / 1000).toFixed(1)}K`,
-        volatility: market.volatility,
-      }))
-      .sort((a, b) => b.volatility - a.volatility)
-      .slice(0, 3);
-  }, [markets]);
+      .map(market => {
+        const priceChange = priceChanges.get(market.id);
+        const isActive = activeMarkets.has(market.id);
+        
+        return {
+          id: market.id,
+          name: market.title,
+          change: priceChange 
+            ? `${priceChange.changePercent > 0 ? '+' : ''}${priceChange.changePercent.toFixed(1)}%`
+            : `${((market.yes_price - 0.5) * 100).toFixed(1)}%`,
+          direction: priceChange 
+            ? (priceChange.isIncreasing ? 'up' : 'down')
+            : (market.yes_price > 0.5 ? 'up' : 'down'),
+          volume: `$${(market.volume_24h / 1000).toFixed(1)}K`,
+          volatility: market.volatility,
+          currentPrice: market.yes_price,
+          priceChange: priceChange?.changePercent || 0,
+          isActive,
+        };
+      })
+      .sort((a, b) => Math.abs(b.priceChange) - Math.abs(a.priceChange))
+      .slice(0, 5);
+  }, [markets, priceChanges, activeMarkets]);
 
   // Calculate liquidity flows by category
   const liquidityFlows = useMemo(() => {
@@ -121,24 +136,60 @@ const AnalyticsLive = () => {
             <div className="space-y-4">
               {topMovers.map((mover, i) => (
                 <div 
-                  key={i} 
-                  className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300 group cursor-pointer"
+                  key={mover.id} 
+                  className={`glass p-4 rounded-xl hover:glass-strong transition-all duration-300 group cursor-pointer relative overflow-hidden ${
+                    mover.isActive ? 'animate-glow-pulse' : ''
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 pr-4">
-                      <div className="font-semibold text-lg mb-1 line-clamp-1">{mover.name}</div>
-                      <div className="text-sm text-muted-foreground">Volume: {mover.volume}</div>
+                  {/* Active indicator pulse */}
+                  {mover.isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 animate-pulse pointer-events-none" />
+                  )}
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1 pr-4">
+                        <div className="font-semibold text-lg mb-1 line-clamp-1">{mover.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Volume: {mover.volume} • Price: ${mover.currentPrice.toFixed(3)}
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-2 font-bold text-xl transition-all duration-300 ${
+                        mover.direction === 'up' ? 'text-green-400' : 'text-red-400'
+                      } ${mover.isActive ? 'scale-110' : ''}`}>
+                        {mover.direction === 'up' ? (
+                          <TrendingUp className={`w-6 h-6 ${mover.isActive ? 'animate-bounce' : ''}`} />
+                        ) : (
+                          <TrendingDown className={`w-6 h-6 ${mover.isActive ? 'animate-bounce' : ''}`} />
+                        )}
+                        <span className={mover.isActive ? 'animate-pulse' : ''}>{mover.change}</span>
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-2 font-bold text-xl ${mover.direction === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-                      {mover.direction === 'up' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                      {mover.change}
+                    
+                    {/* Volatility bar */}
+                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r transition-all duration-500 ${
+                          mover.direction === 'up' 
+                            ? 'from-green-400 to-green-600' 
+                            : 'from-red-400 to-red-600'
+                        } ${mover.isActive ? 'animate-shimmer' : ''}`}
+                        style={{ 
+                          width: `${Math.min(100, mover.volatility)}%`,
+                          backgroundSize: '200% 100%',
+                        }}
+                      />
                     </div>
-                  </div>
-                  <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full bg-gradient-to-r ${mover.direction === 'up' ? 'from-green-400 to-green-600' : 'from-red-400 to-red-600'} animate-shimmer`}
-                      style={{ width: `${Math.min(100, mover.volatility)}%` }}
-                    />
+                    
+                    {/* Live indicator */}
+                    {mover.isActive && (
+                      <div className="absolute top-2 right-2">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/20 backdrop-blur-sm">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                          <span className="text-xs font-semibold text-primary">LIVE</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
