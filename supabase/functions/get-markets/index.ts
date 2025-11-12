@@ -18,18 +18,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Parse query parameters
-    const url = new URL(req.url);
-    const source = url.searchParams.get('source');
-    const category = url.searchParams.get('category');
-    const limit = parseInt(url.searchParams.get('limit') || '200'); // Increased default limit
+    // Parse request body
+    const { source, category, limit = 200 } = await req.json().catch(() => ({}));
+    console.log('Request params:', { source, category, limit });
 
-    // Build query
+    // Build query with timeout protection
     let query = supabaseClient
       .from('markets')
       .select(`
         *,
-        market_data (
+        market_data!inner (
           yes_price,
           no_price,
           volume_24h,
@@ -40,6 +38,8 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('status', 'active')
+      .order('timestamp', { foreignTable: 'market_data', ascending: false })
+      .limit(1, { foreignTable: 'market_data' })
       .order('created_at', { ascending: false })
       .limit(limit);
 
