@@ -1,3 +1,4 @@
+import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import MarketMapLive from "@/components/MarketMapLive";
 import SearchBar from "@/components/SearchBar";
@@ -9,12 +10,23 @@ import Footer from "@/components/Footer";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <Hero />
-      <MarketMapLive />
+      <Header />
+      <div id="home">
+        <Hero />
+      </div>
+      <div id="markets">
+        <MarketMapLive />
+      </div>
       <SearchBar />
-      <AnalyticsLive />
-      <HowItWorks />
-      <Community />
+      <div id="analytics">
+        <AnalyticsLive />
+      </div>
+      <div id="how-it-works">
+        <HowItWorks />
+      </div>
+      <div id="community">
+        <Community />
+      </div>
       <Footer />
     </div>
   );
