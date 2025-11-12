@@ -14,7 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      market_data: {
+        Row: {
+          created_at: string | null
+          id: string
+          liquidity: number | null
+          market_id: string | null
+          no_price: number | null
+          timestamp: string | null
+          trades_24h: number | null
+          volatility: number | null
+          volume_24h: number | null
+          yes_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          liquidity?: number | null
+          market_id?: string | null
+          no_price?: number | null
+          timestamp?: string | null
+          trades_24h?: number | null
+          volatility?: number | null
+          volume_24h?: number | null
+          yes_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          liquidity?: number | null
+          market_id?: string | null
+          no_price?: number | null
+          timestamp?: string | null
+          trades_24h?: number | null
+          volatility?: number | null
+          volume_24h?: number | null
+          yes_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_data_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      markets: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          market_id: string
+          source: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          market_id: string
+          source: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          market_id?: string
+          source?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
