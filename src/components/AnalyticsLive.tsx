@@ -11,8 +11,8 @@ const AnalyticsLive = () => {
   // Sync Polymarket data on mount and periodically
   usePolymarketSync();
 
-  // Calculate top movers based on volatility and price change
-  const topMovers = useMemo(() => {
+  // Calculate trending markets (most active this hour)
+  const trendingMarkets = useMemo(() => {
     if (!markets) return [];
     
     return markets
@@ -22,22 +22,20 @@ const AnalyticsLive = () => {
         
         return {
           id: market.id,
-          name: market.title,
+          event: market.title,
+          odds: `${(market.yes_price * 100).toFixed(0)}%`,
           change: priceChange 
             ? `${priceChange.changePercent > 0 ? '+' : ''}${priceChange.changePercent.toFixed(1)}%`
             : `${((market.yes_price - 0.5) * 100).toFixed(1)}%`,
-          direction: priceChange 
-            ? (priceChange.isIncreasing ? 'up' : 'down')
-            : (market.yes_price > 0.5 ? 'up' : 'down'),
-          volume: `$${(market.volume_24h / 1000).toFixed(1)}K`,
+          isIncreasing: priceChange ? priceChange.isIncreasing : market.yes_price > 0.5,
           volatility: market.volatility,
-          currentPrice: market.yes_price,
-          priceChange: priceChange?.changePercent || 0,
+          volume: market.volume_24h,
+          trades: market.trades_24h,
           isActive,
         };
       })
-      .sort((a, b) => Math.abs(b.priceChange) - Math.abs(a.priceChange))
-      .slice(0, 5);
+      .sort((a, b) => b.trades - a.trades) // Sort by most trades (activity)
+      .slice(0, 4);
   }, [markets, priceChanges, activeMarkets]);
 
   // Calculate liquidity flows by category
@@ -121,68 +119,73 @@ const AnalyticsLive = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Top Movers */}
+          {/* Trending Now */}
           <div className="glass-strong rounded-3xl p-8 space-y-6 hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary glow-pink">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent glow-pink">
                 <Zap className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold gradient-text">Top Movers</h3>
-                <p className="text-sm text-muted-foreground">Fastest changing odds</p>
+                <h3 className="text-2xl font-bold gradient-text">Trending Now</h3>
+                <p className="text-sm text-muted-foreground">Most active markets this hour</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              {topMovers.map((mover, i) => (
-                <div 
-                  key={mover.id} 
-                  className={`glass p-4 rounded-xl hover:glass-strong transition-all duration-300 group cursor-pointer relative overflow-hidden ${
-                    mover.isActive ? 'animate-glow-pulse' : ''
+              {trendingMarkets.map((market, i) => (
+                <div
+                  key={market.id}
+                  className={`glass p-5 rounded-xl hover:glass-strong transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+                    market.isActive ? 'animate-glow-pulse' : ''
                   }`}
                 >
                   {/* Active indicator pulse */}
-                  {mover.isActive && (
+                  {market.isActive && (
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 animate-pulse pointer-events-none" />
                   )}
                   
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1 pr-4">
-                        <div className="font-semibold text-lg mb-1 line-clamp-1">{mover.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Volume: {mover.volume} • Price: ${mover.currentPrice.toFixed(3)}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="font-semibold mb-2 group-hover:gradient-text transition-all line-clamp-2">
+                          {market.event}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl font-bold gradient-text">{market.odds}</span>
+                          <span className={`text-sm font-semibold ${
+                            market.isIncreasing ? 'text-green-400' : 'text-red-400'
+                          } ${market.isActive ? 'animate-pulse' : ''}`}>
+                            {market.change}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {market.trades} trades • ${(market.volume / 1000).toFixed(1)}K volume
                         </div>
                       </div>
-                      <div className={`flex items-center gap-2 font-bold text-xl transition-all duration-300 ${
-                        mover.direction === 'up' ? 'text-green-400' : 'text-red-400'
-                      } ${mover.isActive ? 'scale-110' : ''}`}>
-                        {mover.direction === 'up' ? (
-                          <TrendingUp className={`w-6 h-6 ${mover.isActive ? 'animate-bounce' : ''}`} />
-                        ) : (
-                          <TrendingDown className={`w-6 h-6 ${mover.isActive ? 'animate-bounce' : ''}`} />
-                        )}
-                        <span className={mover.isActive ? 'animate-pulse' : ''}>{mover.change}</span>
+                      <div className={`flex-shrink-0 w-16 h-16 rounded-full glass-strong flex items-center justify-center transition-transform ${
+                        market.isActive ? 'scale-110' : 'group-hover:scale-110'
+                      }`}>
+                        <div className="text-xs text-center">
+                          <div className="font-bold">#{ i + 1}</div>
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* Volatility bar */}
-                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+
+                    {/* Activity Bar */}
+                    <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
-                        className={`h-full bg-gradient-to-r transition-all duration-500 ${
-                          mover.direction === 'up' 
-                            ? 'from-green-400 to-green-600' 
-                            : 'from-red-400 to-red-600'
-                        } ${mover.isActive ? 'animate-shimmer' : ''}`}
+                        className={`h-full bg-gradient-to-r from-primary via-secondary to-accent ${
+                          market.isActive ? 'animate-shimmer' : ''
+                        }`}
                         style={{ 
-                          width: `${Math.min(100, mover.volatility)}%`,
+                          width: market.odds,
                           backgroundSize: '200% 100%',
                         }}
                       />
                     </div>
-                    
+
                     {/* Live indicator */}
-                    {mover.isActive && (
+                    {market.isActive && (
                       <div className="absolute top-2 right-2">
                         <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/20 backdrop-blur-sm">
                           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -193,6 +196,22 @@ const AnalyticsLive = () => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Live Stats */}
+            <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-border">
+              <div className="text-center">
+                <div className="text-2xl font-bold gradient-text">
+                  {markets?.length || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">Active Markets</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold gradient-text">
+                  ${((markets?.reduce((sum, m) => sum + m.volume_24h, 0) || 0) / 1000000).toFixed(1)}M
+                </div>
+                <div className="text-sm text-muted-foreground">24h Volume</div>
+              </div>
             </div>
           </div>
 
