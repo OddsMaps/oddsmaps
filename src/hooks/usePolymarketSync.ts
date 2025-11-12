@@ -6,12 +6,23 @@ export const usePolymarketSync = () => {
     const syncPolymarketData = async () => {
       try {
         console.log('Syncing Polymarket data...');
-        const { data, error } = await supabase.functions.invoke('fetch-polymarket-markets');
         
-        if (error) {
-          console.error('Error syncing Polymarket data:', error);
+        // Sync markets
+        const { data: marketsData, error: marketsError } = await supabase.functions.invoke('fetch-polymarket-markets');
+        
+        if (marketsError) {
+          console.error('Error syncing Polymarket markets:', marketsError);
         } else {
-          console.log('Polymarket data synced successfully:', data);
+          console.log('Polymarket markets synced successfully:', marketsData);
+        }
+
+        // Sync transactions
+        const { data: transactionsData, error: transactionsError } = await supabase.functions.invoke('fetch-polymarket-transactions');
+        
+        if (transactionsError) {
+          console.error('Error syncing Polymarket transactions:', transactionsError);
+        } else {
+          console.log('Polymarket transactions synced successfully:', transactionsData);
         }
       } catch (error) {
         console.error('Failed to sync Polymarket data:', error);
