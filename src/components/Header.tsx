@@ -45,7 +45,7 @@ const Header = () => {
               <img 
                 src={logo} 
                 alt="OddsMap" 
-                className="h-32 w-auto transition-transform duration-300 group-hover:scale-105"
+                className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
               />
             </a>
 
@@ -67,7 +67,7 @@ const Header = () => {
             </nav>
 
             {/* Launch App Button */}
-            <button className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 transition-all duration-300 hover:scale-105 shadow-lg shadow-pink-500/30 text-sm uppercase tracking-wider">
+            <button className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 transition-all duration-300 hover:scale-105 shadow-lg shadow-pink-500/30 text-xs uppercase tracking-wider">
               Launch App
             </button>
           </div>
