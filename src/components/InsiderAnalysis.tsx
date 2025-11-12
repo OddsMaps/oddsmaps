@@ -1,7 +1,8 @@
-import { AlertTriangle, Shield, TrendingUp, Clock, DollarSign, Activity } from "lucide-react";
+import { AlertTriangle, Shield, TrendingUp, Clock, DollarSign, Activity, ExternalLink } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { useMemo, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface InsiderAnalysisProps {
   market: Market;
@@ -19,6 +20,7 @@ interface SuspiciousActivity {
 }
 
 const InsiderAnalysis = ({ market }: InsiderAnalysisProps) => {
+  const navigate = useNavigate();
   const [realWallets, setRealWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -221,7 +223,13 @@ const InsiderAnalysis = ({ market }: InsiderAnalysisProps) => {
                     <Activity className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <div className="text-muted-foreground text-xs">Wallet</div>
-                      <code className="font-mono">{activity.wallet}</code>
+                      <button
+                        onClick={() => navigate(`/wallet/${activity.wallet}`)}
+                        className="flex items-center gap-1 font-mono text-xs hover:text-primary transition-colors"
+                      >
+                        {activity.wallet}
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

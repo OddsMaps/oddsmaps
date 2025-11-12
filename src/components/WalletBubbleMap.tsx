@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, DollarSign, ExternalLink } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface WalletBubbleMapProps {
   market: Market;
@@ -22,6 +23,7 @@ interface WalletData {
 }
 
 const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
+  const navigate = useNavigate();
   const [hoveredWallet, setHoveredWallet] = useState<WalletData | null>(null);
   const [realWallets, setRealWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -300,6 +302,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                     }`}>
                       {hoveredWallet.side.toUpperCase()}
                     </span>
+                    <button
+                      onClick={() => navigate(`/wallet/${hoveredWallet.address}`)}
+                      className="ml-auto flex items-center gap-2 px-3 py-1 glass hover:glass-strong rounded-lg transition-all duration-300 text-sm"
+                    >
+                      View Profile
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
                   </div>
                   <div className="grid grid-cols-4 gap-6">
                     <div>

@@ -100,6 +100,157 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_positions: {
+        Row: {
+          avg_entry_price: number
+          closed_at: string | null
+          created_at: string | null
+          current_price: number | null
+          id: string
+          market_id: string | null
+          opened_at: string | null
+          pnl: number | null
+          position_size: number
+          side: string
+          status: string | null
+          trades_count: number | null
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          avg_entry_price: number
+          closed_at?: string | null
+          created_at?: string | null
+          current_price?: number | null
+          id?: string
+          market_id?: string | null
+          opened_at?: string | null
+          pnl?: number | null
+          position_size: number
+          side: string
+          status?: string | null
+          trades_count?: number | null
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          avg_entry_price?: number
+          closed_at?: string | null
+          created_at?: string | null
+          current_price?: number | null
+          id?: string
+          market_id?: string | null
+          opened_at?: string | null
+          pnl?: number | null
+          position_size?: number
+          side?: string
+          status?: string | null
+          trades_count?: number | null
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_profiles: {
+        Row: {
+          created_at: string | null
+          first_seen: string | null
+          id: string
+          last_seen: string | null
+          total_markets: number | null
+          total_pnl: number | null
+          total_trades: number | null
+          total_volume: number | null
+          updated_at: string | null
+          wallet_address: string
+          win_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          total_markets?: number | null
+          total_pnl?: number | null
+          total_trades?: number | null
+          total_volume?: number | null
+          updated_at?: string | null
+          wallet_address: string
+          win_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          total_markets?: number | null
+          total_pnl?: number | null
+          total_trades?: number | null
+          total_volume?: number | null
+          updated_at?: string | null
+          wallet_address?: string
+          win_rate?: number | null
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          block_number: number | null
+          created_at: string | null
+          id: string
+          market_id: string | null
+          price: number
+          side: string
+          timestamp: string | null
+          transaction_hash: string | null
+          transaction_type: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          block_number?: number | null
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          price: number
+          side: string
+          timestamp?: string | null
+          transaction_hash?: string | null
+          transaction_type?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          block_number?: number | null
+          created_at?: string | null
+          id?: string
+          market_id?: string | null
+          price?: number
+          side?: string
+          timestamp?: string | null
+          transaction_hash?: string | null
+          transaction_type?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

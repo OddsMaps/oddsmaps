@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Clock, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
+import { Clock, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, ExternalLink } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface TransactionTimelineProps {
   market: Market;
@@ -19,6 +20,7 @@ interface Transaction {
 }
 
 const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -235,9 +237,16 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
                   <div className="flex items-center justify-between gap-4 pt-3 border-t border-border/30">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs text-muted-foreground">Wallet:</span>
-                      <code className="text-xs font-mono text-foreground/80 truncate">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/wallet/${tx.address}`);
+                        }}
+                        className="flex items-center gap-1 text-xs font-mono text-foreground/80 hover:text-primary transition-colors truncate"
+                      >
                         {tx.address}
-                      </code>
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                      </button>
                     </div>
                     {isPolymarket && tx.hash && (
                       <a
@@ -245,6 +254,7 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         View on explorer
                         <ArrowUpRight className="w-3 h-3" />
