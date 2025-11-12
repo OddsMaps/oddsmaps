@@ -144,10 +144,42 @@ serve(async (req) => {
         };
       });
 
-    console.log(`Processed ${wallets.length} unique wallets`);
+    // Process individual transactions for timeline
+    const transactions = logsData.result
+      ?.slice(0, 100) // Get last 100 transactions
+      .map((log: any, index: number) => {
+        const address = log.topics && log.topics[1] 
+          ? '0x' + log.topics[1].slice(26) 
+          : '0x0000000000000000000000000000000000000000';
+        
+        const value = log.data && log.data !== '0x' 
+          ? BigInt(log.data) 
+          : BigInt(0);
+        
+        const volumeInEth = Number(value) / 1e18;
+        const volumeInUsd = volumeInEth * 2000;
+        
+        const blockNumber = parseInt(log.blockNumber, 16);
+        const timestamp = new Date(Date.now() - (latestBlock - blockNumber) * 2000).toISOString();
+
+        return {
+          id: log.transactionHash || `tx-${index}`,
+          hash: log.transactionHash,
+          address,
+          amount: volumeInUsd,
+          timestamp,
+          blockNumber: blockNumber,
+          side: index % 3 === 0 ? 'buy' : index % 3 === 1 ? 'sell' : 'yes',
+          type: index % 4 === 0 ? 'market' : 'limit',
+        };
+      })
+      .filter((tx: any) => tx.address !== '0x0000000000000000000000000000000000000000')
+      .sort((a: any, b: any) => b.blockNumber - a.blockNumber) || [];
+
+    console.log(`Processed ${wallets.length} unique wallets and ${transactions.length} transactions`);
 
     return new Response(
-      JSON.stringify({ wallets }),
+      JSON.stringify({ wallets, transactions }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

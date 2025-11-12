@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMarkets } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
 import InsiderAnalysis from "@/components/InsiderAnalysis";
+import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
 
 const MarketDetail = () => {
@@ -128,6 +129,10 @@ const MarketDetail = () => {
                 <Activity className="w-4 h-4 mr-2" />
                 Wallet Analysis
               </TabsTrigger>
+              <TabsTrigger value="transactions" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-secondary">
+                <History className="w-4 h-4 mr-2" />
+                Transactions
+              </TabsTrigger>
               <TabsTrigger value="insider" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-secondary">
                 <AlertTriangle className="w-4 h-4 mr-2" />
                 Suspicious Activity
@@ -136,6 +141,10 @@ const MarketDetail = () => {
 
             <TabsContent value="wallets" className="space-y-6">
               <WalletBubbleMap market={market} />
+            </TabsContent>
+
+            <TabsContent value="transactions" className="space-y-6">
+              <TransactionTimeline market={market} />
             </TabsContent>
 
             <TabsContent value="insider" className="space-y-6">
