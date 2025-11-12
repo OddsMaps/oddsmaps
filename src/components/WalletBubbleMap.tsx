@@ -20,6 +20,8 @@ interface WalletData {
   trades: number;
   avgPrice: number;
   profit: number;
+  entryTime: Date;
+  timeColor: string;
 }
 
 const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
@@ -53,7 +55,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         if (txError) throw txError;
 
         if (transactions && transactions.length > 0) {
-          // Aggregate transactions by wallet address
+          // Aggregate transactions by wallet address and track first entry time
           const walletMap = new Map<string, {
             address: string;
             volume: number;
@@ -61,14 +63,21 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             side: 'yes' | 'no';
             avgPrice: number;
             totalCost: number;
+            firstEntry: Date;
           }>();
 
           transactions.forEach(tx => {
             const existing = walletMap.get(tx.wallet_address);
+            const txDate = new Date(tx.timestamp);
+            
             if (existing) {
               existing.volume += Number(tx.amount);
               existing.trades += 1;
               existing.totalCost += Number(tx.amount) * Number(tx.price);
+              // Track earliest entry
+              if (txDate < existing.firstEntry) {
+                existing.firstEntry = txDate;
+              }
             } else {
               walletMap.set(tx.wallet_address, {
                 address: tx.wallet_address,
@@ -76,7 +85,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 trades: 1,
                 side: tx.side as 'yes' | 'no',
                 avgPrice: Number(tx.price),
-                totalCost: Number(tx.amount) * Number(tx.price)
+                totalCost: Number(tx.amount) * Number(tx.price),
+                firstEntry: txDate
               });
             }
           });
@@ -131,12 +141,31 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       const yesTraders: WalletData[] = [];
       const noTraders: WalletData[] = [];
 
+      // Find earliest and latest entry times for color mapping
+      const now = new Date();
+      const times = realWallets.map(w => w.firstEntry.getTime());
+      const oldestTime = Math.min(...times);
+      const newestTime = Math.max(...times);
+      const timeRange = newestTime - oldestTime || 1;
+
+      // Function to get time-based color (blue=recent, purple=older, red=oldest)
+      const getTimeColor = (entryTime: Date): string => {
+        const age = now.getTime() - entryTime.getTime();
+        const normalizedAge = Math.min(1, age / timeRange);
+        
+        // Color gradient: blue (recent) -> cyan -> purple -> red (old)
+        if (normalizedAge < 0.25) return "from-blue-400 to-blue-600";
+        if (normalizedAge < 0.5) return "from-cyan-400 to-cyan-600";
+        if (normalizedAge < 0.75) return "from-purple-400 to-purple-600";
+        return "from-pink-400 to-pink-600";
+      };
+
       realWallets.forEach((wallet, i) => {
         const size = Math.min(120, Math.max(40, wallet.volume / 100));
-        const isYes = wallet.side === 'yes' || i % 2 === 0;
+        const isYes = wallet.side === 'yes';
         
         const walletData: WalletData = {
-          id: `${wallet.side}-${i}`,
+          id: `${wallet.address}-${i}`,
           address: wallet.address,
           side: isYes ? "yes" : "no",
           amount: wallet.volume,
@@ -145,8 +174,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           y: Math.random() * 80 + 10,
           color: isYes ? "from-green-400 to-green-600" : "from-red-400 to-red-600",
           trades: wallet.trades,
-          avgPrice: market[isYes ? 'yes_price' : 'no_price'] * (0.9 + Math.random() * 0.2),
+          avgPrice: wallet.avgPrice,
           profit: (Math.random() - 0.3) * wallet.volume * 0.3,
+          entryTime: wallet.firstEntry,
+          timeColor: getTimeColor(wallet.firstEntry),
         };
 
         if (isYes) {
@@ -163,11 +194,14 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const yesTraders: WalletData[] = [];
     const noTraders: WalletData[] = [];
     const totalLiquidity = market.liquidity;
+    const now = new Date();
     
     // Generate YES side wallets
     for (let i = 0; i < 12; i++) {
       const amount = (Math.random() * totalLiquidity * 0.15) + 1000;
       const size = Math.min(120, Math.max(40, amount / 100));
+      const daysAgo = Math.random() * 30;
+      const entryTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
       
       yesTraders.push({
         id: `yes-${i}`,
@@ -181,6 +215,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         trades: Math.floor(Math.random() * 50) + 5,
         avgPrice: market.yes_price * (0.9 + Math.random() * 0.2),
         profit: (Math.random() - 0.3) * amount * 0.3,
+        entryTime,
+        timeColor: daysAgo < 7 ? "from-blue-400 to-blue-600" : daysAgo < 14 ? "from-cyan-400 to-cyan-600" : daysAgo < 21 ? "from-purple-400 to-purple-600" : "from-pink-400 to-pink-600",
       });
     }
 
@@ -188,6 +224,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     for (let i = 0; i < 12; i++) {
       const amount = (Math.random() * totalLiquidity * 0.15) + 1000;
       const size = Math.min(120, Math.max(40, amount / 100));
+      const daysAgo = Math.random() * 30;
+      const entryTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
       
       noTraders.push({
         id: `no-${i}`,
@@ -201,6 +239,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         trades: Math.floor(Math.random() * 50) + 5,
         avgPrice: market.no_price * (0.9 + Math.random() * 0.2),
         profit: (Math.random() - 0.3) * amount * 0.3,
+        entryTime,
+        timeColor: daysAgo < 7 ? "from-blue-400 to-blue-600" : daysAgo < 14 ? "from-cyan-400 to-cyan-600" : daysAgo < 21 ? "from-purple-400 to-purple-600" : "from-pink-400 to-pink-600",
       });
     }
 
@@ -293,14 +333,35 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-r from-green-400 to-green-600" />
-              <span>YES positions</span>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-green-400" />
+                <span>YES</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-red-400" />
+                <span>NO</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-400 to-red-600" />
-              <span>NO positions</span>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="font-semibold">Entry Time:</span>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 to-blue-600" />
+                <span>Recent</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-600" />
+                <span>Days ago</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-purple-400 to-purple-600" />
+                <span>Weeks ago</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-400 to-pink-600" />
+                <span>Oldest</span>
+              </div>
             </div>
           </div>
         </div>
@@ -333,7 +394,9 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 onMouseLeave={() => setHoveredWallet(null)}
               >
                 <div
-                  className={`rounded-full bg-gradient-to-br ${wallet.color} opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 flex items-center justify-center shadow-lg`}
+                  className={`rounded-full bg-gradient-to-br ${wallet.timeColor} opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 flex items-center justify-center shadow-lg border-2 ${
+                    wallet.side === 'yes' ? 'border-green-400' : 'border-red-400'
+                  }`}
                   style={{
                     width: `${wallet.size}px`,
                     height: `${wallet.size}px`,
@@ -366,7 +429,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                       <ExternalLink className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-6">
+                  <div className="grid grid-cols-5 gap-6">
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Position Size</div>
                       <div className="text-xl font-semibold">${(hoveredWallet.amount / 1000).toFixed(2)}K</div>
@@ -374,6 +437,12 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Trades</div>
                       <div className="text-xl font-semibold">{hoveredWallet.trades}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">First Entry</div>
+                      <div className="text-xl font-semibold">
+                        {Math.floor((new Date().getTime() - hoveredWallet.entryTime.getTime()) / (1000 * 60 * 60 * 24))}d ago
+                      </div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Avg Price</div>
