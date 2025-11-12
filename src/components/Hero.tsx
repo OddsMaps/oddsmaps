@@ -30,10 +30,6 @@ const Hero = () => {
 
       {/* Content */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center space-y-6 animate-fade-in">
-        <div className="flex justify-center mb-6">
-          <img src={logo} alt="OddsMap" className="h-16 w-auto" />
-        </div>
-        
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
           <span className="gradient-text">Visual Intelligence</span>
           <br />
