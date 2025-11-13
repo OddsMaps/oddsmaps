@@ -66,34 +66,6 @@ const AnalyticsLive = memo(() => {
     }));
   }, [markets]);
 
-  // Calculate sentiment by category
-  const sentimentData = useMemo(() => {
-    if (!markets) return [];
-
-    const categoryData: Record<string, { bullish: number; bearish: number; total: number }> = {};
-    
-    markets.forEach(market => {
-      const category = market.category || 'general';
-      if (!categoryData[category]) {
-        categoryData[category] = { bullish: 0, bearish: 0, total: 0 };
-      }
-      
-      if (market.yes_price > 0.5) {
-        categoryData[category].bullish++;
-      } else {
-        categoryData[category].bearish++;
-      }
-      categoryData[category].total++;
-    });
-
-    return Object.entries(categoryData)
-      .slice(0, 4)
-      .map(([category, data]) => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        bullish: Math.round((data.bullish / data.total) * 100),
-        bearish: Math.round((data.bearish / data.total) * 100),
-      }));
-  }, [markets]);
 
   if (!markets || markets.length === 0) {
     return null;
@@ -241,44 +213,6 @@ const AnalyticsLive = memo(() => {
             </div>
           </div>
 
-          {/* Sentiment Waves */}
-          <div className="lg:col-span-2 glass-strong rounded-2xl p-8 hover:scale-[1.01] transition-all duration-300 border border-border/50">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-xl bg-accent/20 border border-accent/30">
-                <TrendingUp className="w-6 h-6 text-accent" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold">Sentiment by Category</h3>
-                <p className="text-sm text-muted-foreground">Market positioning across categories</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {sentimentData.map((sentiment, i) => (
-                <div key={i} className="text-center space-y-4">
-                  <div className="font-semibold text-lg">{sentiment.category}</div>
-                  <div className="relative h-32">
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full">
-                      <div className="flex gap-2 items-end justify-center h-24">
-                        <div 
-                          className="w-1/2 bg-gradient-to-t from-green-500 to-green-600 rounded-t-lg transition-all duration-500 hover:scale-105"
-                          style={{ height: `${sentiment.bullish}%` }}
-                        />
-                        <div 
-                          className="w-1/2 bg-gradient-to-t from-red-500 to-red-600 rounded-t-lg transition-all duration-500 hover:scale-105"
-                          style={{ height: `${sentiment.bearish}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                        <span>{sentiment.bullish}%</span>
-                        <span>{sentiment.bearish}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </section>
