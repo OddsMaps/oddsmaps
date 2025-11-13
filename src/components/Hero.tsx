@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp } from "lucide-react";
-import logo from "@/assets/oddsmap-logo.png";
+import logo from "@/assets/oddsmap-logo-new.png";
 
 const Hero = () => {
   return (
