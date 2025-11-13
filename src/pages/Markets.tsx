@@ -1,0 +1,158 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { useMarkets } from "@/hooks/useMarkets";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, TrendingUp, TrendingDown } from "lucide-react";
+
+const Markets = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: markets, isLoading } = useMarkets("polymarket");
+
+  const filteredMarkets = markets?.filter(market =>
+    market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    market.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getPriceChange = (market: any) => {
+    const yesPrice = market.yes_price || 0;
+    return yesPrice >= 0.5 ? "bullish" : "bearish";
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-24">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold">
+              <span className="gradient-text">Live Prediction Markets</span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Explore all active markets on Polymarket. Click any market to see detailed analytics.
+            </p>
+          </div>
+
+          {/* Search */}
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search markets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-12 glass"
+            />
+          </div>
+
+          {/* Stats */}
+          {markets && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Total Markets</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Total Volume</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">
+                    ${(markets.reduce((sum, m) => sum + (m.volume_24h || 0), 0) / 1000000).toFixed(1)}M
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Active Now</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">
+                    {markets.filter(m => m.status === 'active').length}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          )}
+
+          {/* Markets Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-64 rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets?.map((market) => {
+                const priceChange = getPriceChange(market);
+                const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
+                
+                return (
+                  <Card
+                    key={market.id}
+                    className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-105 group"
+                    onClick={() => navigate(`/market/${market.market_id}`)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <Badge variant={priceChange === "bullish" ? "default" : "secondary"} className="shrink-0">
+                          {priceChange === "bullish" ? (
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3 mr-1" />
+                          )}
+                          {yesPrice}%
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {market.category || "Other"}
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                        {market.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {market.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-muted-foreground">Volume 24h</div>
+                          <div className="font-semibold">
+                            ${((market.volume_24h || 0) / 1000).toFixed(1)}K
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Liquidity</div>
+                          <div className="font-semibold">
+                            ${((market.liquidity || 0) / 1000).toFixed(1)}K
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {filteredMarkets?.length === 0 && !isLoading && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No markets found matching your search.</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Markets;
