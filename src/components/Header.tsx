@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
-import logo from "@/assets/oddsmap-logo.png";
+import logo from "@/assets/oddsmap-logo-new.png";
 import SearchModal from "./SearchModal";
 
 const Header = () => {

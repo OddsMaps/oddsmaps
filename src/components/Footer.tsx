@@ -1,4 +1,4 @@
-import logo from "@/assets/oddsmap-logo.png";
+import logo from "@/assets/oddsmap-logo-new.png";
 
 const Footer = () => {
   const links = {
