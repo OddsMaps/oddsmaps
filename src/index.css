@@ -8,50 +8,51 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 203 30% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 3.9%;
+    --card: 203 25% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
+    --popover: 203 25% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 330 81% 60%;
+    --primary: 203 89% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 262 83% 58%;
+    --secondary: 203 89% 32%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 5% 20%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 203 20% 25%;
+    --muted-foreground: 203 10% 65%;
 
-    --accent: 217 91% 60%;
+    --accent: 203 89% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 330 81% 60%;
+    --border: 203 30% 20%;
+    --input: 203 30% 20%;
+    --ring: 203 89% 42%;
 
     --radius: 1rem;
 
-    /* Gradient colors */
-    --gradient-pink: 330 81% 60%;
-    --gradient-purple: 262 83% 58%;
-    --gradient-blue: 217 91% 60%;
+    /* Gradient colors - variations of #0C82CA */
+    --gradient-blue-dark: 203 89% 32%;
+    --gradient-blue: 203 89% 42%;
+    --gradient-blue-light: 203 89% 52%;
+    --gradient-cyan: 193 89% 52%;
 
     /* Glass effects */
-    --glass-bg: 240 10% 15%;
-    --glass-border: 240 10% 25%;
-    --glass-shadow: 330 81% 60%;
+    --glass-bg: 203 30% 15%;
+    --glass-border: 203 30% 25%;
+    --glass-shadow: 203 89% 42%;
 
     /* Glow effects */
-    --glow-pink: 330 81% 60%;
-    --glow-purple: 262 83% 58%;
-    --glow-blue: 217 91% 60%;
+    --glow-blue-dark: 203 89% 32%;
+    --glow-blue: 203 89% 42%;
+    --glow-blue-light: 203 89% 52%;
   }
 }
 
@@ -67,39 +68,39 @@ All colors MUST be HSL.
 
   /* Gradient text effect */
   .gradient-text {
-    @apply bg-gradient-to-r from-[hsl(var(--gradient-pink))] via-[hsl(var(--gradient-purple))] to-[hsl(var(--gradient-blue))] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[hsl(var(--gradient-blue-dark))] via-[hsl(var(--gradient-blue))] to-[hsl(var(--gradient-cyan))] bg-clip-text text-transparent;
   }
 
   /* Glass morphism */
   .glass {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(12, 130, 202, 0.05);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.15);
+    border: 1px solid rgba(12, 130, 202, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(12, 130, 202, 0.2);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(12, 130, 202, 0.1);
     backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.25);
+    border: 1px solid rgba(12, 130, 202, 0.25);
+    box-shadow: 0 8px 32px 0 rgba(12, 130, 202, 0.3);
   }
 
   /* Glow effects */
-  .glow-pink {
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.5), 0 0 40px rgba(236, 72, 153, 0.3);
-  }
-
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3);
+  .glow-blue-dark {
+    box-shadow: 0 0 20px rgba(12, 130, 202, 0.6), 0 0 40px rgba(12, 130, 202, 0.4);
   }
 
   .glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 20px rgba(12, 130, 202, 0.5), 0 0 40px rgba(12, 130, 202, 0.3);
+  }
+
+  .glow-blue-light {
+    box-shadow: 0 0 20px rgba(52, 170, 222, 0.5), 0 0 40px rgba(52, 170, 222, 0.3);
   }
 
   .glow-gradient {
-    box-shadow: 0 0 30px rgba(236, 72, 153, 0.4), 0 0 60px rgba(168, 85, 247, 0.3), 0 0 90px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 30px rgba(12, 130, 202, 0.5), 0 0 60px rgba(12, 130, 202, 0.3), 0 0 90px rgba(52, 170, 222, 0.2);
   }
 
   /* Custom scrollbar */
