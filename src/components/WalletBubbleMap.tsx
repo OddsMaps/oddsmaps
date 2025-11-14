@@ -433,15 +433,17 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
           {/* Wallet Bubbles */}
           <div className="relative w-full h-full min-h-[700px] p-8">
-            {wallets.map((wallet) => (
+            {wallets.map((wallet, index) => (
               <div
                 key={wallet.id}
-                className="absolute cursor-pointer group transition-all duration-300"
+                className="absolute cursor-pointer group transition-all duration-300 bubble-animate-in"
                 style={{
                   left: `${wallet.x}%`,
                   top: `${wallet.y}%`,
                   transform: 'translate(-50%, -50%)',
                   zIndex: hoveredWallet?.id === wallet.id ? 50 : 1,
+                  animationDelay: `${index * 0.02}s`,
+                  opacity: 0,
                 }}
                 onMouseEnter={() => setHoveredWallet(wallet)}
                 onMouseLeave={() => setHoveredWallet(null)}
@@ -455,12 +457,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                       ? 'border-green-400/50 group-hover:border-green-400 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]' 
                       : 'border-red-400/50 group-hover:border-red-400 group-hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]'
                     }
-                    group-hover:scale-125 shadow-xl backdrop-blur-sm
-                    animate-fade-in hover:z-50`}
+                    group-hover:scale-125 shadow-xl backdrop-blur-sm hover:z-50`}
                   style={{
                     width: `${wallet.size}px`,
                     height: `${wallet.size}px`,
-                    opacity: hoveredWallet?.id === wallet.id ? 1 : 0.9,
                   }}
                 >
                   <Wallet className="w-4 h-4 text-white drop-shadow-lg" />

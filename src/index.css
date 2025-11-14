@@ -121,6 +121,25 @@ All colors MUST be HSL.
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, hsl(var(--primary) / 0.8), hsl(var(--secondary) / 0.8));
   }
+
+  /* Bubble entrance animation */
+  @keyframes bubble-entrance {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.3);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  .bubble-animate-in {
+    animation: bubble-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
 }
 
 @layer base {
