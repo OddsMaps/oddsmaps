@@ -33,11 +33,11 @@ function toNumber(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function getYesNoPrices(m: AnyMarket) {
+function getYesNoPrices(m: AnyMarket, pricesMap: any) {
   let yes = 0.5;
   let no = 0.5;
 
-  // Gamma API format - outcomePrices is a comma-separated string
+  // Use outcomePrices if available (comma-separated string from Gamma API)
   if ((m as any).outcomePrices) {
     const pricesStr = (m as any).outcomePrices;
     if (typeof pricesStr === 'string') {
@@ -50,18 +50,12 @@ function getYesNoPrices(m: AnyMarket) {
     }
   }
 
-  // CLOB API format - tokens array with outcome and price
-  const tokens = m.tokens || [];
-  const fromTokensYes = tokens.find(t => (t.outcome || '').toLowerCase() === 'yes');
-  const fromTokensNo = tokens.find(t => (t.outcome || '').toLowerCase() === 'no');
-  if (fromTokensYes?.price) yes = toNumber(fromTokensYes.price, yes);
-  if (fromTokensNo?.price) no = toNumber(fromTokensNo.price, no);
-
-  // Fallback: outcomes array
-  const outcomes = m.outcomes || [];
-  if (yes === 0.5 && no === 0.5 && outcomes.length >= 2) {
-    yes = toNumber(outcomes[0]?.price, yes);
-    no = toNumber(outcomes[1]?.price, no);
+  // Try lastTradePrice if available
+  const lastPrice = toNumber((m as any).lastTradePrice);
+  if (lastPrice > 0 && lastPrice < 1) {
+    yes = lastPrice;
+    no = 1 - lastPrice;
+    return { yes_price: yes, no_price: no };
   }
 
   return { yes_price: yes, no_price: no };
@@ -73,38 +67,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('Fetching markets from Polymarket CLOB API...');
+    console.log('Fetching markets from Polymarket Gamma API...');
 
-    // Prefer CLOB markets endpoint; fall back to gamma if needed
-    const clobResp = await fetch('https://clob.polymarket.com/markets?limit=200', {
+    // Fetch from Gamma API for market metadata - order by volume to get active markets
+    const gammaResp = await fetch('https://gamma-api.polymarket.com/markets?limit=200&active=true&closed=false&order=volume24hr&ascending=false', {
       headers: { Accept: 'application/json' },
     });
-
-    let marketsRaw: AnyMarket[] = [];
-
-    if (clobResp.ok) {
-      const body = await clobResp.json();
-      marketsRaw = Array.isArray(body) ? body : Array.isArray((body as any)?.markets) ? (body as any).markets : [];
-      console.log('CLOB markets fetched:', marketsRaw.length);
-    }
-
-    // Fallback to gamma if CLOB returned none or failed
-    if (!clobResp.ok || marketsRaw.length === 0) {
-      console.log('Falling back to Gamma markets API...');
-      const gammaResp = await fetch('https://gamma-api.polymarket.com/markets?limit=200&active=true&closed=false&archived=false', {
-        headers: { Accept: 'application/json' },
-      });
-      if (!gammaResp.ok) throw new Error('Gamma API failed: ' + gammaResp.status);
-      const g = await gammaResp.json();
-      marketsRaw = Array.isArray(g)
-        ? g
-        : Array.isArray((g as any)?.data)
-        ? (g as any).data
-        : Array.isArray((g as any)?.markets)
-        ? (g as any).markets
-        : [];
-      console.log('Gamma markets fetched:', marketsRaw.length);
-    }
+    
+    if (!gammaResp.ok) throw new Error('Gamma API failed: ' + gammaResp.status);
+    
+    const g = await gammaResp.json();
+    const marketsRaw: AnyMarket[] = Array.isArray(g)
+      ? g
+      : Array.isArray((g as any)?.data)
+      ? (g as any).data
+      : Array.isArray((g as any)?.markets)
+      ? (g as any).markets
+      : [];
+    
+    console.log('Gamma markets fetched:', marketsRaw.length);
 
     if (!marketsRaw || marketsRaw.length === 0) {
       return new Response(
@@ -113,19 +94,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Log first raw market to understand structure
-    if (marketsRaw.length > 0) {
-      console.log('Sample raw market structure:', JSON.stringify(marketsRaw[0], null, 2));
-    }
+    // Fetch real-time prices from CLOB API
+    console.log('Fetching real-time prices from CLOB API...');
+    const pricesResp = await fetch('https://clob.polymarket.com/prices', {
+      headers: { Accept: 'application/json' },
+    });
+    
+    const pricesMap = pricesResp.ok ? await pricesResp.json() : {};
+    console.log('CLOB prices fetched for', Object.keys(pricesMap).length, 'tokens');
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Very permissive include: exclude only explicitly closed if present
+    // Filter for active markets with trading volume
     const processed = marketsRaw
-      .filter((m) => m.closed !== true)
+      .filter((m) => {
+        const vol24h = toNumber((m as any).volume24hr ?? (m as any).volume24hrClob);
+        return m.closed !== true && m.active === true && vol24h > 0;
+      })
       .slice(0, 200)
       .map((m) => {
         const conditionId = m.condition_id || m.conditionId || m.id || '';
@@ -136,7 +124,7 @@ Deno.serve(async (req) => {
         const endRaw = m.end_date_iso || m.endDate || m.endTime;
         const endDate = endRaw ? new Date(endRaw as any).toISOString() : null;
 
-        const { yes_price, no_price } = getYesNoPrices(m);
+        const { yes_price, no_price } = getYesNoPrices(m, pricesMap);
         // Use total CLOB volume (most accurate) or fall back to total volume or volumeNum
         const totalVolume = toNumber((m as any).volumeClob ?? (m as any).volumeNum ?? (m as any).volume, 0);
         const volume_24h = toNumber((m as any).volume24hrClob ?? (m as any).volume24hr, 0);
