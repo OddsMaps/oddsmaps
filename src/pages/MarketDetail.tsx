@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { memo, useState, useEffect } from "react";
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -9,7 +8,7 @@ import WalletBubbleMap from "@/components/WalletBubbleMap";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
   <>
@@ -246,48 +245,32 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
 const MarketDetail = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [syncing, setSyncing] = useState(false);
-  // Only fetch Polymarket markets
   const { data: markets } = useMarkets('polymarket');
   
   const market = markets?.find(m => m.market_id === marketId);
 
-  const handleSyncData = async () => {
+  // Auto-sync this market's transactions every 2 minutes
+  useEffect(() => {
     if (!market) return;
-    
-    setSyncing(true);
-    toast({
-      title: "Syncing data...",
-      description: "Fetching latest transactions from Polymarket",
-    });
 
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-market-transactions', {
-        body: { marketId: market.market_id }
-      });
+    const syncMarket = async () => {
+      try {
+        await supabase.functions.invoke('sync-market-transactions', {
+          body: { marketId: market.market_id }
+        });
+      } catch (error) {
+        console.error('Auto-sync error:', error);
+      }
+    };
 
-      if (error) throw error;
+    // Initial sync
+    syncMarket();
 
-      toast({
-        title: "✓ Sync complete!",
-        description: data?.processed 
-          ? `Added ${data.processed} new transactions` 
-          : "No new transactions found",
-      });
-      
-      // No need to reload, real-time updates will handle it
-    } catch (error) {
-      console.error('Sync error:', error);
-      toast({
-        title: "Sync failed",
-        description: "Unable to fetch transaction data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
+    // Sync every 2 minutes
+    const interval = setInterval(syncMarket, 2 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [market]);
 
   if (!market) {
     return (
@@ -319,19 +302,6 @@ const MarketDetail = () => {
             change={change}
             onBack={() => navigate("/")}
           />
-
-          {market.source.toLowerCase() === 'polymarket' && (
-            <div className="mb-6">
-              <Button 
-                onClick={handleSyncData}
-                disabled={syncing}
-                className="glass-strong hover:glass"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Syncing...' : 'Sync Latest Data'}
-              </Button>
-            </div>
-          )}
 
           <MarketWhaleTransactions marketId={market.id} />
 
