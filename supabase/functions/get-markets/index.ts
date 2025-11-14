@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         total_volume: latestData?.total_volume || 0,
         volume_24h: latestData?.volume_24h || 0,
         liquidity: latestData?.liquidity || 0,
-        trades_24h: actualTrades24h,
+        trades_24h: actualTrades24h || latestData?.trades_24h || 0,
         volatility: latestData?.volatility || 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
