@@ -4,7 +4,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle } from "lu
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
-import WalletBubbleMap from "@/components/WalletBubbleMap";
+import { LiveWalletDistributionSection } from "@/components/LiveWalletDistributionSection";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
@@ -246,8 +246,111 @@ const MarketDetail = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
   const { data: markets } = useMarkets('polymarket');
+  const [walletNodes, setWalletNodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const market = markets?.find(m => m.market_id === marketId);
+
+  // Fetch wallet transactions and format as nodes
+  useEffect(() => {
+    if (!market) return;
+
+    const fetchWalletData = async () => {
+      try {
+        const { data: transactions, error } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('market_id', market.id)
+          .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+
+        // Group by wallet and calculate positions
+        const walletMap = new Map();
+        
+        transactions?.forEach(tx => {
+          if (!walletMap.has(tx.wallet_address)) {
+            walletMap.set(tx.wallet_address, {
+              yesAmount: 0,
+              noAmount: 0,
+              firstTimestamp: tx.timestamp,
+              walletAddress: tx.wallet_address
+            });
+          }
+          
+          const wallet = walletMap.get(tx.wallet_address);
+          if (tx.side === 'yes') {
+            wallet.yesAmount += tx.amount;
+          } else {
+            wallet.noAmount += tx.amount;
+          }
+          
+          if (new Date(tx.timestamp) < new Date(wallet.firstTimestamp)) {
+            wallet.firstTimestamp = tx.timestamp;
+          }
+        });
+
+        // Convert to nodes
+        const nodes = Array.from(walletMap.values()).map(wallet => {
+          const netAmount = Math.abs(wallet.yesAmount - wallet.noAmount);
+          const side = wallet.yesAmount > wallet.noAmount ? 'YES' : 'NO';
+          
+          const timeDiff = Date.now() - new Date(wallet.firstTimestamp).getTime();
+          const hours = timeDiff / (1000 * 60 * 60);
+          
+          let entryTimeBucket: 'recent' | 'days' | 'weeks' | 'oldest';
+          if (hours < 24) entryTimeBucket = 'recent';
+          else if (hours < 168) entryTimeBucket = 'days';
+          else if (hours < 720) entryTimeBucket = 'weeks';
+          else entryTimeBucket = 'oldest';
+
+          // Calculate profit
+          const yesProfit = wallet.yesAmount * market.yes_price - wallet.yesAmount;
+          const noProfit = wallet.noAmount * (1 - market.yes_price) - wallet.noAmount;
+          const profit = yesProfit + noProfit;
+
+          return {
+            id: wallet.walletAddress,
+            side,
+            amount: netAmount,
+            addressShort: `${wallet.walletAddress.slice(0, 6)}...${wallet.walletAddress.slice(-4)}`,
+            entryTimeBucket,
+            walletAddress: wallet.walletAddress,
+            profit
+          };
+        }).filter(node => node.amount > 100); // Filter out dust
+
+        setWalletNodes(nodes);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching wallet data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchWalletData();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel(`wallet-nodes-${market.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `market_id=eq.${market.id}`
+        },
+        () => {
+          fetchWalletData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [market]);
 
   // Auto-sync this market's transactions every 2 minutes
   useEffect(() => {
@@ -306,7 +409,17 @@ const MarketDetail = () => {
           <MarketWhaleTransactions marketId={market.id} />
 
           <div className="space-y-8">
-            <WalletBubbleMap market={market} />
+            {!loading && (
+              <LiveWalletDistributionSection
+                marketTitle={market.title}
+                yesOdds={market.yes_price}
+                noOdds={1 - market.yes_price}
+                totalLiquidity={market.liquidity}
+                volume24h={market.volume_24h}
+                activeWallets={walletNodes.length}
+                nodes={walletNodes}
+              />
+            )}
             <TransactionTimeline market={market} />
           </div>
         </div>
