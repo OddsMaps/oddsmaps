@@ -61,6 +61,21 @@ serve(async (req) => {
       })
     });
 
+    if (!blockResponse.ok) {
+      const errorText = await blockResponse.text();
+      console.error(`Alchemy API error (${blockResponse.status}):`, errorText);
+      return new Response(
+        JSON.stringify({ 
+          error: `Alchemy API authentication failed. Please check ALCHEMY_API_KEY.`,
+          wallets: []
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const blockData = await blockResponse.json();
     const latestBlock = parseInt(blockData.result, 16);
     const fromBlock = `0x${(latestBlock - 1000).toString(16)}`; // Last ~1000 blocks
@@ -84,6 +99,21 @@ serve(async (req) => {
         }]
       })
     });
+
+    if (!logsResponse.ok) {
+      const errorText = await logsResponse.text();
+      console.error(`Alchemy API error fetching logs (${logsResponse.status}):`, errorText);
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to fetch wallet data from blockchain.`,
+          wallets: []
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     const logsData = await logsResponse.json();
     console.log(`Found ${logsData.result?.length || 0} logs`);
