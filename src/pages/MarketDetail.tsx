@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { memo, useState } from "react";
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, History, RefreshCw } from "lucide-react";
+import { memo, useState, useEffect } from "react";
+import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
-import InsiderAnalysis from "@/components/InsiderAnalysis";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,6 +103,146 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
 
 MarketHeader.displayName = 'MarketHeader';
 
+interface WhaleTransaction {
+  id: string;
+  wallet_address: string;
+  amount: number;
+  price: number;
+  side: string;
+  timestamp: string;
+  transaction_hash: string;
+}
+
+const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
+  const [transactions, setTransactions] = useState<WhaleTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchTransactions();
+
+    const channel = supabase
+      .channel(`whale-transactions-${marketId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `market_id=eq.${marketId}`
+        },
+        () => {
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [marketId]);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('market_id', marketId)
+        .gte('amount', 10000)
+        .order('timestamp', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const now = new Date().getTime();
+    const txTime = new Date(timestamp).getTime();
+    const diff = Math.floor((now - txTime) / 1000);
+
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
+  const getSideIcon = (side: string) => {
+    return side === 'yes' ? (
+      <TrendingUp className="h-4 w-4" />
+    ) : (
+      <TrendingDown className="h-4 w-4" />
+    );
+  };
+
+  const getSideColor = (side: string) => {
+    return side === 'yes' 
+      ? 'text-green-500 bg-green-500/10 border-green-500/20' 
+      : 'text-red-500 bg-red-500/10 border-red-500/20';
+  };
+
+  if (loading || transactions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4 mb-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Whale Activity 🐋</h2>
+          <p className="text-muted-foreground">Real-time bets over $10,000 on this market</p>
+        </div>
+        <Badge variant="outline" className="gap-2">
+          <Activity className="h-3 w-3 animate-pulse text-green-500" />
+          {transactions.length} Whales
+        </Badge>
+      </div>
+
+      <div className="grid gap-3">
+        {transactions.slice(0, 5).map((tx) => (
+          <Card
+            key={tx.id}
+            className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+            onClick={() => navigate(`/wallet/${tx.wallet_address}`)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold border ${getSideColor(tx.side)}`}>
+                  {getSideIcon(tx.side)}
+                  {tx.side.toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="font-mono text-sm text-muted-foreground">
+                    {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <div className="text-2xl font-bold gradient-text">
+                    ${(tx.amount / 1000).toFixed(1)}K
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    @ {(tx.price * 100).toFixed(1)}¢
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground min-w-[80px] text-right">
+                  {formatTime(tx.timestamp)}
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const MarketDetail = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
@@ -193,43 +333,12 @@ const MarketDetail = () => {
             </div>
           )}
 
-          <Tabs defaultValue="wallets" className="space-y-6">
-            <TabsList className="glass-strong p-1.5 border border-border/50">
-              <TabsTrigger 
-                value="wallets" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Activity className="w-4 h-4 mr-2" />
-                Wallet Analysis
-              </TabsTrigger>
-              <TabsTrigger 
-                value="transactions" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <History className="w-4 h-4 mr-2" />
-                Transactions
-              </TabsTrigger>
-              <TabsTrigger 
-                value="insider" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Suspicious Activity
-              </TabsTrigger>
-            </TabsList>
+          <MarketWhaleTransactions marketId={market.id} />
 
-            <TabsContent value="wallets" className="space-y-6">
-              <WalletBubbleMap market={market} />
-            </TabsContent>
-
-            <TabsContent value="transactions" className="space-y-6">
-              <TransactionTimeline market={market} />
-            </TabsContent>
-
-            <TabsContent value="insider" className="space-y-6">
-              <InsiderAnalysis market={market} />
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-8">
+            <WalletBubbleMap market={market} />
+            <TransactionTimeline market={market} />
+          </div>
         </div>
       </div>
     </div>
