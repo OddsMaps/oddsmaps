@@ -193,6 +193,41 @@ All colors MUST be HSL.
   .bubble-animate-in {
     animation: bubble-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    /* Better touch targets */
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Improved mobile spacing */
+    .container {
+      @apply px-4;
+    }
+
+    /* Mobile-friendly text sizes */
+    h1 {
+      @apply text-3xl;
+    }
+
+    h2 {
+      @apply text-2xl;
+    }
+
+    /* Prevent text size adjustment on orientation change */
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    /* Smooth scrolling on mobile */
+    html {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 }
 
 @layer base {
@@ -202,5 +237,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
   }
 }
