@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Lock } from "lucide-react";
+import logo from "@/assets/oddsmap-logo-new.png";
 
 const CORRECT_PASSWORD = "Dylaski99";
 const STORAGE_KEY = "site_authenticated";
@@ -45,8 +45,12 @@ const PasswordGate = ({ children }: PasswordGateProps) => {
       
       <div className="glass-strong p-8 rounded-2xl max-w-md w-full space-y-6 relative animate-fade-in">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <Lock className="w-8 h-8 text-primary-foreground" />
+          <div className="flex justify-center mb-2">
+            <img 
+              src={logo} 
+              alt="OddsMap Logo" 
+              className="h-16 w-auto"
+            />
           </div>
           
           <h1 className="text-3xl font-bold gradient-text">
