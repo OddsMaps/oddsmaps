@@ -78,7 +78,7 @@ const AnalyticsLive = memo(() => {
               {trendingMarkets.map((market, i) => (
                 <div
                   key={market.id}
-                  onClick={() => navigate(`/bet/${market.id}`)}
+                  onClick={() => navigate(`/market/${market.id}`)}
                   className={`glass p-5 rounded-xl hover:glass-strong transition-all duration-300 cursor-pointer group relative overflow-hidden ${
                     market.isActive ? 'border border-primary/30' : ''
                   }`}
