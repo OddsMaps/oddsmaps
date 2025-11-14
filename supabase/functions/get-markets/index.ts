@@ -47,35 +47,46 @@ Deno.serve(async (req) => {
 
     // Fetch latest market data for each market
     const marketIds = markets?.map(m => m.id) || [];
-    const { data: marketDataList, error: dataError } = await supabaseClient
-      .from('market_data')
-      .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
-      .in('market_id', marketIds)
-      .order('timestamp', { ascending: false });
+    
+    let marketDataList: any[] = [];
+    let recentTrades: any[] = [];
 
-    if (dataError) {
-      console.error('Error fetching market data:', dataError);
-      throw dataError;
+    // Only fetch data if we have market IDs
+    if (marketIds.length > 0) {
+      const { data: dataList, error: dataError } = await supabaseClient
+        .from('market_data')
+        .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
+        .in('market_id', marketIds)
+        .order('timestamp', { ascending: false });
+
+      if (dataError) {
+        console.error('Error fetching market data:', dataError);
+        throw dataError;
+      }
+
+      marketDataList = dataList || [];
+
+      // Calculate actual trades_24h from wallet_transactions for each market
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: trades } = await supabaseClient
+        .from('wallet_transactions')
+        .select('market_id')
+        .in('market_id', marketIds)
+        .gte('timestamp', twentyFourHoursAgo);
+
+      recentTrades = trades || [];
     }
-
-    // Calculate actual trades_24h from wallet_transactions for each market
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentTrades } = await supabaseClient
-      .from('wallet_transactions')
-      .select('market_id')
-      .in('market_id', marketIds)
-      .gte('timestamp', twentyFourHoursAgo);
 
     // Count trades per market
     const tradesCountMap = new Map();
-    recentTrades?.forEach(trade => {
+    recentTrades.forEach(trade => {
       const count = tradesCountMap.get(trade.market_id) || 0;
       tradesCountMap.set(trade.market_id, count + 1);
     });
 
     // Create a map of latest market data by market_id
     const latestDataMap = new Map();
-    marketDataList?.forEach(data => {
+    marketDataList.forEach(data => {
       if (!latestDataMap.has(data.market_id)) {
         latestDataMap.set(data.market_id, data);
       }
