@@ -35,9 +35,7 @@ const Header = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const navItems = [
-    { label: "Live Markets", href: "/markets", isRoute: true },
-  ];
+  const navItems: Array<{ label: string; href: string; isRoute: boolean }> = [];
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
