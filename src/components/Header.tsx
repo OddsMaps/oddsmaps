@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/oddsmap-logo-new.png";
 import SearchModal from "./SearchModal";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   // Handle scroll to change header background
@@ -48,8 +51,8 @@ const Header = () => {
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-background/95 backdrop-blur-xl border-b border-border/50' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-6 py-0">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-0">
+          <div className="flex items-center justify-between h-16 md:h-auto">
             {/* Logo */}
             <a 
               href="#home"
@@ -57,16 +60,16 @@ const Header = () => {
                 e.preventDefault();
                 scrollToSection('#home');
               }}
-              className="flex items-center gap-2 group cursor-pointer"
+              className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
             >
               <img 
                 src={logo} 
                 alt="OddsMap" 
-                className="h-24 w-auto transition-transform duration-300 group-hover:scale-105"
+                className="h-12 md:h-24 w-auto transition-transform duration-300 group-hover:scale-105"
               />
             </a>
 
-            {/* Navigation Links */}
+            {/* Desktop Navigation Links */}
             <nav className="hidden md:flex items-center gap-8">
               {navItems.map((item) => (
                 <a
@@ -87,10 +90,10 @@ const Header = () => {
               ))}
             </nav>
 
-            {/* Search Bar */}
+            {/* Desktop Search Bar */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 group min-w-[300px] ${
+              className={`hidden md:flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 group min-w-[300px] ${
                 isScrolled ? 'bg-muted/50 hover:bg-muted' : 'bg-background/20 hover:bg-background/40'
               }`}
             >
@@ -102,6 +105,52 @@ const Header = () => {
                 ⌘K
               </kbd>
             </button>
+
+            {/* Mobile Menu */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" className="flex-shrink-0">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col gap-6 mt-8">
+                  {/* Search in mobile menu */}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsSearchOpen(true);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors w-full text-left"
+                  >
+                    <Search className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Search markets...
+                    </span>
+                  </button>
+
+                  {/* Navigation items */}
+                  {navItems.map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsMobileMenuOpen(false);
+                        if (item.isRoute) {
+                          navigate(item.href);
+                        } else {
+                          scrollToSection(item.href);
+                        }
+                      }}
+                      className="text-lg font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer px-4 py-2"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
