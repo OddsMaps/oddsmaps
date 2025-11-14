@@ -8,14 +8,18 @@ import logo from "@/assets/oddsmap-logo-new.png";
 const Hero = () => {
   const navigate = useNavigate();
   
-  // Fetch active markets count
+  // Fetch active markets count (created or updated today)
   const { data: activeMarketsCount } = useQuery({
     queryKey: ['active-markets-count'],
     queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       const { count, error } = await supabase
         .from('markets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .gte('updated_at', today.toISOString());
       
       if (error) throw error;
       return count || 0;
@@ -23,13 +27,17 @@ const Hero = () => {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
   
-  // Fetch total volume
+  // Fetch total volume for today
   const { data: totalVolume } = useQuery({
     queryKey: ['total-volume'],
     queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       const { data, error } = await supabase
         .from('wallet_transactions')
-        .select('amount');
+        .select('amount')
+        .gte('timestamp', today.toISOString());
       
       if (error) throw error;
       
@@ -39,16 +47,23 @@ const Hero = () => {
     refetchInterval: 30000,
   });
   
-  // Fetch live traders count (unique wallet addresses)
+  // Fetch live traders count (unique wallets that traded today)
   const { data: liveTraders } = useQuery({
     queryKey: ['live-traders'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('wallet_profiles')
-        .select('*', { count: 'exact', head: true });
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('wallet_address')
+        .gte('timestamp', today.toISOString());
       
       if (error) throw error;
-      return count || 0;
+      
+      // Count unique wallet addresses
+      const uniqueWallets = new Set(data?.map(t => t.wallet_address) || []);
+      return uniqueWallets.size;
     },
     refetchInterval: 30000,
   });
