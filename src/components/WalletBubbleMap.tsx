@@ -172,7 +172,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => a.volume - b.volume);
     const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => a.volume - b.volume);
     
-    // Function to position wallets in an organic flowing pattern from center outward
+    // Function to position wallets in a clean left/right split with organic flow
     const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
       const traders: WalletData[] = [];
       const totalWallets = wallets.length;
@@ -180,22 +180,32 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       wallets.forEach((wallet, i) => {
         const size = Math.min(140, Math.max(40, Math.sqrt(wallet.volume) * 2.5));
         
-        // Calculate organic position: SMALL bets near center, LARGE bets at edges
+        // Calculate position: SMALL bets near center (50%), LARGE bets at edges (0% or 100%)
         const progress = i / Math.max(1, totalWallets - 1); // 0 to 1
         
-        // Create expanding spiral/organic flow pattern
-        const spiralTurns = 2.5;
-        const angle = progress * Math.PI * spiralTurns + (side === 'yes' ? Math.PI : 0);
-        const radius = Math.pow(progress, 0.8) * 40; // Exponential growth for more space at edges
+        // Create organic spiral pattern flowing from center to edges
+        const spiralTurns = 2;
+        const baseAngle = progress * Math.PI * spiralTurns;
+        const angle = baseAngle + Math.sin(i * 1.5) * 0.3; // Add organic variation
         
-        // Add organic variation to make it look more natural
-        const variation = Math.sin(i * 2.3) * 5 + Math.cos(i * 1.7) * 5;
+        // Radius grows from center (0%) to edges (45% of half-width)
+        const maxRadius = 45; // Maximum distance from center line
+        const radius = Math.pow(progress, 0.75) * maxRadius;
         
-        // Calculate position based on side
-        const centerX = side === 'yes' ? 30 : 70; // Starting position for each side
+        // Calculate position - YES on left (0-50%), NO on right (50-100%)
+        let x: number;
+        if (side === 'yes') {
+          // YES: Start at 47% (near center), expand to 5% (left edge)
+          x = 47 - radius;
+        } else {
+          // NO: Start at 53% (near center), expand to 95% (right edge)
+          x = 53 + radius;
+        }
+        
+        // Vertical position with organic flow
         const centerY = 50;
-        const x = centerX + Math.cos(angle) * radius * (side === 'yes' ? -1 : 1) + variation;
-        const y = centerY + Math.sin(angle) * radius * 0.8 + Math.sin(i * 0.5) * 8;
+        const verticalSpread = 35; // Vertical spread percentage
+        const y = centerY + Math.sin(angle) * verticalSpread + Math.cos(i * 0.8) * 8;
         
         const walletData: WalletData = {
           id: `${wallet.address}-${i}`,
@@ -203,8 +213,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           side,
           amount: wallet.volume,
           size,
-          x: Math.max(2, Math.min(98, x)), // Keep within bounds with more space
-          y: Math.max(5, Math.min(95, y)),
+          x: Math.max(1, Math.min(99, x)), // Keep within bounds
+          y: Math.max(8, Math.min(92, y)),
           color: side === 'yes' ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
           trades: wallet.trades,
           avgPrice: wallet.avgPrice,
