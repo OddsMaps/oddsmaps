@@ -42,10 +42,10 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const navigate = useNavigate();
 
-  // Fetch ALL transactions for search
+  // Fetch ALL transactions for search and set up real-time updates
   useEffect(() => {
     const fetchTransactions = async () => {
-      // Try DB first
+      // Fetch ALL Polymarket transactions from DB without limit
       const { data } = await supabase
         .from('wallet_transactions')
         .select(`
@@ -53,42 +53,40 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
           market:markets!inner(title, market_id, source)
         `)
         .eq('market.source', 'polymarket')
-        .order('timestamp', { ascending: false })
-        .limit(5000);
+        .order('timestamp', { ascending: false });
       
       if (data && data.length > 0) {
         setTransactions(data as any);
-        console.log(`Loaded ${data.length} Polymarket transactions from DB for search`);
-        return;
-      }
-
-      // Fallback: live fetch from blockchain logs if DB is empty
-      try {
-        const { data: live } = await supabase.functions.invoke('fetch-wallet-data', {
-          body: { marketId: 'polymarket', contractAddress: '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E' }
-        });
-
-        const mapped: Transaction[] = (live?.transactions || []).map((t: any) => ({
-          id: t.id,
-          wallet_address: t.address,
-          amount: t.amount,
-          price: 0, // unknown from logs
-          side: t.side || 'yes',
-          timestamp: t.timestamp,
-          transaction_hash: t.hash,
-          market: { title: 'Polymarket Trade', market_id: 'polymarket' },
-        }));
-
-        setTransactions(mapped);
-        console.log(`Loaded ${mapped.length} live Polymarket transactions (fallback)`);
-      } catch (e) {
-        console.error('Fallback live fetch failed', e);
+        console.log(`Loaded ${data.length} Polymarket live bets for search`);
+      } else {
         setTransactions([]);
+        console.log('No Polymarket transactions found');
       }
     };
 
     if (open) {
       fetchTransactions();
+      
+      // Set up real-time subscription for new bets
+      const channel = supabase
+        .channel('live-bets-search')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'wallet_transactions'
+          },
+          () => {
+            // Refetch when new transactions come in
+            fetchTransactions();
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [open]);
 
@@ -155,7 +153,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
       default:
         return 0;
     }
-  }).slice(0, 20);
+  }).slice(0, 100);
 
   // Reset search when modal closes
   useEffect(() => {
@@ -346,9 +344,17 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                   {/* Transactions - Show First */}
                   {filteredTransactions.length > 0 && (
                     <div className="mb-4">
-                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase flex items-center gap-2">
-                        <Activity className="w-3 h-3" />
-                        Polymarket Bets ({filteredTransactions.length})
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-3 h-3" />
+                          Live Polymarket Bets
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                          <span className="text-xs normal-case">
+                            Showing {filteredTransactions.length} of {transactions.length} total
+                          </span>
+                        </div>
                       </div>
                       {filteredTransactions.map((tx, txIndex) => {
                         return (
