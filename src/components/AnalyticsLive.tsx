@@ -8,7 +8,7 @@ const AnalyticsLive = memo(() => {
   const { data: markets } = useMarkets('polymarket');
   const { priceChanges, activeMarkets } = usePriceChanges(markets);
 
-  // Calculate trending markets (most active this hour)
+  // Calculate trending markets (most active by 24h volume - matches Polymarket trending)
   const trendingMarkets = useMemo(() => {
     if (!markets) return [];
     
@@ -31,7 +31,7 @@ const AnalyticsLive = memo(() => {
           isActive,
         };
       })
-      .sort((a, b) => b.trades - a.trades)
+      .sort((a, b) => b.volume - a.volume)
       .slice(0, 4);
   }, [markets, priceChanges, activeMarkets]);
 
