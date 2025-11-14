@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Activity, DollarSign, Clock, User, Hash, Target } from "lucide-react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Activity, DollarSign, Clock, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -284,78 +284,6 @@ const BetDetail = () => {
             </Card>
           </div>
 
-          {/* Transaction & Wallet Info */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Hash className="w-5 h-5" />
-                  Transaction Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Transaction Hash</div>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
-                      {bet.transaction_hash}
-                    </code>
-                    {bet.transaction_hash && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => window.open(`https://polygonscan.com/tx/${bet.transaction_hash}`, '_blank')}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {bet.block_number && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Block Number</div>
-                    <div className="font-mono text-sm">{bet.block_number.toLocaleString()}</div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Type</div>
-                  <Badge variant="outline">{bet.transaction_type}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Wallet Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Wallet Address</div>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
-                      {bet.wallet_address}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => navigate(`/wallet/${bet.wallet_address}`)}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={() => navigate(`/wallet/${bet.wallet_address}`)}
-                >
-                  View Full Wallet Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Market Info */}
           {currentMarket && (
