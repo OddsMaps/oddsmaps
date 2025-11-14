@@ -58,6 +58,21 @@ Deno.serve(async (req) => {
       throw dataError;
     }
 
+    // Calculate actual trades_24h from wallet_transactions for each market
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentTrades } = await supabaseClient
+      .from('wallet_transactions')
+      .select('market_id')
+      .in('market_id', marketIds)
+      .gte('timestamp', twentyFourHoursAgo);
+
+    // Count trades per market
+    const tradesCountMap = new Map();
+    recentTrades?.forEach(trade => {
+      const count = tradesCountMap.get(trade.market_id) || 0;
+      tradesCountMap.set(trade.market_id, count + 1);
+    });
+
     // Create a map of latest market data by market_id
     const latestDataMap = new Map();
     marketDataList?.forEach(data => {
@@ -66,9 +81,10 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Combine markets with their latest data
+    // Combine markets with their latest data and real trade counts
     const enhancedMarkets = markets?.map(market => {
       const latestData = latestDataMap.get(market.id);
+      const actualTrades24h = tradesCountMap.get(market.id) || 0;
       return {
         id: market.id,
         market_id: market.market_id,
@@ -83,7 +99,7 @@ Deno.serve(async (req) => {
         total_volume: latestData?.total_volume || 0,
         volume_24h: latestData?.volume_24h || 0,
         liquidity: latestData?.liquidity || 0,
-        trades_24h: latestData?.trades_24h || 0,
+        trades_24h: actualTrades24h,
         volatility: latestData?.volatility || 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
