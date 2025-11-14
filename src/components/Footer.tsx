@@ -33,16 +33,24 @@ const Footer = () => {
             <div key={category}>
               <h3 className="font-semibold mb-4 gradient-text">{category}</h3>
               <ul className="space-y-3">
-                {items.map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm hover:gradient-text"
-                    >
-                      {item}
-                    </a>
-                  </li>
-                ))}
+                {items.map((item) => {
+                  const urlMap: Record<string, string> = {
+                    "Features": "/features", "Pricing": "/pricing", "API": "#", "Documentation": "#",
+                    "About": "/about", "Blog": "/blog", "Careers": "/careers", "Contact": "/contact",
+                    "Privacy": "/privacy", "Terms": "/terms", "Security": "/security", "Cookies": "/cookies",
+                    "Help Center": "/help", "Community": "/community", "Partners": "/partners", "Status": "/status"
+                  };
+                  return (
+                    <li key={item}>
+                      <a
+                        href={urlMap[item] || "#"}
+                        className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm hover:gradient-text"
+                      >
+                        {item}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
