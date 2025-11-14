@@ -58,13 +58,16 @@ const Header = () => {
                 e.preventDefault();
                 navigate('/');
               }}
-              className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
+              className="flex items-center gap-3 group cursor-pointer flex-shrink-0"
             >
               <img 
                 src={logo} 
                 alt="OddsMap" 
                 className="h-12 md:h-24 w-auto transition-transform duration-300 group-hover:scale-105"
               />
+              <span className="font-glacial text-2xl md:text-4xl gradient-text">
+                OddsMaps
+              </span>
             </a>
 
             {/* Desktop Navigation Links */}

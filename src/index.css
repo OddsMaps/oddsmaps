@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/glacial-indifference-2');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -70,6 +73,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+
+  /* Brand font */
+  .font-glacial {
+    font-family: 'Glacial Indifference', 'Space Grotesk', sans-serif;
+    font-weight: 700;
   }
 
   /* Gradient text effect */
