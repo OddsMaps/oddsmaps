@@ -22,45 +22,53 @@ Deno.serve(async (req) => {
     const { source, category, limit = 200 } = await req.json().catch(() => ({}));
     console.log('Request params:', { source, category, limit });
 
-    // Build query with timeout protection
-    let query = supabaseClient
+    // Build query - fetch markets and their latest data separately for better performance
+    let marketsQuery = supabaseClient
       .from('markets')
-      .select(`
-        *,
-        market_data!inner (
-          yes_price,
-          no_price,
-          volume_24h,
-          liquidity,
-          trades_24h,
-          volatility,
-          timestamp
-        )
-      `)
+      .select('*')
       .eq('status', 'active')
-      .order('timestamp', { foreignTable: 'market_data', ascending: false })
-      .limit(1, { foreignTable: 'market_data' })
       .order('created_at', { ascending: false })
       .limit(limit);
 
     // Add filters
     if (source) {
-      query = query.eq('source', source);
+      marketsQuery = marketsQuery.eq('source', source);
     }
     if (category) {
-      query = query.eq('category', category);
+      marketsQuery = marketsQuery.eq('category', category);
     }
 
-    const { data: markets, error } = await query;
+    const { data: markets, error: marketsError } = await marketsQuery;
 
-    if (error) {
-      console.error('Error fetching markets:', error);
-      throw error;
+    if (marketsError) {
+      console.error('Error fetching markets:', marketsError);
+      throw marketsError;
     }
 
-    // Get the latest market data for each market
+    // Fetch latest market data for each market
+    const marketIds = markets?.map(m => m.id) || [];
+    const { data: marketDataList, error: dataError } = await supabaseClient
+      .from('market_data')
+      .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
+      .in('market_id', marketIds)
+      .order('timestamp', { ascending: false });
+
+    if (dataError) {
+      console.error('Error fetching market data:', dataError);
+      throw dataError;
+    }
+
+    // Create a map of latest market data by market_id
+    const latestDataMap = new Map();
+    marketDataList?.forEach(data => {
+      if (!latestDataMap.has(data.market_id)) {
+        latestDataMap.set(data.market_id, data);
+      }
+    });
+
+    // Combine markets with their latest data
     const enhancedMarkets = markets?.map(market => {
-      const latestData = market.market_data?.[0];
+      const latestData = latestDataMap.get(market.id);
       return {
         id: market.id,
         market_id: market.market_id,
