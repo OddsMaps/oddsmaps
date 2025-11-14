@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "gradient-green": "hsl(var(--gradient-green))",
+        "gradient-green-light": "hsl(var(--gradient-green-light))",
+        "gradient-green-dark": "hsl(var(--gradient-green-dark))",
+        "gradient-red": "hsl(var(--gradient-red))",
+        "gradient-red-light": "hsl(var(--gradient-red-light))",
+        "gradient-red-dark": "hsl(var(--gradient-red-dark))",
+        "gradient-yellow": "hsl(var(--gradient-yellow))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -101,8 +108,8 @@ export default {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(236, 72, 153, 0.5)" },
-          "50%": { boxShadow: "0 0 40px rgba(168, 85, 247, 0.8), 0 0 60px rgba(59, 130, 246, 0.6)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)" },
+          "50%": { boxShadow: "0 0 40px rgba(16, 185, 129, 0.7), 0 0 80px rgba(239, 68, 68, 0.5), 0 0 120px rgba(245, 158, 11, 0.3)" },
         },
         "morph": {
           "0%, 100%": { borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" },
