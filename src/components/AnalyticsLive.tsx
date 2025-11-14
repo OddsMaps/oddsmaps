@@ -35,37 +35,6 @@ const AnalyticsLive = memo(() => {
       .slice(0, 4);
   }, [markets, priceChanges, activeMarkets]);
 
-  // Calculate liquidity flows by category
-  const liquidityFlowsWithPercentage = useMemo(() => {
-    if (!markets) return [];
-
-    const categoryTotals: Record<string, { liquidity: number; count: number }> = {};
-    markets.forEach(market => {
-      const category = market.category || 'General';
-      if (!categoryTotals[category]) {
-        categoryTotals[category] = { liquidity: 0, count: 0 };
-      }
-      categoryTotals[category].liquidity += market.liquidity || 0;
-      categoryTotals[category].count += 1;
-    });
-
-    const flows = Object.entries(categoryTotals)
-      .sort(([, a], [, b]) => b.liquidity - a.liquidity)
-      .slice(0, 5)
-      .map(([category, data]) => ({
-        category: category.charAt(0).toUpperCase() + category.slice(1),
-        liquidity: data.liquidity,
-        amount: `$${(data.liquidity / 1000).toFixed(1)}K`,
-        markets: data.count,
-      }));
-
-    const total = flows.reduce((sum, flow) => sum + flow.liquidity, 0);
-    return flows.map(flow => ({
-      ...flow,
-      percentage: total > 0 ? Math.round((flow.liquidity / total) * 100) : 0,
-    }));
-  }, [markets]);
-
 
   if (!markets || markets.length === 0) {
     return null;
@@ -89,7 +58,7 @@ const AnalyticsLive = memo(() => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="max-w-4xl mx-auto">
           {/* Trending Now */}
           <div className="glass-strong rounded-2xl p-8 space-y-6 hover:scale-[1.01] transition-all duration-300 border border-border/50">
             <div className="flex items-center gap-3 mb-6">
@@ -176,43 +145,6 @@ const AnalyticsLive = memo(() => {
               </div>
             </div>
           </div>
-
-          {/* Liquidity by Category */}
-          <div className="glass-strong rounded-2xl p-8 space-y-6 hover:scale-[1.01] transition-all duration-300 border border-border/50">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-xl bg-secondary/20 border border-secondary/30">
-                <Activity className="w-6 h-6 text-secondary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold">Liquidity by Category</h3>
-                <p className="text-sm text-muted-foreground">Capital distribution</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {liquidityFlowsWithPercentage.map((flow, i) => (
-                <div key={i} className="glass p-4 rounded-xl hover:glass-strong transition-all duration-300">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg">{flow.category}</div>
-                      <div className="text-sm text-muted-foreground">{flow.markets} markets</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold gradient-text text-xl">{flow.amount}</div>
-                      <div className="text-sm text-muted-foreground">{flow.percentage}%</div>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-secondary to-accent transition-all duration-500"
-                      style={{ width: `${flow.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
       </div>
     </section>
