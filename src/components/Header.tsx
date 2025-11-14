@@ -37,8 +37,6 @@ const Header = () => {
 
   const navItems = [
     { label: "Live Markets", href: "/markets", isRoute: true },
-    { label: "How It Works", href: "#how-it-works", isRoute: false },
-    { label: "Community", href: "#community", isRoute: false },
   ];
 
   const scrollToSection = (href: string) => {
