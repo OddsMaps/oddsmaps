@@ -1,9 +1,12 @@
 import { memo, useMemo } from "react";
 import { TrendingUp, Activity, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useMarkets } from "@/hooks/useMarkets";
 import { usePriceChanges } from "@/hooks/usePriceChanges";
 
 const AnalyticsLive = memo(() => {
+  const navigate = useNavigate();
+  
   // Only fetch Polymarket markets for better performance
   const { data: markets } = useMarkets('polymarket');
   const { priceChanges, activeMarkets } = usePriceChanges(markets);
@@ -53,7 +56,7 @@ const AnalyticsLive = memo(() => {
           <div className="flex items-center justify-center gap-2 mt-4">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-sm font-medium text-muted-foreground">
-              Tracking {markets.length} live markets • Updates every 5min
+              Tracking {markets.length} live markets • Updates every 30min
             </span>
           </div>
         </div>
@@ -75,6 +78,7 @@ const AnalyticsLive = memo(() => {
               {trendingMarkets.map((market, i) => (
                 <div
                   key={market.id}
+                  onClick={() => navigate(`/bet/${market.id}`)}
                   className={`glass p-5 rounded-xl hover:glass-strong transition-all duration-300 cursor-pointer group relative overflow-hidden ${
                     market.isActive ? 'border border-primary/30' : ''
                   }`}
