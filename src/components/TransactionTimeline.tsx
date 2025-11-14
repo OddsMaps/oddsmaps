@@ -30,20 +30,6 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
       const isPolymarket = market.source.toLowerCase() === 'polymarket';
       
       if (!isPolymarket) {
-        // Generate mock data for Kalshi
-        const mockTransactions: Transaction[] = Array.from({ length: 50 }, (_, i) => ({
-          id: `tx-${i}`,
-          hash: `0x${Math.random().toString(16).substr(2, 64)}`,
-          address: `0x${Math.random().toString(16).substr(2, 40)}`,
-          amount: Math.random() * 5000 + 100,
-          timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          blockNumber: 40000000 + Math.floor(Math.random() * 100000),
-          side: ['buy', 'sell', 'yes', 'no'][Math.floor(Math.random() * 4)] as any,
-          type: Math.random() > 0.5 ? 'market' : 'limit',
-        }));
-        setTransactions(mockTransactions.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ));
         setLoading(false);
         return;
       }
@@ -52,25 +38,62 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
         setLoading(true);
         setError(null);
         
-        const { data, error: functionError } = await supabase.functions.invoke('fetch-wallet-data', {
-          body: { marketId: market.market_id }
-        });
+        // Fetch transactions directly from database
+        const { data, error: txError } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('market_id', market.id)
+          .order('timestamp', { ascending: false });
 
-        if (functionError) throw functionError;
+        if (txError) throw txError;
 
-        if (data?.transactions) {
-          setTransactions(data.transactions);
+        if (data && data.length > 0) {
+          const formattedTxs = data.map(tx => ({
+            id: tx.id,
+            hash: tx.transaction_hash || '',
+            address: tx.wallet_address,
+            amount: Number(tx.amount),
+            timestamp: tx.timestamp,
+            blockNumber: Number(tx.block_number) || 0,
+            side: tx.side as 'buy' | 'sell' | 'yes' | 'no',
+            type: tx.transaction_type as 'market' | 'limit',
+          }));
+          setTransactions(formattedTxs);
+        } else {
+          setTransactions([]);
         }
       } catch (err) {
         console.error('Error fetching transactions:', err);
         setError(err instanceof Error ? err.message : 'Failed to load transactions');
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchTransactions();
-  }, [market.market_id, market.source]);
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`transactions-${market.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `market_id=eq.${market.id}`,
+        },
+        () => {
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [market.id, market.source]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -121,6 +144,33 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
     );
   }
 
+  const whaleTransactions = transactions.filter(tx => tx.amount >= 10000);
+  const regularTransactions = transactions.filter(tx => tx.amount < 10000);
+
+  if (!isPolymarket) {
+    return (
+      <div className="glass-strong rounded-3xl p-12 text-center">
+        <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-xl font-semibold mb-2">Blockchain Data Unavailable</h3>
+        <p className="text-muted-foreground">
+          Transaction data is only available for Polymarket markets with on-chain data.
+        </p>
+      </div>
+    );
+  }
+
+  if (transactions.length === 0 && !loading) {
+    return (
+      <div className="glass-strong rounded-3xl p-12 text-center">
+        <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-xl font-semibold mb-2">No Transactions Yet</h3>
+        <p className="text-muted-foreground">
+          No wallet transactions have been recorded for this market. Transactions are synced every 30 minutes.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -129,11 +179,7 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
           <div>
             <h3 className="text-2xl font-bold gradient-text mb-2">Transaction History</h3>
             <p className="text-sm text-muted-foreground">
-              {isPolymarket ? (
-                error ? `⚠ ${error} - Showing mock data` : "✓ Real on-chain transactions from Polygon"
-              ) : (
-                "ℹ Blockchain data only available for Polymarket (Kalshi is centralized)"
-              )}
+              ✓ Real on-chain transactions from Polygon
             </p>
           </div>
           <div className="text-right">
@@ -186,8 +232,81 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
         </div>
       </div>
 
-      {/* Timeline */}
+      {/* Whale Transactions Section */}
+      {whaleTransactions.length > 0 && (
+        <div className="glass-strong rounded-3xl p-6 border-2 border-primary/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
+              <Activity className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold gradient-text">Whale Transactions</h3>
+              <p className="text-sm text-muted-foreground">Trades ≥ $10,000</p>
+            </div>
+          </div>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+            {whaleTransactions.map((tx, index) => (
+              <div
+                key={tx.id}
+                className="glass border-2 border-primary/30 rounded-xl p-4 hover:border-primary/60 transition-all duration-300 group"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Timeline Indicator */}
+                  <div className="flex flex-col items-center">
+                    <div className={`p-2 rounded-lg border-2 ${getSideColor(tx.side)} group-hover:scale-110 transition-transform duration-300`}>
+                      {getSideIcon(tx.side)}
+                    </div>
+                  </div>
+
+                  {/* Transaction Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div 
+                          className="font-mono text-sm text-muted-foreground hover:text-primary cursor-pointer transition-colors truncate"
+                          onClick={() => navigate(`/wallet/${tx.address}`)}
+                          title={tx.address}
+                        >
+                          {tx.address.slice(0, 6)}...{tx.address.slice(-4)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">{formatTimestamp(tx.timestamp)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold gradient-text">${(tx.amount / 1000).toFixed(1)}K</div>
+                        <div className={`text-xs font-semibold px-2 py-1 rounded ${getSideColor(tx.side)}`}>
+                          {tx.side.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <span className="opacity-60">Type:</span>
+                        <span className="capitalize">{tx.type}</span>
+                      </div>
+                      {tx.hash && (
+                        <a
+                          href={`https://polygonscan.com/tx/${tx.hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 hover:text-primary transition-colors"
+                        >
+                          <span>View on Polygonscan</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Transactions Timeline */}
       <div className="glass-strong rounded-3xl p-6">
+        <h3 className="text-xl font-bold mb-4">All Transactions</h3>
         <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar">
           {transactions.map((tx, index) => (
             <div

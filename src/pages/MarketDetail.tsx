@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { memo } from "react";
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, History } from "lucide-react";
+import { memo, useState } from "react";
+import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -8,6 +8,8 @@ import WalletBubbleMap from "@/components/WalletBubbleMap";
 import InsiderAnalysis from "@/components/InsiderAnalysis";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
   <>
@@ -104,10 +106,42 @@ MarketHeader.displayName = 'MarketHeader';
 const MarketDetail = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [syncing, setSyncing] = useState(false);
   // Only fetch Polymarket markets
   const { data: markets } = useMarkets('polymarket');
   
   const market = markets?.find(m => m.market_id === marketId);
+
+  const handleSyncData = async () => {
+    if (!market) return;
+    
+    setSyncing(true);
+    toast({
+      title: "Syncing data...",
+      description: "Fetching latest transactions from Polymarket",
+    });
+
+    try {
+      await supabase.functions.invoke('fetch-polymarket-transactions');
+      
+      toast({
+        title: "Sync complete!",
+        description: "Latest transaction data has been fetched",
+      });
+      
+      // Refresh the page data
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast({
+        title: "Sync failed",
+        description: "Unable to fetch transaction data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (!market) {
     return (
@@ -139,6 +173,19 @@ const MarketDetail = () => {
             change={change}
             onBack={() => navigate("/")}
           />
+
+          {market.source.toLowerCase() === 'polymarket' && (
+            <div className="mb-6">
+              <Button 
+                onClick={handleSyncData}
+                disabled={syncing}
+                className="glass-strong hover:glass"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Latest Data'}
+              </Button>
+            </div>
+          )}
 
           <Tabs defaultValue="wallets" className="space-y-6">
             <TabsList className="glass-strong p-1.5 border border-border/50">
