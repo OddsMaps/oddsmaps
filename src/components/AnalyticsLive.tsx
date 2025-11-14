@@ -21,7 +21,7 @@ const AnalyticsLive = memo(() => {
         const isActive = activeMarkets.has(market.id);
         
         return {
-          id: market.id,
+          id: market.market_id, // Use market_id for navigation
           event: market.title,
           odds: `${(market.yes_price * 100).toFixed(0)}%`,
           change: priceChange 
