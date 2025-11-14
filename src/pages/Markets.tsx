@@ -25,6 +25,13 @@ const Markets = () => {
     .sort((a, b) => b.volume_24h - a.volume_24h)
     .slice(0, 6);
 
+  const formatVolume = (volume: number) => {
+    if (volume >= 1000000) {
+      return `$${(volume / 1000000).toFixed(1)}M`;
+    }
+    return `$${(volume / 1000).toFixed(0)}K`;
+  };
+
   const getPriceChange = (market: any) => {
     const yesPrice = market.yes_price || 0;
     return yesPrice >= 0.5 ? "bullish" : "bearish";
@@ -98,13 +105,13 @@ const Markets = () => {
                         <div>
                           <p className="text-xs text-muted-foreground">24h Volume</p>
                           <p className="font-bold text-foreground">
-                            ${(market.volume_24h / 1000).toFixed(1)}K
+                            {formatVolume(market.volume_24h)}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Total Volume</p>
                           <p className="font-bold text-foreground">
-                            ${(market.total_volume / 1000000).toFixed(2)}M
+                            {formatVolume(market.total_volume)}
                           </p>
                         </div>
                       </div>
@@ -140,7 +147,7 @@ const Markets = () => {
                 <CardHeader className="pb-2">
                   <CardDescription>Total Volume</CardDescription>
                   <CardTitle className="text-3xl gradient-text">
-                    ${(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0) / 1000000).toFixed(1)}M
+                    {formatVolume(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0))}
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -227,13 +234,13 @@ const Markets = () => {
                         <div>
                           <div className="text-muted-foreground text-xs">Total Volume</div>
                           <div className="font-semibold">
-                            ${((market.total_volume || 0) / 1000).toFixed(1)}K
+                            {formatVolume(market.total_volume || 0)}
                           </div>
                         </div>
                         <div>
                           <div className="text-muted-foreground text-xs">24h Volume</div>
                           <div className="font-semibold">
-                            ${((market.volume_24h || 0) / 1000).toFixed(1)}K
+                            {formatVolume(market.volume_24h || 0)}
                           </div>
                         </div>
                       </div>
