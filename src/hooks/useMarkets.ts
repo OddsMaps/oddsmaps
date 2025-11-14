@@ -14,6 +14,7 @@ export interface Market {
   status: string;
   yes_price: number;
   no_price: number;
+  total_volume: number;
   volume_24h: number;
   liquidity: number;
   trades_24h: number;
