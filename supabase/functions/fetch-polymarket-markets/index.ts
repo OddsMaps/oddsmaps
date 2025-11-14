@@ -137,12 +137,20 @@ Deno.serve(async (req) => {
           status: 'active',
           yes_price,
           no_price,
+          total_volume: totalVolume,
           volume_24h,
           liquidity,
           trades_24h,
           volatility,
         };
       });
+
+    // Log first 3 markets' volume data for debugging
+    console.log('Sample volume data from first 3 markets:');
+    processed.slice(0, 3).forEach((m, i) => {
+      console.log(`  Market ${i + 1}: ${m.title.substring(0, 40)}...`);
+      console.log(`    total_volume: ${m.total_volume}, volume_24h: ${m.volume_24h}`);
+    });
 
     let upserts = 0;
 
@@ -175,6 +183,7 @@ Deno.serve(async (req) => {
           market_id: existing.id,
           yes_price: m.yes_price,
           no_price: m.no_price,
+          total_volume: m.total_volume,
           volume_24h: m.volume_24h,
           liquidity: m.liquidity,
           trades_24h: m.trades_24h,
@@ -202,6 +211,7 @@ Deno.serve(async (req) => {
           market_id: newM.id,
           yes_price: m.yes_price,
           no_price: m.no_price,
+          total_volume: m.total_volume,
           volume_24h: m.volume_24h,
           liquidity: m.liquidity,
           trades_24h: m.trades_24h,

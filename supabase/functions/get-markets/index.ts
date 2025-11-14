@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
         status: market.status,
         yes_price: latestData?.yes_price || 0.5,
         no_price: latestData?.no_price || 0.5,
+        total_volume: latestData?.total_volume || 0,
         volume_24h: latestData?.volume_24h || 0,
         liquidity: latestData?.liquidity || 0,
         trades_24h: latestData?.trades_24h || 0,

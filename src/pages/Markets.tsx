@@ -65,7 +65,7 @@ const Markets = () => {
                 <CardHeader className="pb-2">
                   <CardDescription>Total Volume</CardDescription>
                   <CardTitle className="text-3xl gradient-text">
-                    ${(markets.reduce((sum, m) => sum + (m.volume_24h || 0), 0) / 1000000).toFixed(1)}M
+                    ${(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0) / 1000000).toFixed(1)}M
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -123,9 +123,9 @@ const Markets = () => {
                     <CardContent>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <div className="text-muted-foreground">Volume 24h</div>
+                          <div className="text-muted-foreground">Total Volume</div>
                           <div className="font-semibold">
-                            ${((market.volume_24h || 0) / 1000).toFixed(1)}K
+                            ${((market.total_volume || 0) / 1000).toFixed(1)}K
                           </div>
                         </div>
                         <div>
