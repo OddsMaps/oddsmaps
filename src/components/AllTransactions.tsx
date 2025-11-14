@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,6 +23,7 @@ interface Transaction {
 export const AllTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export const AllTransactions = () => {
           market:markets!inner(title, market_id, source)
         `)
         .eq('market.source', 'polymarket')
+        .gte('amount', 10000) // Only show whale activity (>$10k)
         .order('timestamp', { ascending: false })
         .limit(100);
 
@@ -68,6 +71,9 @@ export const AllTransactions = () => {
       setLoading(false);
     }
   };
+
+  // Show only 5 by default, or all if showAll is true
+  const displayedTransactions = showAll ? transactions : transactions.slice(0, 5);
 
   const formatTime = (timestamp: string) => {
     const now = new Date().getTime();
@@ -108,17 +114,17 @@ export const AllTransactions = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">All Polymarket Transactions</h2>
-          <p className="text-muted-foreground">Real-time feed of every bet placed</p>
+          <h2 className="text-2xl font-bold">Whale Activity 🐋</h2>
+          <p className="text-muted-foreground">Real-time bets over $10,000 on Polymarket</p>
         </div>
         <Badge variant="outline" className="gap-2">
           <Activity className="h-3 w-3 animate-pulse text-green-500" />
-          {transactions.length} Live
+          {transactions.length} Whales
         </Badge>
       </div>
 
       <div className="grid gap-3">
-        {transactions.map((tx) => (
+        {displayedTransactions.map((tx) => (
           <Card
             key={tx.id}
             className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
@@ -152,6 +158,20 @@ export const AllTransactions = () => {
           </Card>
         ))}
       </div>
+
+      {/* Show More Button */}
+      {transactions.length > 5 && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowAll(!showAll)}
+            className="gap-2"
+          >
+            {showAll ? 'Show Less' : `Show More (${transactions.length - 5} more)`}
+            {showAll ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
