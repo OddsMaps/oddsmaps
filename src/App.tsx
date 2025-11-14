@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import WalletProfile from "./pages/WalletProfile";
+import BetDetail from "./pages/BetDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/markets" element={<Markets />} />
           <Route path="/market/:marketId" element={<MarketDetail />} />
           <Route path="/wallet/:address" element={<WalletProfile />} />
+          <Route path="/bet/:txId" element={<BetDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
