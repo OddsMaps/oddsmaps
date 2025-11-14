@@ -56,7 +56,7 @@ const Header = () => {
                 e.preventDefault();
                 navigate('/');
               }}
-              className="flex items-center gap-3 group cursor-pointer flex-shrink-0"
+              className="flex items-center gap-1 group cursor-pointer flex-shrink-0"
             >
               <img 
                 src={logo} 
