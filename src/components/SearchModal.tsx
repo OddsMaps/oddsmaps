@@ -190,7 +190,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
       e.preventDefault();
       const result = allResults[selectedIndex];
       if ('wallet_address' in result) {
-        navigate(`/wallet/${result.wallet_address}`);
+        navigate(`/bet/${result.id}`);
       } else {
         handleSelectMarket(result);
       }
@@ -362,7 +362,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                           <button
                             key={tx.id}
                             onClick={() => {
-                              navigate(`/wallet/${tx.wallet_address}`);
+                              navigate(`/bet/${tx.id}`);
                               onOpenChange(false);
                             }}
                             className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
