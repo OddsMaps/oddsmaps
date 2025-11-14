@@ -168,9 +168,22 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       return wallet.volume * (currentPrice - entryPrice);
     };
 
-    realWallets.forEach((wallet, i) => {
-      const size = Math.min(100, Math.max(50, Math.sqrt(wallet.volume) * 2));
+    // Sort wallets by volume to position them by size
+    const sortedWallets = [...realWallets].sort((a, b) => a.volume - b.volume);
+    
+    sortedWallets.forEach((wallet, i) => {
+      const size = Math.min(120, Math.max(30, Math.sqrt(wallet.volume) * 2));
       const isYes = wallet.side === 'yes';
+      
+      // Calculate position based on size: small near center, large near edges
+      const normalizedSize = (i / sortedWallets.length); // 0 to 1
+      const distanceFromCenter = normalizedSize * 45; // 0 to 45% from center
+      
+      // For YES side: position from center (50%) to left (5%)
+      // For NO side: position from center (50%) to right (95%)
+      const baseX = isYes ? 50 - distanceFromCenter : 50 + distanceFromCenter;
+      const randomOffsetX = (Math.random() - 0.5) * 5; // Small random variation
+      const randomOffsetY = (Math.random() - 0.5) * 80 + 50; // Random Y position
       
       const walletData: WalletData = {
         id: `${wallet.address}-${i}`,
@@ -178,8 +191,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         side: isYes ? "yes" : "no",
         amount: wallet.volume,
         size,
-        x: isYes ? Math.random() * 38 + 6 : Math.random() * 38 + 56,
-        y: Math.random() * 75 + 12,
+        x: baseX + randomOffsetX,
+        y: randomOffsetY,
         color: isYes ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
         trades: wallet.trades,
         avgPrice: wallet.avgPrice,
