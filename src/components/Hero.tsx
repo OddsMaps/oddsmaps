@@ -137,6 +137,7 @@ const Hero = () => {
             size="lg" 
             variant="outline"
             className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group px-6 py-4 text-base"
+            onClick={() => navigate('/markets#trending')}
           >
             <TrendingUp className="mr-2" />
             View Trending Bets
