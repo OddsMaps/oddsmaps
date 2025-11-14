@@ -123,16 +123,22 @@ const MarketDetail = () => {
     });
 
     try {
-      await supabase.functions.invoke('fetch-polymarket-transactions');
-      
+      const { data, error } = await supabase.functions.invoke('sync-market-transactions', {
+        body: { marketId: market.market_id }
+      });
+
+      if (error) throw error;
+
       toast({
-        title: "Sync complete!",
-        description: "Latest transaction data has been fetched",
+        title: "✓ Sync complete!",
+        description: data?.processed 
+          ? `Added ${data.processed} new transactions` 
+          : "No new transactions found",
       });
       
-      // Refresh the page data
-      setTimeout(() => window.location.reload(), 1000);
+      // No need to reload, real-time updates will handle it
     } catch (error) {
+      console.error('Sync error:', error);
       toast({
         title: "Sync failed",
         description: "Unable to fetch transaction data. Please try again.",
