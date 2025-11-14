@@ -62,6 +62,7 @@ const Header = () => {
                 src={logo} 
                 alt="OddsMap" 
                 className="h-12 md:h-24 w-auto transition-transform duration-300 group-hover:scale-105"
+                style={{ animation: 'logo-illuminate 4s ease-in-out infinite' }}
               />
               <span className="font-glacial text-2xl md:text-4xl text-foreground">
                 OddsMaps

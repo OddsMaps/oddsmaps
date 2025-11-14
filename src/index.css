@@ -144,6 +144,18 @@ All colors MUST be HSL.
     }
   }
 
+  @keyframes logo-illuminate {
+    0%, 100% {
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4)) drop-shadow(0 0 16px rgba(16, 185, 129, 0.2));
+    }
+    33% {
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.3));
+    }
+    66% {
+      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.5)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.3));
+    }
+  }
+
   /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
