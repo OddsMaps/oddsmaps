@@ -45,7 +45,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   // Fetch ALL transactions for search and set up real-time updates
   useEffect(() => {
     const fetchTransactions = async () => {
-      // Fetch ALL Polymarket transactions from DB without limit
+      // Fetch ALL Polymarket transactions from DB - set high limit to override default 1000
       const { data } = await supabase
         .from('wallet_transactions')
         .select(`
@@ -53,7 +53,8 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
           market:markets!inner(title, market_id, source)
         `)
         .eq('market.source', 'polymarket')
-        .order('timestamp', { ascending: false });
+        .order('timestamp', { ascending: false })
+        .limit(50000); // Set high limit to get all transactions
       
       if (data && data.length > 0) {
         setTransactions(data as any);
