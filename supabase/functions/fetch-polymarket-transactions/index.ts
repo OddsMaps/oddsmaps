@@ -6,17 +6,18 @@ const corsHeaders = {
 };
 
 interface PolymarketTrade {
-  id: string;
-  market: string;
-  asset_id: string;
-  outcome: string;
-  price: string;
-  size: string;
-  side: string;
+  proxyWallet: string;
+  side: 'BUY' | 'SELL';
+  asset: string;
+  conditionId: string;
+  size: number;
+  price: number;
   timestamp: number;
-  transaction_hash: string;
-  maker_address: string;
-  taker_address?: string;
+  transactionHash: string;
+  outcome: string;
+  outcomeIndex: number;
+  title?: string;
+  slug?: string;
 }
 
 Deno.serve(async (req) => {
@@ -32,13 +33,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch markets to get condition IDs
+    // Fetch markets to get condition IDs - fetch all active markets
     const { data: markets } = await supabaseClient
       .from('markets')
       .select('id, market_id, title')
       .eq('source', 'polymarket')
       .eq('status', 'active')
-      .limit(100);
+      .limit(500); // Increased limit to capture more markets
 
     if (!markets || markets.length === 0) {
       console.log('No Polymarket markets found');
@@ -56,9 +57,10 @@ Deno.serve(async (req) => {
       const conditionId = market.market_id.replace('polymarket-', '');
       
       try {
-        // Fetch recent trades from Polymarket CLOB trades endpoint
+        // Fetch recent trades from Polymarket Data API
+        // Use the correct endpoint with condition_id as market parameter
         const tradesResponse = await fetch(
-          `https://clob.polymarket.com/trades?condition_id=${conditionId}&limit=100`,
+          `https://data-api.polymarket.com/trades?market=${conditionId}&limit=1000&takerOnly=false`,
           {
             headers: {
               'Accept': 'application/json',
@@ -71,23 +73,22 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const tradesData = await tradesResponse.json();
-        const trades: PolymarketTrade[] = Array.isArray(tradesData) ? tradesData : (tradesData.trades || []);
+        const trades: PolymarketTrade[] = await tradesResponse.json();
         totalFetched += trades.length;
         console.log(`Fetched ${trades.length} trades for market: ${market.title}`);
 
         // Process and store transactions
         for (const trade of trades) {
-          const walletAddress = trade.maker_address;
-          const side = trade.outcome.toLowerCase() === 'yes' ? 'yes' : 'no';
-          const amount = parseFloat(trade.size);
-          const price = parseFloat(trade.price);
+          const walletAddress = trade.proxyWallet;
+          const side = trade.side === 'BUY' ? (trade.outcome.toLowerCase() === 'yes' ? 'yes' : 'no') : (trade.outcome.toLowerCase() === 'yes' ? 'no' : 'yes');
+          const amount = trade.size;
+          const price = trade.price;
 
           // Check if transaction already exists
           const { data: existingTx } = await supabaseClient
             .from('wallet_transactions')
             .select('id')
-            .eq('transaction_hash', trade.transaction_hash || trade.id)
+            .eq('transaction_hash', trade.transactionHash)
             .single();
 
           if (!existingTx) {
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
                 price: price,
                 side: side,
                 transaction_type: 'market',
-                transaction_hash: trade.transaction_hash || trade.id,
+                transaction_hash: trade.transactionHash,
                 timestamp: new Date(trade.timestamp * 1000).toISOString(),
                 block_number: null,
               });
