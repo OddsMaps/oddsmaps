@@ -168,45 +168,59 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       return wallet.volume * (currentPrice - entryPrice);
     };
 
-    // Sort wallets by volume to position them by size
-    const sortedWallets = [...realWallets].sort((a, b) => a.volume - b.volume);
+    // Separate and sort YES and NO wallets by volume
+    const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => a.volume - b.volume);
+    const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => a.volume - b.volume);
     
-    sortedWallets.forEach((wallet, i) => {
-      const size = Math.min(120, Math.max(30, Math.sqrt(wallet.volume) * 2));
-      const isYes = wallet.side === 'yes';
+    // Function to position wallets in a radial pattern from center outward
+    const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
+      const traders: WalletData[] = [];
+      const totalWallets = wallets.length;
       
-      // Calculate position based on size: small near center, large near edges
-      const normalizedSize = (i / sortedWallets.length); // 0 to 1
-      const distanceFromCenter = normalizedSize * 45; // 0 to 45% from center
+      wallets.forEach((wallet, i) => {
+        const size = Math.min(140, Math.max(40, Math.sqrt(wallet.volume) * 2.5));
+        
+        // Calculate radial position: small bets near center, large bets at edges
+        const progress = i / Math.max(1, totalWallets - 1); // 0 to 1
+        const radius = 10 + progress * 40; // 10% to 50% from center
+        
+        // Create rings with multiple wallets per ring for better distribution
+        const ringIndex = Math.floor(progress * 4); // 4 rings
+        const walletsInRing = Math.ceil(totalWallets / 4);
+        const angleStep = 180 / Math.max(1, walletsInRing);
+        const angleOffset = (i % walletsInRing) * angleStep;
+        const angle = (angleOffset - 90) * (Math.PI / 180); // -90 to +90 degrees
+        
+        // Calculate position based on side
+        const centerX = side === 'yes' ? 25 : 75; // Center for each half
+        const x = centerX + Math.cos(angle) * radius;
+        const y = 50 + Math.sin(angle) * radius * 0.6; // Flatten vertically for better fit
+        
+        const walletData: WalletData = {
+          id: `${wallet.address}-${i}`,
+          address: wallet.address,
+          side,
+          amount: wallet.volume,
+          size,
+          x: Math.max(5, Math.min(95, x)), // Keep within bounds
+          y: Math.max(10, Math.min(90, y)),
+          color: side === 'yes' ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
+          trades: wallet.trades,
+          avgPrice: wallet.avgPrice,
+          profit: calculateProfit(wallet, side === 'yes'),
+          entryTime: wallet.firstEntry,
+          timeColor: getTimeColor(wallet.firstEntry),
+        };
+        
+        traders.push(walletData);
+      });
       
-      // For YES side: position from center (50%) to left (5%)
-      // For NO side: position from center (50%) to right (95%)
-      const baseX = isYes ? 50 - distanceFromCenter : 50 + distanceFromCenter;
-      const randomOffsetX = (Math.random() - 0.5) * 5; // Small random variation
-      const randomOffsetY = (Math.random() - 0.5) * 80 + 50; // Random Y position
-      
-      const walletData: WalletData = {
-        id: `${wallet.address}-${i}`,
-        address: wallet.address,
-        side: isYes ? "yes" : "no",
-        amount: wallet.volume,
-        size,
-        x: baseX + randomOffsetX,
-        y: randomOffsetY,
-        color: isYes ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
-        trades: wallet.trades,
-        avgPrice: wallet.avgPrice,
-        profit: calculateProfit(wallet, isYes),
-        entryTime: wallet.firstEntry,
-        timeColor: getTimeColor(wallet.firstEntry),
-      };
-
-      if (isYes) {
-        yesTraders.push(walletData);
-      } else {
-        noTraders.push(walletData);
-      }
-    });
+      return traders;
+    };
+    
+    // Position YES and NO wallets separately
+    yesTraders.push(...positionWallets(yesWallets, 'yes'));
+    noTraders.push(...positionWallets(noWallets, 'no'));
 
     return [...yesTraders, ...noTraders];
   }, [market, realWallets]);
@@ -382,34 +396,41 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         </div>
 
         {/* Map Container */}
-        <div className="relative bg-background/30 min-h-[600px] overflow-hidden">
+        <div className="relative min-h-[700px] overflow-hidden">
+          {/* Split Background Gradients */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-y-0 left-0 right-1/2 bg-gradient-to-r from-green-950/20 via-green-900/10 to-transparent" />
+            <div className="absolute inset-y-0 left-1/2 right-0 bg-gradient-to-l from-red-950/20 via-red-900/10 to-transparent" />
+          </div>
+          
           {/* Side Labels */}
-          <div className="absolute top-6 left-6 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 z-10">
-            <div className="text-sm font-bold text-green-400 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
+          <div className="absolute top-8 left-8 px-5 py-3 rounded-xl bg-green-500/15 border border-green-500/40 backdrop-blur-sm z-10 shadow-lg">
+            <div className="text-base font-bold text-green-400 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
               YES SIDE
             </div>
           </div>
-          <div className="absolute top-6 right-6 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 z-10">
-            <div className="text-sm font-bold text-red-400 flex items-center gap-2">
+          <div className="absolute top-8 right-8 px-5 py-3 rounded-xl bg-red-500/15 border border-red-500/40 backdrop-blur-sm z-10 shadow-lg">
+            <div className="text-base font-bold text-red-400 flex items-center gap-2">
               NO SIDE
-              <TrendingDown className="w-4 h-4" />
+              <TrendingDown className="w-5 h-5" />
             </div>
           </div>
 
           {/* Center Divider */}
-          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-transparent via-border/50 to-transparent" />
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-gradient-to-b from-transparent via-white/30 to-transparent shadow-lg" />
 
           {/* Wallet Bubbles */}
-          <div className="relative w-full h-full min-h-[600px] p-8">
+          <div className="relative w-full h-full min-h-[700px] p-8">
             {wallets.map((wallet) => (
               <div
                 key={wallet.id}
-                className="absolute cursor-pointer group"
+                className="absolute cursor-pointer group transition-all duration-300"
                 style={{
                   left: `${wallet.x}%`,
                   top: `${wallet.y}%`,
                   transform: 'translate(-50%, -50%)',
+                  zIndex: hoveredWallet?.id === wallet.id ? 50 : 1,
                 }}
                 onMouseEnter={() => setHoveredWallet(wallet)}
                 onMouseLeave={() => setHoveredWallet(null)}
@@ -418,16 +439,17 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 <div
                   className={`rounded-full bg-gradient-to-br ${wallet.timeColor} 
                     flex items-center justify-center 
-                    border-[3px] transition-all duration-300 ease-out
-                    ${wallet.side === 'yes' ? 'border-green-400/60' : 'border-red-400/60'}
-                    group-hover:border-${wallet.side === 'yes' ? 'green' : 'red'}-400 
-                    group-hover:scale-125 group-hover:shadow-2xl
-                    shadow-lg backdrop-blur-sm
-                    animate-fade-in`}
+                    border-[4px] transition-all duration-300 ease-out
+                    ${wallet.side === 'yes' 
+                      ? 'border-green-400/50 group-hover:border-green-400 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]' 
+                      : 'border-red-400/50 group-hover:border-red-400 group-hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+                    }
+                    group-hover:scale-125 shadow-xl backdrop-blur-sm
+                    animate-fade-in hover:z-50`}
                   style={{
                     width: `${wallet.size}px`,
                     height: `${wallet.size}px`,
-                    opacity: hoveredWallet?.id === wallet.id ? 1 : 0.85,
+                    opacity: hoveredWallet?.id === wallet.id ? 1 : 0.9,
                   }}
                 >
                   <Wallet className="w-4 h-4 text-white drop-shadow-lg" />
