@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/oddsmap-logo-new.png";
 import SearchModal from "./SearchModal";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Handle scroll to change header background
   useEffect(() => {
@@ -31,9 +33,9 @@ const Header = () => {
   }, []);
 
   const navItems = [
-    { label: "Analytics", href: "#analytics" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Community", href: "#community" },
+    { label: "Live Markets", href: "/markets", isRoute: true },
+    { label: "How It Works", href: "#how-it-works", isRoute: false },
+    { label: "Community", href: "#community", isRoute: false },
   ];
 
   const scrollToSection = (href: string) => {
@@ -72,7 +74,11 @@ const Header = () => {
                   href={item.href}
                   onClick={(e) => {
                     e.preventDefault();
-                    scrollToSection(item.href);
+                    if (item.isRoute) {
+                      navigate(item.href);
+                    } else {
+                      scrollToSection(item.href);
+                    }
                   }}
                   className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
                 >
