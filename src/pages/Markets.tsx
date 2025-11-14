@@ -20,6 +20,11 @@ const Markets = () => {
     market.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Get top 6 trending markets by 24h volume
+  const trendingMarkets = [...(markets || [])]
+    .sort((a, b) => b.volume_24h - a.volume_24h)
+    .slice(0, 6);
+
   const getPriceChange = (market: any) => {
     const yesPrice = market.yes_price || 0;
     return yesPrice >= 0.5 ? "bullish" : "bearish";
@@ -46,6 +51,69 @@ const Markets = () => {
               Real-time data from Polymarket. All prices and volumes update automatically.
             </p>
           </div>
+
+          {/* Trending Markets */}
+          {!isLoading && trendingMarkets.length > 0 && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-6 h-6 text-primary" />
+                <h2 className="text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trendingMarkets.map((market) => (
+                  <Card
+                    key={market.id}
+                    className="glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300 border-primary/30"
+                    onClick={() => navigate(`/market/${market.market_id}`)}
+                  >
+                    <CardHeader className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-lg line-clamp-2 flex-1">
+                          {market.title}
+                        </CardTitle>
+                        <Badge variant="secondary" className="shrink-0 bg-primary/20 text-primary border-primary/30">
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          HOT
+                        </Badge>
+                      </div>
+                      <CardDescription className="line-clamp-2">
+                        {market.description || "No description available"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm font-medium">
+                          <span className="flex items-center gap-1.5 text-green-500">
+                            <Activity className="w-4 h-4" />
+                            YES {(market.yes_price * 100).toFixed(1)}%
+                          </span>
+                          <span className="flex items-center gap-1.5 text-red-500">
+                            <Activity className="w-4 h-4" />
+                            NO {(market.no_price * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <Progress value={market.yes_price * 100} className="h-2.5" />
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                        <div>
+                          <p className="text-xs text-muted-foreground">24h Volume</p>
+                          <p className="font-bold text-foreground">
+                            ${(market.volume_24h / 1000).toFixed(1)}K
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Total Volume</p>
+                          <p className="font-bold text-foreground">
+                            ${(market.total_volume / 1000000).toFixed(2)}M
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Search */}
           <div className="relative max-w-2xl mx-auto">
