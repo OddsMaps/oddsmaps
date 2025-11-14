@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, TrendingUp, TrendingDown } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 const Markets = () => {
   const navigate = useNavigate();
@@ -32,11 +33,17 @@ const Markets = () => {
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold">
-              <span className="gradient-text">Live Prediction Markets</span>
-            </h1>
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <h1 className="text-4xl md:text-5xl font-bold">
+                <span className="gradient-text">Live Prediction Markets</span>
+              </h1>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-green-500">LIVE</span>
+              </div>
+            </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explore all active markets on Polymarket. Click any market to see detailed analytics.
+              Real-time data from Polymarket. All prices and volumes update automatically.
             </p>
           </div>
 
@@ -92,11 +99,13 @@ const Markets = () => {
               {filteredMarkets?.map((market) => {
                 const priceChange = getPriceChange(market);
                 const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
+                const noPrice = ((market.no_price || 0) * 100).toFixed(1);
+                const yesPercentage = (market.yes_price || 0) * 100;
                 
                 return (
                   <Card
                     key={market.id}
-                    className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-105 group"
+                    className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-[1.02] group"
                     onClick={() => navigate(`/market/${market.market_id}`)}
                   >
                     <CardHeader>
@@ -120,18 +129,43 @@ const Markets = () => {
                         {market.description}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                    <CardContent className="space-y-4">
+                      {/* Yes/No Distribution Bar */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1 text-green-500 font-medium">
+                            <Activity className="w-3 h-3" />
+                            YES {yesPrice}%
+                          </span>
+                          <span className="flex items-center gap-1 text-red-500 font-medium">
+                            NO {noPrice}%
+                            <Activity className="w-3 h-3" />
+                          </span>
+                        </div>
+                        <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
+                            style={{ width: `${yesPercentage}%` }}
+                          />
+                          <div 
+                            className="absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 to-red-400 transition-all duration-500"
+                            style={{ width: `${100 - yesPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-border/50">
                         <div>
-                          <div className="text-muted-foreground">Total Volume</div>
+                          <div className="text-muted-foreground text-xs">Total Volume</div>
                           <div className="font-semibold">
                             ${((market.total_volume || 0) / 1000).toFixed(1)}K
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Liquidity</div>
+                          <div className="text-muted-foreground text-xs">24h Volume</div>
                           <div className="font-semibold">
-                            ${((market.liquidity || 0) / 1000).toFixed(1)}K
+                            ${((market.volume_24h || 0) / 1000).toFixed(1)}K
                           </div>
                         </div>
                       </div>
