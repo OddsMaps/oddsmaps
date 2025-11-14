@@ -88,7 +88,7 @@ const Hero = () => {
   };
   
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 px-4">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-64 h-64 bg-primary/30 rounded-full blur-[120px] animate-float" />
@@ -99,7 +99,7 @@ const Hero = () => {
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="absolute rounded-full glass animate-morph"
+            className="absolute rounded-full glass animate-morph hidden md:block"
             style={{
               width: `${Math.random() * 150 + 50}px`,
               height: `${Math.random() * 150 + 50}px`,
@@ -113,21 +113,21 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center space-y-6 animate-fade-in">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6 animate-fade-in">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
           <span className="gradient-text">Visual Intelligence</span>
           <br />
           <span className="text-foreground">for Prediction Markets</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-4">
           Turn odds and transactions into intuitive visual maps — spot liquidity flows and market momentum in real time.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-6 px-4">
           <Button 
             size="lg" 
-            className="glass-strong glow-gradient hover:scale-105 transition-all duration-300 group px-6 py-4 text-base"
+            className="glass-strong glow-gradient hover:scale-105 transition-all duration-300 group w-full sm:w-auto px-6 py-6 sm:py-4 text-base touch-manipulation"
             onClick={() => navigate('/markets')}
           >
             Explore Live Maps
@@ -136,7 +136,7 @@ const Hero = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group px-6 py-4 text-base"
+            className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group w-full sm:w-auto px-6 py-6 sm:py-4 text-base touch-manipulation"
             onClick={() => {
               navigate('/markets');
               setTimeout(() => {
@@ -150,35 +150,35 @@ const Hero = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-12 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-12 max-w-3xl mx-auto px-4">
           <div 
-            className="glass p-4 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105"
+            className="glass p-4 sm:p-6 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105 touch-manipulation"
             style={{ animationDelay: '0s' }}
           >
-            <div className="text-2xl font-bold gradient-text">
+            <div className="text-xl sm:text-2xl font-bold gradient-text">
               {activeMarketsCount !== undefined ? formatNumber(activeMarketsCount) : '...'}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">Active Markets</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Active Markets</div>
           </div>
           
           <div 
-            className="glass p-4 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105"
+            className="glass p-4 sm:p-6 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105 touch-manipulation"
             style={{ animationDelay: '0.2s' }}
           >
-            <div className="text-2xl font-bold gradient-text">
+            <div className="text-xl sm:text-2xl font-bold gradient-text">
               {totalVolume !== undefined ? formatVolume(totalVolume) : '...'}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">Total Volume</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Total Volume</div>
           </div>
           
           <div 
-            className="glass p-4 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105"
+            className="glass p-4 sm:p-6 rounded-2xl hover:glass-strong transition-all duration-300 hover:scale-105 touch-manipulation"
             style={{ animationDelay: '0.4s' }}
           >
-            <div className="text-2xl font-bold gradient-text">
+            <div className="text-xl sm:text-2xl font-bold gradient-text">
               {liveTraders !== undefined ? formatNumber(liveTraders) : '...'}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">Live Traders</div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1">Live Traders</div>
           </div>
         </div>
       </div>

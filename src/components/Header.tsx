@@ -113,7 +113,7 @@ const Header = () => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
                 <nav className="flex flex-col gap-6 mt-8">
                   {/* Search in mobile menu */}
                   <button
@@ -121,10 +121,10 @@ const Header = () => {
                       setIsMobileMenuOpen(false);
                       setIsSearchOpen(true);
                     }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors w-full text-left"
+                    className="flex items-center gap-3 px-4 py-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors w-full text-left touch-manipulation"
                   >
                     <Search className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-base text-muted-foreground">
                       Search markets...
                     </span>
                   </button>
@@ -143,7 +143,7 @@ const Header = () => {
                           scrollToSection(item.href);
                         }
                       }}
-                      className="text-lg font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer px-4 py-2"
+                      className="text-lg font-medium text-foreground hover:text-primary transition-colors cursor-pointer px-4 py-3 touch-manipulation"
                     >
                       {item.label}
                     </a>

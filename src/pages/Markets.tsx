@@ -41,49 +41,49 @@ const Markets = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-24">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <main className="container mx-auto px-4 py-20 sm:py-24">
+        <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
           {/* Header */}
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-4xl md:text-5xl font-bold">
+          <div className="text-center space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
                 <span className="gradient-text">Live Prediction Markets</span>
               </h1>
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-green-500">LIVE</span>
+                <span className="text-xs sm:text-sm font-medium text-green-500">LIVE</span>
               </div>
             </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
               Real-time data from Polymarket. All prices and volumes update automatically.
             </p>
           </div>
 
           {/* Trending Markets */}
           {!isLoading && trendingMarkets.length > 0 && (
-            <div id="trending" className="space-y-6">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>
+            <div id="trending" className="space-y-6 scroll-mt-20">
+              <div className="flex items-center gap-3 px-2">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                <h2 className="text-xl sm:text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {trendingMarkets.map((market) => (
                   <Card
                     key={market.id}
-                    className="glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300 border-primary/30"
+                    className="glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300 border-primary/30 touch-manipulation active:scale-[0.98]"
                     onClick={() => navigate(`/market/${market.market_id}`)}
                   >
-                    <CardHeader className="space-y-3">
+                    <CardHeader className="space-y-3 p-4 sm:p-6">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg line-clamp-2 flex-1">
+                        <CardTitle className="text-base sm:text-lg line-clamp-2 flex-1">
                           {market.title}
                         </CardTitle>
-                        <Badge variant="secondary" className="shrink-0 bg-primary/20 text-primary border-primary/30">
+                        <Badge variant="secondary" className="shrink-0 bg-primary/20 text-primary border-primary/30 text-xs">
                           <TrendingUp className="w-3 h-3 mr-1" />
                           HOT
                         </Badge>
                       </div>
-                      <CardDescription className="line-clamp-2">
+                      <CardDescription className="line-clamp-2 text-sm">
                         {market.description || "No description available"}
                       </CardDescription>
                     </CardHeader>
