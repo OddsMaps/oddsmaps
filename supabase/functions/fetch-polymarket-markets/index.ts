@@ -34,20 +34,32 @@ function toNumber(v: unknown, fallback = 0): number {
 }
 
 function getYesNoPrices(m: AnyMarket) {
-  // Try multiple possible shapes
-  const tokens = m.tokens || [];
-  const outcomes = m.outcomes || [];
-
   let yes = 0.5;
   let no = 0.5;
 
+  // Gamma API format - outcomePrices is a comma-separated string
+  if ((m as any).outcomePrices) {
+    const pricesStr = (m as any).outcomePrices;
+    if (typeof pricesStr === 'string') {
+      const parsed = pricesStr.split(',').map((p: string) => parseFloat(p.trim()));
+      if (parsed.length >= 2 && !isNaN(parsed[0]) && !isNaN(parsed[1])) {
+        yes = parsed[0];
+        no = parsed[1];
+        return { yes_price: yes, no_price: no };
+      }
+    }
+  }
+
+  // CLOB API format - tokens array with outcome and price
+  const tokens = m.tokens || [];
   const fromTokensYes = tokens.find(t => (t.outcome || '').toLowerCase() === 'yes');
   const fromTokensNo = tokens.find(t => (t.outcome || '').toLowerCase() === 'no');
-  if (fromTokensYes) yes = toNumber(fromTokensYes.price, yes);
-  if (fromTokensNo) no = toNumber(fromTokensNo.price, no);
+  if (fromTokensYes?.price) yes = toNumber(fromTokensYes.price, yes);
+  if (fromTokensNo?.price) no = toNumber(fromTokensNo.price, no);
 
-  // Some APIs list generic outcomes; try first two as yes/no if not found above
-  if (!fromTokensYes && outcomes.length >= 2) {
+  // Fallback: outcomes array
+  const outcomes = m.outcomes || [];
+  if (yes === 0.5 && no === 0.5 && outcomes.length >= 2) {
     yes = toNumber(outcomes[0]?.price, yes);
     no = toNumber(outcomes[1]?.price, no);
   }
@@ -101,6 +113,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Log first raw market to understand structure
+    if (marketsRaw.length > 0) {
+      console.log('Sample raw market structure:', JSON.stringify(marketsRaw[0], null, 2));
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -146,9 +163,10 @@ Deno.serve(async (req) => {
       });
 
     // Log first 3 markets' volume data for debugging
-    console.log('Sample volume data from first 3 markets:');
+    console.log('Sample market data from first 3 markets:');
     processed.slice(0, 3).forEach((m, i) => {
       console.log(`  Market ${i + 1}: ${m.title.substring(0, 40)}...`);
+      console.log(`    prices: yes=${m.yes_price}, no=${m.no_price}`);
       console.log(`    total_volume: ${m.total_volume}, volume_24h: ${m.volume_24h}`);
     });
 
