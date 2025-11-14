@@ -8,51 +8,57 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 203 30% 8%;
+    --background: 0 0% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 203 25% 12%;
+    --card: 0 0% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 203 25% 12%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 203 89% 42%;
+    --primary: 145 70% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 203 89% 32%;
+    --secondary: 0 75% 55%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 203 20% 25%;
-    --muted-foreground: 203 10% 65%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 203 89% 52%;
+    --accent: 145 80% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 203 30% 20%;
-    --input: 203 30% 20%;
-    --ring: 203 89% 42%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 145 70% 45%;
 
     --radius: 1rem;
 
-    /* Gradient colors - variations of #0C82CA */
-    --gradient-blue-dark: 203 89% 32%;
-    --gradient-blue: 203 89% 42%;
-    --gradient-blue-light: 203 89% 52%;
-    --gradient-cyan: 193 89% 52%;
+    /* Gradient colors - Green to Red spectrum */
+    --gradient-green-dark: 145 75% 35%;
+    --gradient-green: 145 70% 45%;
+    --gradient-green-light: 145 65% 55%;
+    --gradient-red-dark: 0 80% 45%;
+    --gradient-red: 0 75% 55%;
+    --gradient-red-light: 0 70% 65%;
+    --gradient-yellow: 45 90% 55%;
 
     /* Glass effects */
-    --glass-bg: 203 30% 15%;
-    --glass-border: 203 30% 25%;
-    --glass-shadow: 203 89% 42%;
+    --glass-bg: 0 0% 12%;
+    --glass-border: 145 30% 25%;
+    --glass-shadow: 145 70% 45%;
 
     /* Glow effects */
-    --glow-blue-dark: 203 89% 32%;
-    --glow-blue: 203 89% 42%;
-    --glow-blue-light: 203 89% 52%;
+    --glow-green-dark: 145 75% 35%;
+    --glow-green: 145 70% 45%;
+    --glow-green-light: 145 65% 55%;
+    --glow-red-dark: 0 80% 45%;
+    --glow-red: 0 75% 55%;
+    --glow-red-light: 0 70% 65%;
   }
 }
 
@@ -68,39 +74,65 @@ All colors MUST be HSL.
 
   /* Gradient text effect */
   .gradient-text {
-    @apply bg-gradient-to-r from-[hsl(var(--gradient-blue-dark))] via-[hsl(var(--gradient-blue))] to-[hsl(var(--gradient-cyan))] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[hsl(var(--gradient-green))] via-[hsl(var(--gradient-yellow))] to-[hsl(var(--gradient-red))] bg-clip-text text-transparent;
+    animation: gradient-shift 3s ease infinite;
+    background-size: 200% auto;
   }
 
   /* Glass morphism */
   .glass {
-    background: rgba(12, 130, 202, 0.05);
+    background: rgba(16, 185, 129, 0.05);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(12, 130, 202, 0.15);
-    box-shadow: 0 8px 32px 0 rgba(12, 130, 202, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.15), 0 0 20px rgba(239, 68, 68, 0.1);
   }
 
   .glass-strong {
-    background: rgba(12, 130, 202, 0.1);
+    background: rgba(16, 185, 129, 0.1);
     backdrop-filter: blur(30px);
-    border: 1px solid rgba(12, 130, 202, 0.25);
-    box-shadow: 0 8px 32px 0 rgba(12, 130, 202, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.25), 0 0 30px rgba(239, 68, 68, 0.15);
   }
 
   /* Glow effects */
-  .glow-blue-dark {
-    box-shadow: 0 0 20px rgba(12, 130, 202, 0.6), 0 0 40px rgba(12, 130, 202, 0.4);
+  .glow-green-dark {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.4);
   }
 
-  .glow-blue {
-    box-shadow: 0 0 20px rgba(12, 130, 202, 0.5), 0 0 40px rgba(12, 130, 202, 0.3);
+  .glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3);
   }
 
-  .glow-blue-light {
-    box-shadow: 0 0 20px rgba(52, 170, 222, 0.5), 0 0 40px rgba(52, 170, 222, 0.3);
+  .glow-green-light {
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.5), 0 0 40px rgba(52, 211, 153, 0.3);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3);
   }
 
   .glow-gradient {
-    box-shadow: 0 0 30px rgba(12, 130, 202, 0.5), 0 0 60px rgba(12, 130, 202, 0.3), 0 0 90px rgba(52, 170, 222, 0.2);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(245, 158, 11, 0.3), 0 0 90px rgba(239, 68, 68, 0.2);
+    animation: glow-pulse-dual 3s ease-in-out infinite;
+  }
+
+  /* Gradient animations */
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes glow-pulse-dual {
+    0%, 100% {
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(245, 158, 11, 0.3), 0 0 90px rgba(239, 68, 68, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.6), 0 0 80px rgba(245, 158, 11, 0.5), 0 0 120px rgba(239, 68, 68, 0.3);
+    }
   }
 
   /* Custom scrollbar */
