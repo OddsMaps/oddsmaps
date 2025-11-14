@@ -120,8 +120,10 @@ Deno.serve(async (req) => {
         const endDate = endRaw ? new Date(endRaw as any).toISOString() : null;
 
         const { yes_price, no_price } = getYesNoPrices(m);
-        const volume_24h = toNumber((m as any).volume24hr ?? (m as any).volume, 0);
-        const liquidity = toNumber((m as any).liquidity, 0);
+        // Use total CLOB volume (most accurate) or fall back to total volume or volumeNum
+        const totalVolume = toNumber((m as any).volumeClob ?? (m as any).volumeNum ?? (m as any).volume, 0);
+        const volume_24h = toNumber((m as any).volume24hrClob ?? (m as any).volume24hr, 0);
+        const liquidity = toNumber((m as any).liquidityClob ?? (m as any).liquidityNum ?? (m as any).liquidity, 0);
         const trades_24h = toNumber((m as any).trades24hr, 0);
         const volatility = Math.abs(yes_price - 0.5) * 100;
 
