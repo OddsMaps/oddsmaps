@@ -65,7 +65,7 @@ const Careers = () => {
               Join Our Team
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Help us build the future of prediction market intelligence. We're looking for talented individuals who are passionate about data, design, and innovation.
+              We don't accept applications. You must be referred by someone on the team or find a creative way to prove you belong here. Think of it as your first challenge.
             </p>
           </div>
         </div>
@@ -158,10 +158,11 @@ const Careers = () => {
                       </div>
                     </div>
                     
-                    <button className="flex items-center gap-2 text-primary hover:gap-3 transition-all">
-                      Apply
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <span className="px-3 py-1 rounded-full bg-muted/50 border border-border">
+                        Referral Required
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -194,17 +195,65 @@ const Careers = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* How to Get In Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto glass-strong p-12 rounded-2xl text-center space-y-6 animate-fade-in">
-            <h2 className="text-3xl font-bold gradient-text">Don't See a Perfect Match?</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              We're always looking for talented people. Send us your resume and tell us why you'd be a great fit for OddsMap.
-            </p>
-            <button className="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity">
-              Send General Application
-            </button>
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="glass-strong p-12 rounded-2xl text-center space-y-6 animate-fade-in">
+              <h2 className="text-3xl font-bold gradient-text">How to Get In</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                We believe in earned opportunities, not open applications. Here's how you can join our team:
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="glass p-8 rounded-xl space-y-4 animate-fade-in hover:glass-strong transition-all duration-300">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <span className="text-2xl">🤝</span>
+                </div>
+                <h3 className="text-xl font-semibold">Get Referred</h3>
+                <p className="text-muted-foreground text-sm">
+                  Know someone on our team? Ask them for a referral. Our team members know what it takes to succeed here and can vouch for your skills.
+                </p>
+              </div>
+
+              <div className="glass p-8 rounded-xl space-y-4 animate-fade-in hover:glass-strong transition-all duration-300" style={{ animationDelay: '0.1s' }}>
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <span className="text-2xl">🎯</span>
+                </div>
+                <h3 className="text-xl font-semibold">Build Something</h3>
+                <p className="text-muted-foreground text-sm">
+                  Create something remarkable using our data or APIs. Show us you understand prediction markets and can build innovative solutions.
+                </p>
+              </div>
+
+              <div className="glass p-8 rounded-xl space-y-4 animate-fade-in hover:glass-strong transition-all duration-300" style={{ animationDelay: '0.2s' }}>
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <span className="text-2xl">✍️</span>
+                </div>
+                <h3 className="text-xl font-semibold">Contribute Value</h3>
+                <p className="text-muted-foreground text-sm">
+                  Write insightful analysis, contribute to our community, or share valuable market insights. Demonstrate expertise that catches our attention.
+                </p>
+              </div>
+
+              <div className="glass p-8 rounded-xl space-y-4 animate-fade-in hover:glass-strong transition-all duration-300" style={{ animationDelay: '0.3s' }}>
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                  <span className="text-2xl">💡</span>
+                </div>
+                <h3 className="text-xl font-semibold">Be Creative</h3>
+                <p className="text-muted-foreground text-sm">
+                  Find a unique way to stand out. Solve a problem we have, identify an opportunity we're missing, or show initiative that impresses us.
+                </p>
+              </div>
+            </div>
+
+            <div className="glass p-8 rounded-xl text-center space-y-4 animate-fade-in">
+              <p className="text-muted-foreground">
+                <span className="font-semibold text-foreground">Remember:</span> We're not looking for people who can fill out a form. 
+                We're looking for people who can figure things out, take initiative, and earn their way in.
+              </p>
+            </div>
           </div>
         </div>
       </section>
