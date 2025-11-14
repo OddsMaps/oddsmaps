@@ -61,7 +61,7 @@ const Markets = () => {
 
           {/* Trending Markets */}
           {!isLoading && trendingMarkets.length > 0 && (
-            <div className="space-y-6">
+            <div id="trending" className="space-y-6">
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-6 h-6 text-primary" />
                 <h2 className="text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>

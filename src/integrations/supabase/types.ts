@@ -22,6 +22,7 @@ export type Database = {
           market_id: string | null
           no_price: number | null
           timestamp: string | null
+          total_volume: number | null
           trades_24h: number | null
           volatility: number | null
           volume_24h: number | null
@@ -34,6 +35,7 @@ export type Database = {
           market_id?: string | null
           no_price?: number | null
           timestamp?: string | null
+          total_volume?: number | null
           trades_24h?: number | null
           volatility?: number | null
           volume_24h?: number | null
@@ -46,6 +48,7 @@ export type Database = {
           market_id?: string | null
           no_price?: number | null
           timestamp?: string | null
+          total_volume?: number | null
           trades_24h?: number | null
           volatility?: number | null
           volume_24h?: number | null
