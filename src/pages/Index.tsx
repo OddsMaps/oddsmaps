@@ -1,7 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import SearchBar from "@/components/SearchBar";
-import AnalyticsLive from "@/components/AnalyticsLive";
 import { AllTransactions } from "@/components/AllTransactions";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
@@ -19,9 +18,6 @@ const Index = () => {
         <Hero />
       </div>
       <SearchBar />
-      <div id="analytics">
-        <AnalyticsLive />
-      </div>
       <div className="container mx-auto px-4 py-16">
         <AllTransactions />
       </div>
