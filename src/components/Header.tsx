@@ -55,10 +55,10 @@ const Header = () => {
           <div className="flex items-center justify-between h-16 md:h-auto">
             {/* Logo */}
             <a 
-              href="#home"
+              href="/"
               onClick={(e) => {
                 e.preventDefault();
-                scrollToSection('#home');
+                navigate('/');
               }}
               className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
             >
