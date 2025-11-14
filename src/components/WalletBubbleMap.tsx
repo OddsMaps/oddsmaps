@@ -168,9 +168,9 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       return wallet.volume * (currentPrice - entryPrice);
     };
 
-    // Separate and sort YES and NO wallets by volume
-    const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => a.volume - b.volume);
-    const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => a.volume - b.volume);
+    // Separate and sort YES and NO wallets by volume (largest first for center placement)
+    const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => b.volume - a.volume);
+    const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => b.volume - a.volume);
     
     // Function to position wallets in a radial pattern from center outward
     const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
@@ -180,9 +180,9 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       wallets.forEach((wallet, i) => {
         const size = Math.min(140, Math.max(40, Math.sqrt(wallet.volume) * 2.5));
         
-        // Calculate radial position: small bets near center, large bets at edges
+        // Calculate radial position: LARGE bets near center, small bets at edges
         const progress = i / Math.max(1, totalWallets - 1); // 0 to 1
-        const radius = 10 + progress * 40; // 10% to 50% from center
+        const radius = 5 + progress * 40; // 5% to 45% from center
         
         // Create rings with multiple wallets per ring for better distribution
         const ringIndex = Math.floor(progress * 4); // 4 rings
