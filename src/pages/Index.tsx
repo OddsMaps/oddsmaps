@@ -1,7 +1,9 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import SearchBar from "@/components/SearchBar";
+import MarketMapLive from "@/components/MarketMapLive";
 import AnalyticsLive from "@/components/AnalyticsLive";
+import WalletBubbleMap from "@/components/WalletBubbleMap";
 import { AllTransactions } from "@/components/AllTransactions";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
@@ -19,8 +21,14 @@ const Index = () => {
         <Hero />
       </div>
       <SearchBar />
+      <div id="trending-markets">
+        <MarketMapLive />
+      </div>
       <div id="analytics">
         <AnalyticsLive />
+      </div>
+      <div id="whale-activity">
+        <WalletBubbleMap />
       </div>
       <div className="container mx-auto px-4 py-16">
         <AllTransactions />
