@@ -48,21 +48,6 @@ const Hero = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto px-4">
-          <div className="glass-premium p-6 rounded-2xl hover:scale-105 transition-transform duration-300">
-            <div className="text-4xl sm:text-5xl font-black gradient-text-premium mb-2">Live</div>
-            <div className="text-sm text-foreground/60 font-medium">Real-time market data streaming</div>
-          </div>
-          <div className="glass-premium p-6 rounded-2xl hover:scale-105 transition-transform duration-300">
-            <div className="text-4xl sm:text-5xl font-black gradient-text-premium mb-2">Smart</div>
-            <div className="text-sm text-foreground/60 font-medium">AI-powered trend detection</div>
-          </div>
-          <div className="glass-premium p-6 rounded-2xl hover:scale-105 transition-transform duration-300">
-            <div className="text-4xl sm:text-5xl font-black gradient-text-premium mb-2">Fast</div>
-            <div className="text-sm text-foreground/60 font-medium">Instant market insights</div>
-          </div>
-        </div>
-
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8 px-4">
           <Button 
             size="lg" 
