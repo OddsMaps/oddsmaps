@@ -30,9 +30,6 @@ const Index = () => {
       <div id="whale-activity">
         <WalletBubbleMap />
       </div>
-      <div className="container mx-auto px-4 py-16">
-        <AllTransactions />
-      </div>
       <div id="how-it-works">
         <HowItWorks />
       </div>
