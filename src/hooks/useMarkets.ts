@@ -74,7 +74,7 @@ export const useMarkets = (source?: string, category?: string) => {
       if (error) throw error;
       return data?.markets || [];
     },
-    refetchInterval: 2000, // Refetch every 2 seconds for real-time price updates
+    refetchInterval: 1000, // Refetch every 1 second for real-time price updates
     staleTime: 0, // Always consider data stale for immediate updates
   });
 };

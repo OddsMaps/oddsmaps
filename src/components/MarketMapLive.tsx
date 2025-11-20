@@ -267,7 +267,7 @@ const MarketMapLive = memo(() => {
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span className="text-sm font-semibold text-green-400">LIVE DATA</span>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Updates every 5min</div>
+            <div className="text-xs text-muted-foreground mt-1">Updates every second</div>
           </div>
         </div>
       </div>
