@@ -374,19 +374,19 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge className={`text-xs ${
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <Badge className={`text-xs font-bold ${
                                     tx.side === 'yes' 
-                                      ? 'bg-green-500/20 text-green-500 border-green-500/20' 
-                                      : 'bg-red-500/20 text-red-500 border-red-500/20'
+                                      ? 'bg-green-500/20 text-green-500 border-green-500/30' 
+                                      : 'bg-red-500/20 text-red-500 border-red-500/30'
                                   }`}>
-                                    {tx.side.toUpperCase()} BET
+                                    {tx.side.toUpperCase()}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(tx.timestamp).toLocaleDateString()}
+                                    {new Date(tx.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </span>
                                 </div>
-                                <h3 className="font-semibold mb-1 line-clamp-1 text-sm">
+                                <h3 className="font-semibold mb-1.5 line-clamp-1 text-sm leading-snug">
                                   {tx.market?.title}
                                 </h3>
                                 <p className="text-xs text-muted-foreground font-mono">
@@ -395,11 +395,14 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                               </div>
                               
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                <div className="font-bold text-sm">
+                                <div className="font-bold text-base">
                                   ${tx.amount.toLocaleString()}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  @ ${tx.price.toFixed(2)}
+                                <div className="text-xs font-medium">
+                                  <span className="text-muted-foreground">@ </span>
+                                  <span className={tx.side === 'yes' ? 'text-green-500' : 'text-red-500'}>
+                                    {(tx.price * 100).toFixed(1)}¢
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -417,8 +420,8 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                       </div>
                       {filteredMarkets.map((market, marketIndex) => {
                     const index = filteredTransactions.length + marketIndex;
-                    const change = ((market.yes_price - 0.5) * 100).toFixed(1);
-                    const isPositive = parseFloat(change) > 0;
+                    const yesPrice = (market.yes_price * 100).toFixed(1);
+                    const noPrice = (market.no_price * 100).toFixed(1);
                     
                     return (
                       <button
@@ -433,39 +436,32 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs uppercase">
-                                POLYMARKET
-                              </Badge>
+                            <h3 className="font-semibold mb-2 line-clamp-2 text-sm leading-snug">
+                              {market.title}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
                               {market.category && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="outline" className="text-xs bg-muted/50 border-border/50 text-muted-foreground">
                                   {market.category}
                                 </Badge>
                               )}
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Activity className="w-3 h-3" />
+                                ${(market.volume_24h / 1000).toFixed(0)}K
+                              </div>
                             </div>
-                            <h3 className="font-semibold mb-1 line-clamp-2">
-                              {market.title}
-                            </h3>
-                            {market.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {market.description}
-                              </p>
-                            )}
                           </div>
                           
-                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                            <div className={`flex items-center gap-1 font-bold ${
-                              isPositive ? "text-green-400" : "text-red-400"
-                            }`}>
-                              {isPositive ? (
-                                <TrendingUp className="w-4 h-4" />
-                              ) : (
-                                <TrendingDown className="w-4 h-4" />
-                              )}
-                              <span>{(market.yes_price * 100).toFixed(1)}¢</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              ${(market.volume_24h / 1000).toFixed(1)}K vol
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-right">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-xs font-medium text-muted-foreground">YES</span>
+                                <span className="text-base font-bold text-green-500">{yesPrice}¢</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">NO</span>
+                                <span className="text-base font-bold text-red-500">{noPrice}¢</span>
+                              </div>
                             </div>
                           </div>
                         </div>
