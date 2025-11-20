@@ -303,10 +303,13 @@ const MarketDetail = () => {
             onBack={() => navigate("/")}
           />
 
+          <div className="space-y-8 mb-8">
+            <WalletBubbleMap market={market} />
+          </div>
+
           <MarketWhaleTransactions marketId={market.id} />
 
           <div className="space-y-8">
-            <WalletBubbleMap market={market} />
             <TransactionTimeline market={market} />
           </div>
         </div>
