@@ -172,33 +172,36 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const yesPrice = market.yes_price || 0.5;
     const noPrice = market.no_price || 0.5;
 
-    return realWallets.map((w, index) => {
+    // First pass: Create bubbles with initial positions
+    const initialBubbles = realWallets.map((w, index) => {
       const tier = getTier(w.volume);
       const currentPrice = w.side === 'yes' ? yesPrice : noPrice;
       const pnl = (currentPrice - w.avgPrice) * w.volume;
       
       let size = 30;
       switch (tier) {
-        case 'whale': size = 90; break;
-        case 'large': size = 70; break;
-        case 'medium': size = 50; break;
-        default: size = 30;
+        case 'whale': size = 100; break;
+        case 'large': size = 75; break;
+        case 'medium': size = 55; break;
+        default: size = 35;
       }
 
+      // Initial positioning with more spread
       let yBase = 50;
-      let spread = 8;
+      let ySpread = 35;
       switch (tier) {
-        case 'whale': yBase = 28; spread = 6; break;
-        case 'large': yBase = 54; spread = 5; break;
-        case 'medium': yBase = 73; spread = 4; break;
-        default: yBase = 88; spread = 3;
+        case 'whale': yBase = 25; ySpread = 15; break;
+        case 'large': yBase = 50; ySpread = 20; break;
+        case 'medium': yBase = 70; ySpread = 15; break;
+        default: yBase = 85; ySpread = 10;
       }
 
-      const offset = (Math.random() - 0.5) * spread;
+      const offset = (Math.random() - 0.5) * ySpread;
       const y = yBase + offset;
 
-      const sideOffset = w.side === 'yes' ? -15 : 15;
-      const tierSpacing = tier === 'whale' ? 10 : tier === 'large' ? 8 : tier === 'medium' ? 6 : 4;
+      // Separate yes/no sides more and add tier-based spacing
+      const sideOffset = w.side === 'yes' ? -25 : 25;
+      const tierSpacing = tier === 'whale' ? 20 : tier === 'large' ? 16 : tier === 'medium' ? 12 : 8;
       const x = 50 + sideOffset + (Math.random() - 0.5) * tierSpacing;
 
       return {
@@ -215,9 +218,70 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         trades: w.trades,
         avgPrice: w.avgPrice,
         profit: pnl,
-        entryTime: w.firstEntry
+        entryTime: w.firstEntry,
       };
     });
+
+    // Second pass: Collision detection and separation
+    const separateBubbles = (bubbles: WalletData[]): WalletData[] => {
+      const maxIterations = 50;
+      const minDistance = 1.3; // Minimum distance as multiplier of combined radii
+      
+      for (let iteration = 0; iteration < maxIterations; iteration++) {
+        let moved = false;
+        
+        for (let i = 0; i < bubbles.length; i++) {
+          for (let j = i + 1; j < bubbles.length; j++) {
+            const b1 = bubbles[i];
+            const b2 = bubbles[j];
+            
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Calculate minimum distance needed (in percentage units)
+            const r1 = b1.size / 20; // Convert size to percentage unit
+            const r2 = b2.size / 20;
+            const minDist = (r1 + r2) * minDistance;
+            
+            if (distance < minDist && distance > 0) {
+              moved = true;
+              
+              // Calculate separation force
+              const overlap = minDist - distance;
+              const separationForce = overlap * 0.5;
+              
+              // Normalize direction
+              const nx = dx / distance;
+              const ny = dy / distance;
+              
+              // Move both bubbles apart (weighted by size - larger bubbles move less)
+              const totalSize = b1.size + b2.size;
+              const weight1 = b2.size / totalSize;
+              const weight2 = b1.size / totalSize;
+              
+              b1.x -= nx * separationForce * weight1;
+              b1.y -= ny * separationForce * weight1;
+              b2.x += nx * separationForce * weight2;
+              b2.y += ny * separationForce * weight2;
+              
+              // Keep within bounds
+              b1.x = Math.max(8, Math.min(92, b1.x));
+              b1.y = Math.max(8, Math.min(92, b1.y));
+              b2.x = Math.max(8, Math.min(92, b2.x));
+              b2.y = Math.max(8, Math.min(92, b2.y));
+            }
+          }
+        }
+        
+        // If no bubbles moved, we've reached equilibrium
+        if (!moved) break;
+      }
+      
+      return bubbles;
+    };
+
+    return separateBubbles(initialBubbles);
   }, [realWallets, market.yes_price, market.no_price]);
 
   const filteredWallets = useMemo(() => {
