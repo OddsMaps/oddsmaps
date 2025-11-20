@@ -80,27 +80,6 @@ const HowItWorks = () => {
             </div>
           ))}
         </div>
-
-        {/* Data Flow Animation */}
-        <div className="mt-20 glass-strong rounded-3xl p-8 text-center">
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <div className="px-6 py-3 glass rounded-full font-semibold animate-fade-in">
-              Kalshi API
-            </div>
-            <div className="text-primary animate-pulse-glow text-2xl">→</div>
-            <div className="px-6 py-3 glass rounded-full font-semibold animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              Polymarket API
-            </div>
-            <div className="text-secondary animate-pulse-glow text-2xl" style={{ animationDelay: '0.2s' }}>→</div>
-            <div className="px-6 py-3 glass-strong rounded-full font-semibold gradient-text animate-fade-in glow-gradient" style={{ animationDelay: '0.4s' }}>
-              OddsMap Intelligence
-            </div>
-            <div className="text-accent animate-pulse-glow text-2xl" style={{ animationDelay: '0.4s' }}>→</div>
-            <div className="px-6 py-3 glass rounded-full font-semibold animate-fade-in" style={{ animationDelay: '0.6s' }}>
-              Your Insights
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
