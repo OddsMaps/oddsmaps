@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { DataSync } from "@/components/DataSync";
 import PasswordGate from "./components/PasswordGate";
 import Index from "./pages/Index";
 import Markets from "./pages/Markets";
@@ -25,10 +26,21 @@ import CommunityPage from "./pages/Community";
 import Partners from "./pages/Partners";
 import Status from "./pages/Status";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 10 * 1000, // Data considered fresh for 10 seconds
+      gcTime: 5 * 60 * 1000, // Cache kept for 5 minutes
+      refetchOnWindowFocus: true, // Refetch when window regains focus
+      refetchOnMount: true, // Refetch on component mount
+      refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <DataSync />
     <TooltipProvider>
       <Toaster />
       <Sonner />

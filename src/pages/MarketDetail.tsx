@@ -245,7 +245,7 @@ const MarketDetail = () => {
   
   const market = markets?.find(m => m.market_id === marketId);
 
-  // Auto-sync this market's transactions every 2 minutes
+  // Auto-sync this market's transactions every 15 seconds for real-time updates
   useEffect(() => {
     if (!market) return;
 
@@ -262,8 +262,8 @@ const MarketDetail = () => {
     // Initial sync
     syncMarket();
 
-    // Sync every 2 minutes
-    const interval = setInterval(syncMarket, 2 * 60 * 1000);
+    // Sync every 15 seconds for real-time updates
+    const interval = setInterval(syncMarket, 15 * 1000);
 
     return () => clearInterval(interval);
   }, [market]);
