@@ -70,7 +70,7 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-border/50">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-6 border-t border-border/50">
         <div className="space-y-1">
           <div className="text-sm text-muted-foreground">24h Volume</div>
           <div className="text-2xl font-bold gradient-text">
@@ -81,12 +81,6 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
           <div className="text-sm text-muted-foreground">Liquidity</div>
           <div className="text-2xl font-bold gradient-text">
             ${(market.liquidity / 1000).toFixed(1)}K
-          </div>
-        </div>
-        <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">24h Trades</div>
-          <div className="text-2xl font-bold gradient-text">
-            {market.trades_24h.toLocaleString()}
           </div>
         </div>
         <div className="space-y-1">
