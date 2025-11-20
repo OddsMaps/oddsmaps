@@ -194,6 +194,39 @@ All colors MUST be HSL.
     animation: bubble-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
+  /* Floating animation for background orbs */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+    }
+    33% {
+      transform: translateY(-20px) translateX(10px);
+    }
+    66% {
+      transform: translateY(10px) translateX(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  /* Slide up animation */
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
   /* Mobile optimizations */
   @media (max-width: 768px) {
     /* Better touch targets */
