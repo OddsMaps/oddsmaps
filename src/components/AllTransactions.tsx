@@ -56,15 +56,25 @@ export const AllTransactions = () => {
         .from('wallet_transactions')
         .select(`
           *,
-          market:markets!inner(title, market_id, source)
+          markets!inner(title, market_id, source)
         `)
-        .eq('market.source', 'polymarket')
-        .gte('amount', 10000) // Only show whale activity (>$10k)
+        .eq('markets.source', 'polymarket')
+        .gte('amount', 10000)
         .order('timestamp', { ascending: false })
         .limit(100);
 
       if (error) throw error;
-      setTransactions(data || []);
+      
+      // Transform data to match Transaction interface
+      const transformedData = (data || []).map((item: any) => ({
+        ...item,
+        market: {
+          title: item.markets.title,
+          market_id: item.markets.market_id,
+        }
+      }));
+      
+      setTransactions(transformedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
