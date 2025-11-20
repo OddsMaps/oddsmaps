@@ -394,15 +394,15 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                                 </p>
                               </div>
                               
-                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                <div className="font-bold text-base">
+                              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                <div className="text-xs text-muted-foreground font-medium">
                                   ${tx.amount.toLocaleString()}
                                 </div>
-                                <div className="text-xs font-medium">
-                                  <span className="text-muted-foreground">@ </span>
-                                  <span className={tx.side === 'yes' ? 'text-green-500' : 'text-red-500'}>
-                                    {(tx.price * 100).toFixed(1)}¢
-                                  </span>
+                                <div className={`text-base font-bold flex items-center gap-1 ${
+                                  tx.side === 'yes' ? 'text-green-500' : 'text-red-500'
+                                }`}>
+                                  <span className="text-xs font-medium opacity-80">{tx.side.toUpperCase()}</span>
+                                  <span>{(tx.price * 100).toFixed(1)}¢</span>
                                 </div>
                               </div>
                             </div>
