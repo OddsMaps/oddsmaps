@@ -14,12 +14,12 @@ interface Market {
 }
 
 const mockMarkets: Market[] = [
-  { id: 1, name: "BTC $100k by 2025", size: 120, x: 25, y: 30, color: "from-primary to-secondary", volatility: 85, volume: "$2.3M", change: 12.5 },
-  { id: 2, name: "Trump 2024 Election", size: 150, x: 55, y: 45, color: "from-secondary to-accent", volatility: 92, volume: "$5.1M", change: -3.2 },
-  { id: 3, name: "ETH $5k by March", size: 90, x: 70, y: 25, color: "from-accent to-primary", volatility: 78, volume: "$1.8M", change: 8.7 },
-  { id: 4, name: "Fed Rate Cut", size: 110, x: 40, y: 60, color: "from-primary to-accent", volatility: 65, volume: "$3.2M", change: 5.3 },
-  { id: 5, name: "AI Chip Shortage", size: 80, x: 15, y: 70, color: "from-secondary to-primary", volatility: 55, volume: "$987K", change: -1.8 },
-  { id: 6, name: "Tesla $500 EOY", size: 95, x: 80, y: 55, color: "from-accent to-secondary", volatility: 70, volume: "$1.5M", change: 15.2 },
+  { id: 1, name: "BTC $100k by 2025", size: 120, x: 20, y: 30, color: "from-emerald-500 to-green-600", volatility: 85, volume: "$2.3M", change: 12.5 },
+  { id: 2, name: "Trump 2024 Election", size: 150, x: 30, y: 60, color: "from-green-500 to-emerald-600", volatility: 92, volume: "$5.1M", change: -3.2 },
+  { id: 3, name: "ETH $5k by March", size: 90, x: 70, y: 35, color: "from-rose-500 to-red-600", volatility: 78, volume: "$1.8M", change: 8.7 },
+  { id: 4, name: "Fed Rate Cut", size: 110, x: 25, y: 75, color: "from-emerald-500 to-teal-600", volatility: 65, volume: "$3.2M", change: 5.3 },
+  { id: 5, name: "AI Chip Shortage", size: 80, x: 75, y: 65, color: "from-red-500 to-rose-600", volatility: 55, volume: "$987K", change: -1.8 },
+  { id: 6, name: "Tesla $500 EOY", size: 95, x: 80, y: 25, color: "from-rose-500 to-pink-600", volatility: 70, volume: "$1.5M", change: 15.2 },
 ];
 
 const MarketMap = () => {
@@ -39,12 +39,29 @@ const MarketMap = () => {
 
         {/* Interactive Map Container */}
         <div className="relative glass-strong rounded-3xl p-8 min-h-[600px] overflow-hidden">
-          {/* Grid Background */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'linear-gradient(rgba(236, 72, 153, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 72, 153, 0.3) 1px, transparent 1px)',
-              backgroundSize: '50px 50px'
-            }} />
+          {/* Enhanced Background with Zones */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-background/50 to-rose-500/5" />
+            <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-gradient-to-r from-emerald-500/10 to-transparent" />
+            <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-rose-500/10 to-transparent" />
+          </div>
+
+          {/* Center Divider */}
+          <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-border to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/20 to-transparent blur-sm" />
+          </div>
+
+          {/* Side Labels */}
+          <div className="absolute left-8 top-8 z-10">
+            <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+              <span className="text-sm font-bold text-emerald-400">POSITIVE MOMENTUM</span>
+            </div>
+          </div>
+          <div className="absolute right-8 top-8 z-10">
+            <div className="bg-gradient-to-l from-rose-500/20 to-rose-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-rose-500/30 shadow-lg shadow-rose-500/10">
+              <span className="text-sm font-bold text-rose-400">NEGATIVE MOMENTUM</span>
+            </div>
           </div>
 
           {/* Market Bubbles */}
@@ -57,21 +74,27 @@ const MarketMap = () => {
                   left: `${market.x}%`,
                   top: `${market.y}%`,
                   transform: 'translate(-50%, -50%)',
+                  zIndex: hoveredMarket?.id === market.id ? 20 : 10,
                 }}
                 onMouseEnter={() => setHoveredMarket(market)}
                 onMouseLeave={() => setHoveredMarket(null)}
               >
                 <div
-                  className={`rounded-full glass animate-float bg-gradient-to-br ${market.color} opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-300`}
+                  className={`rounded-full bg-gradient-to-br ${market.color} 
+                    shadow-lg group-hover:shadow-2xl
+                    transition-all duration-300 backdrop-blur-sm
+                    border-2 border-white/20 group-hover:border-white/50
+                    group-hover:scale-110`}
                   style={{
                     width: `${market.size}px`,
                     height: `${market.size}px`,
-                    animationDuration: `${5 + market.volatility / 20}s`,
-                    animationDelay: `${market.id * 0.3}s`,
+                    boxShadow: hoveredMarket?.id === market.id 
+                      ? `0 0 40px ${market.change > 0 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`
+                      : `0 0 20px ${market.change > 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`,
                   }}
                 >
                   <div className="w-full h-full flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-white animate-pulse-glow" />
+                    <Activity className="w-6 h-6 text-white" />
                   </div>
                 </div>
 

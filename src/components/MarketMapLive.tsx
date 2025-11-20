@@ -9,31 +9,97 @@ const MarketMapLive = memo(() => {
   const { data: allMarkets, isLoading } = useMarkets('polymarket');
   const [hoveredMarket, setHoveredMarket] = useState<any>(null);
 
-  // Memoize bubble calculations for performance
+  // Memoize bubble calculations with collision detection
   const bubbles = useMemo(() => {
     if (!allMarkets) return [];
     
-    return allMarkets.slice(0, 12).map((market, index) => {
+    const markets = allMarkets.slice(0, 12).map((market, index) => {
       const size = Math.min(140, Math.max(60, Math.sqrt(market.liquidity) / 50));
-      const x = (index % 4) * 25 + 12;
-      const y = Math.floor(index / 4) * 33 + 15;
+      const isPositive = market.yes_price > 0.5;
       
-      const colors = [
-        "from-blue-500 to-purple-600",
-        "from-purple-500 to-pink-600",
-        "from-pink-500 to-red-600",
-        "from-cyan-500 to-blue-600",
-      ];
+      // Distribute on left (positive) or right (negative) side
+      const sideIndex = Math.floor(index / 2);
+      const baseX = isPositive 
+        ? 15 + (sideIndex % 3) * 12  // Left side: 15-39%
+        : 61 + (sideIndex % 3) * 12; // Right side: 61-85%
+      const baseY = 20 + (index % 6) * 13;
+      
+      const color = isPositive
+        ? index % 2 === 0 ? "from-emerald-500 to-green-600" : "from-green-500 to-emerald-600"
+        : index % 2 === 0 ? "from-rose-500 to-red-600" : "from-red-500 to-rose-600";
       
       return {
         ...market,
         size,
-        x,
-        y,
-        color: colors[index % colors.length],
+        x: baseX + Math.random() * 3 - 1.5,
+        y: baseY + Math.random() * 3 - 1.5,
+        color,
         change: ((market.yes_price - 0.5) * 100).toFixed(1),
+        isPositive,
       };
     });
+
+    // Collision detection and separation
+    const separateBubbles = (bubbles: any[], maxIterations = 50) => {
+      for (let iter = 0; iter < maxIterations; iter++) {
+        let moved = false;
+        
+        for (let i = 0; i < bubbles.length; i++) {
+          for (let j = i + 1; j < bubbles.length; j++) {
+            const a = bubbles[i];
+            const b = bubbles[j];
+            
+            // Only separate bubbles on the same side
+            if (a.isPositive !== b.isPositive) continue;
+            
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = ((a.size + b.size) / 2) * 0.013; // Convert to percentage space with padding
+            
+            if (distance < minDistance && distance > 0) {
+              const angle = Math.atan2(dy, dx);
+              const targetDistance = minDistance;
+              const force = (targetDistance - distance) / 2;
+              
+              const moveX = Math.cos(angle) * force;
+              const moveY = Math.sin(angle) * force;
+              
+              // Weight movement by size (larger bubbles move less)
+              const weightA = b.size / (a.size + b.size);
+              const weightB = a.size / (a.size + b.size);
+              
+              a.x -= moveX * weightA;
+              a.y -= moveY * weightA;
+              b.x += moveX * weightB;
+              b.y += moveY * weightB;
+              
+              // Keep within side boundaries
+              if (a.isPositive) {
+                a.x = Math.max(10, Math.min(40, a.x));
+              } else {
+                a.x = Math.max(60, Math.min(90, a.x));
+              }
+              if (b.isPositive) {
+                b.x = Math.max(10, Math.min(40, b.x));
+              } else {
+                b.x = Math.max(60, Math.min(90, b.x));
+              }
+              
+              a.y = Math.max(15, Math.min(85, a.y));
+              b.y = Math.max(15, Math.min(85, b.y));
+              
+              moved = true;
+            }
+          }
+        }
+        
+        if (!moved) break;
+      }
+      return bubbles;
+    };
+
+    return separateBubbles(markets);
   }, [allMarkets]);
 
   if (isLoading) {
@@ -72,8 +138,32 @@ const MarketMapLive = memo(() => {
             </div>
           </div>
 
-          {/* Market Bubbles */}
-          <div className="relative w-full bg-background/30 min-h-[600px] p-8">
+          {/* Market Bubbles with Enhanced Background */}
+          <div className="relative w-full min-h-[600px] p-8">
+            {/* Background Zones */}
+            <div className="absolute inset-0">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-background/50 to-rose-500/5" />
+              <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-gradient-to-r from-emerald-500/10 to-transparent" />
+              <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-rose-500/10 to-transparent" />
+            </div>
+
+            {/* Center Divider */}
+            <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-px">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-border to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/20 to-transparent blur-sm" />
+            </div>
+
+            {/* Side Labels */}
+            <div className="absolute left-8 top-8 z-10">
+              <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                <span className="text-sm font-bold text-emerald-400">YES TREND</span>
+              </div>
+            </div>
+            <div className="absolute right-8 top-8 z-10">
+              <div className="bg-gradient-to-l from-rose-500/20 to-rose-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-rose-500/30 shadow-lg shadow-rose-500/10">
+                <span className="text-sm font-bold text-rose-400">NO TREND</span>
+              </div>
+            </div>
             {bubbles.map((market) => (
               <div
                 key={market.id}
@@ -82,6 +172,7 @@ const MarketMapLive = memo(() => {
                   left: `${market.x}%`,
                   top: `${market.y}%`,
                   transform: 'translate(-50%, -50%)',
+                  zIndex: hoveredMarket?.id === market.id ? 20 : 10,
                 }}
                 onMouseEnter={() => setHoveredMarket(market)}
                 onMouseLeave={() => setHoveredMarket(null)}
@@ -92,11 +183,14 @@ const MarketMapLive = memo(() => {
                     flex items-center justify-center shadow-lg
                     transition-all duration-300 ease-out
                     group-hover:scale-110 group-hover:shadow-2xl
-                    border-2 border-white/20 group-hover:border-white/40
+                    border-2 border-white/20 group-hover:border-white/50
                     animate-fade-in backdrop-blur-sm`}
                   style={{
                     width: `${market.size}px`,
                     height: `${market.size}px`,
+                    boxShadow: hoveredMarket?.id === market.id 
+                      ? `0 0 40px ${market.isPositive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`
+                      : `0 0 20px ${market.isPositive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`,
                     opacity: hoveredMarket?.id === market.id ? 1 : 0.85,
                   }}
                 >
