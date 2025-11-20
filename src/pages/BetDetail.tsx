@@ -298,7 +298,7 @@ const BetDetail = () => {
                 <CardDescription>Real-time market statistics from Polymarket</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Total Volume</div>
                     <div className="font-semibold">${(currentMarket.total_volume / 1000).toFixed(1)}K</div>
@@ -310,10 +310,6 @@ const BetDetail = () => {
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Liquidity</div>
                     <div className="font-semibold">${(currentMarket.liquidity / 1000).toFixed(1)}K</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">24h Trades</div>
-                    <div className="font-semibold">{currentMarket.trades_24h}</div>
                   </div>
                 </div>
                 <Button
