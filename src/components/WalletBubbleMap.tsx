@@ -532,13 +532,14 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           {filteredWallets.map((wallet, index) => (
             <div
               key={wallet.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 cursor-pointer bubble-animate-in group"
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer bubble-animate-in group"
               style={{
                 left: `${wallet.x}%`,
                 top: `${wallet.y}%`,
                 width: `${wallet.size}px`,
                 height: `${wallet.size}px`,
                 animationDelay: `${index * 0.025}s`,
+                transition: 'left 0.8s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease-out, height 0.3s ease-out',
               }}
               onMouseEnter={() => setHoveredWallet(wallet)}
               onMouseLeave={() => setHoveredWallet(null)}

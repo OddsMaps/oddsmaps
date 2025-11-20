@@ -69,12 +69,13 @@ const MarketMap = () => {
             {mockMarkets.map((market) => (
               <div
                 key={market.id}
-                className="absolute cursor-pointer transition-all duration-500 group"
+                className="absolute cursor-pointer group"
                 style={{
                   left: `${market.x}%`,
                   top: `${market.y}%`,
                   transform: 'translate(-50%, -50%)',
                   zIndex: hoveredMarket?.id === market.id ? 20 : 10,
+                  transition: 'left 0.8s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-out, z-index 0s',
                 }}
                 onMouseEnter={() => setHoveredMarket(market)}
                 onMouseLeave={() => setHoveredMarket(null)}
