@@ -187,6 +187,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       const traders: WalletData[] = [];
       const totalWallets = wallets.length;
       
+      // Group wallets into rows based on size
+      const rowHeight = 18; // Vertical spacing between rows
+      const startY = 20; // Start from top
+      
       wallets.forEach((wallet, i) => {
         const tier = getTier(wallet.volume);
         const baseSize = tier === "whale" ? 120 : tier === "large" ? 90 : tier === "medium" ? 65 : 45;
@@ -194,24 +198,24 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         
         const progress = i / Math.max(1, totalWallets - 1);
         
-        // Organic spiral pattern
-        const spiralTurns = 2.5;
-        const angle = progress * Math.PI * spiralTurns + Math.sin(i * 1.2) * 0.4;
+        // Calculate row number - smaller wallets at top, larger at bottom
+        const rowIndex = Math.floor(progress * 4); // 4 rows
+        const walletsPerRow = Math.ceil(totalWallets / 4);
+        const positionInRow = i % walletsPerRow;
         
-        // Distance from center based on size
-        const maxRadius = 42;
-        const radius = Math.pow(progress, 0.7) * maxRadius;
+        // Horizontal position - expand from center based on tier
+        const horizontalSpread = tier === "whale" ? 35 : tier === "large" ? 30 : tier === "medium" ? 25 : 20;
+        const xOffset = (positionInRow / Math.max(1, walletsPerRow - 1) - 0.5) * horizontalSpread;
         
         let x: number;
         if (side === 'yes') {
-          x = 48 - radius;
+          x = 35 - xOffset; // YES side: center at 35%
         } else {
-          x = 52 + radius;
+          x = 65 + xOffset; // NO side: center at 65%
         }
         
-        const centerY = 50;
-        const verticalSpread = 38;
-        const y = centerY + Math.sin(angle) * verticalSpread + Math.cos(i * 0.7) * 10;
+        // Vertical position - rows from top to bottom
+        const y = startY + (rowIndex * rowHeight);
         
         const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
         const profit = wallet.volume * (currentPrice - wallet.avgPrice);
@@ -412,14 +416,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           {filteredWallets.map((wallet, index) => (
             <div
               key={wallet.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 cursor-pointer animate-float bubble-animate-in"
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 cursor-pointer bubble-animate-in"
               style={{
                 left: `${wallet.x}%`,
                 top: `${wallet.y}%`,
                 width: `${wallet.size}px`,
                 height: `${wallet.size}px`,
-                animationDelay: `${index * 0.02}s`,
-                animationDuration: `${6 + (index % 3)}s`,
+                animationDelay: `${index * 0.03}s`,
               }}
               onMouseEnter={() => setHoveredWallet(wallet)}
               onMouseLeave={() => setHoveredWallet(null)}
