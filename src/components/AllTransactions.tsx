@@ -52,8 +52,7 @@ export const AllTransactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      // Fetch latest whale transaction from each market for diversity
-      const { data: allTransactions, error } = await supabase
+      const { data, error } = await supabase
         .from('wallet_transactions')
         .select(`
           id,
@@ -73,44 +72,30 @@ export const AllTransactions = () => {
         .eq('markets.source', 'polymarket')
         .gte('amount', 10000)
         .order('timestamp', { ascending: false })
-        .limit(500); // Fetch more to ensure diversity
+        .limit(100);
 
       if (error) {
         console.error('Supabase error:', error);
         throw error;
       }
       
-      // Get unique markets - show the largest transaction from each market
-      const marketMap = new Map();
-      (allTransactions || []).forEach((item: any) => {
-        const marketId = item.market_id;
-        const existing = marketMap.get(marketId);
-        
-        // Keep the largest transaction for each market
-        if (!existing || item.amount > existing.amount) {
-          marketMap.set(marketId, {
-            id: item.id,
-            wallet_address: item.wallet_address,
-            amount: item.amount,
-            price: item.price,
-            side: item.side,
-            timestamp: item.timestamp,
-            transaction_hash: item.transaction_hash,
-            market: {
-              title: item.markets.title,
-              market_id: item.markets.market_id,
-            }
-          });
+      // Transform data to match Transaction interface
+      const transformedData = (data || []).map((item: any) => ({
+        id: item.id,
+        wallet_address: item.wallet_address,
+        amount: item.amount,
+        price: item.price,
+        side: item.side,
+        timestamp: item.timestamp,
+        transaction_hash: item.transaction_hash,
+        market: {
+          title: item.markets.title,
+          market_id: item.markets.market_id,
         }
-      });
+      }));
       
-      // Convert map to array and sort by amount (largest first)
-      const uniqueTransactions = Array.from(marketMap.values())
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 100);
-      
-      console.log('Fetched whale transactions from', uniqueTransactions.length, 'unique markets');
-      setTransactions(uniqueTransactions);
+      console.log('Fetched whale transactions:', transformedData.length);
+      setTransactions(transformedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
