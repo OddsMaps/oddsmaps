@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 
 interface WalletBubbleMapProps {
-  market: Market;
+  market?: Market;
 }
 
 interface WalletData {
@@ -41,7 +41,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   // Fetch real wallet data from database
   useEffect(() => {
     const fetchWalletData = async () => {
-      const isPolymarket = market.source.toLowerCase() === 'polymarket';
+      // If no market is provided, fetch across all Polymarket markets
+      const isPolymarket = !market || market.source.toLowerCase() === 'polymarket';
       
       if (!isPolymarket) {
         setLoading(false);
@@ -52,11 +53,17 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         setLoading(true);
         setError(null);
         
-        const { data: transactions, error: txError } = await supabase
+        let query = supabase
           .from('wallet_transactions')
           .select('*')
-          .eq('market_id', market.id)
           .order('timestamp', { ascending: false });
+        
+        // If market is provided, filter by market_id
+        if (market) {
+          query = query.eq('market_id', market.id);
+        }
+
+        const { data: transactions, error: txError } = await query;
 
         if (txError) throw txError;
 
@@ -114,26 +121,24 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
     fetchWalletData();
 
+    const channelConfig = {
+      event: '*' as const,
+      schema: 'public',
+      table: 'wallet_transactions',
+      ...(market && { filter: `market_id=eq.${market.id}` })
+    };
+
     const channel = supabase
       .channel('wallet-transactions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wallet_transactions',
-          filter: `market_id=eq.${market.id}`
-        },
-        () => {
-          fetchWalletData();
-        }
-      )
+      .on('postgres_changes', channelConfig, () => {
+        fetchWalletData();
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [market.id]);
+  }, [market?.id]);
 
   const getTier = (volume: number): WalletData['tier'] => {
     if (volume >= 5000) return 'whale';
@@ -169,8 +174,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const wallets = useMemo<WalletData[]>(() => {
     if (realWallets.length === 0) return [];
 
-    const yesPrice = market.yes_price || 0.5;
-    const noPrice = market.no_price || 0.5;
+    const yesPrice = market?.yes_price || 0.5;
+    const noPrice = market?.no_price || 0.5;
 
     // First pass: Create bubbles with initial positions
     const initialBubbles = realWallets.map((w, index) => {
@@ -330,7 +335,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return { yesVolume, noVolume, totalVolume, yesPnL, noPnL, totalWallets, yesWallets, noWallets };
   }, [wallets]);
 
-  if (market.source.toLowerCase() !== 'polymarket') {
+  if (market && market.source.toLowerCase() !== 'polymarket') {
     return (
       <div className="w-full h-[600px] rounded-xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
         <p className="text-muted-foreground">Live wallet distribution only available for Polymarket markets</p>
@@ -362,9 +367,14 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       {/* Header & Controls */}
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold gradient-text">Live Wallet Distribution</h2>
+          <h2 className="text-xl sm:text-2xl font-bold gradient-text">
+            {market ? 'Live Wallet Distribution' : 'Real-Time Whale Activity'}
+          </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Showing {filteredWallets.length} of {stats.totalWallets} wallets ({stats.yesWallets} YES, {stats.noWallets} NO)
+            {market 
+              ? `Showing ${filteredWallets.length} of ${stats.totalWallets} wallets (${stats.yesWallets} YES, ${stats.noWallets} NO)`
+              : `Tracking ${filteredWallets.length} of ${stats.totalWallets} active wallets across all markets`
+            }
           </p>
         </div>
         
