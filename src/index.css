@@ -92,6 +92,38 @@ All colors MUST be HSL.
     overscroll-behavior-y: none;
   }
 
+  /* Prevent horizontal overflow on mobile */
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Mobile text handling */
+  * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Mobile text handling */
+  * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Improved mobile scrolling */
+  @media (max-width: 768px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
   /* Brand font */
   .font-glacial {
     font-family: 'Glacial Indifference', 'Space Grotesk', sans-serif;

@@ -174,49 +174,49 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-strong rounded-2xl p-6">
-        <div className="flex items-center justify-between">
+      <div className="glass-strong rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="text-2xl font-bold gradient-text mb-2">Transaction History</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-2">Transaction History</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               ✓ Real on-chain transactions from Polygon
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold gradient-text">{transactions.length}</div>
-            <div className="text-sm text-muted-foreground">Total Transactions</div>
+          <div className="text-left sm:text-right">
+            <div className="text-2xl sm:text-3xl font-bold gradient-text">{transactions.length}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Total Transactions</div>
           </div>
         </div>
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="glass-strong rounded-xl p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="glass-strong rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-muted-foreground">Buy Trades</span>
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground">Buy Trades</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">
+          <div className="text-xl sm:text-2xl font-bold text-green-400">
             {transactions.filter(t => t.side === 'buy' || t.side === 'yes').length}
           </div>
         </div>
 
-        <div className="glass-strong rounded-xl p-4">
+        <div className="glass-strong rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingDown className="w-4 h-4 text-red-400" />
-            <span className="text-sm text-muted-foreground">Sell Trades</span>
+            <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-400 shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground">Sell Trades</span>
           </div>
-          <div className="text-2xl font-bold text-red-400">
+          <div className="text-xl sm:text-2xl font-bold text-red-400">
             {transactions.filter(t => t.side === 'sell' || t.side === 'no').length}
           </div>
         </div>
 
-        <div className="glass-strong rounded-xl p-4">
+        <div className="glass-strong rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Activity className="w-4 h-4 text-primary" />
-            <span className="text-sm text-muted-foreground">Total Volume</span>
+            <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-primary shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground">Total Volume</span>
           </div>
-          <div className="text-2xl font-bold gradient-text">
+          <div className="text-xl sm:text-2xl font-bold gradient-text break-words">
             ${(transactions.reduce((sum, t) => sum + t.amount, 0) / 1000).toFixed(1)}K
           </div>
         </div>
