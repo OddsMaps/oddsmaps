@@ -31,18 +31,18 @@ All colors MUST be HSL.
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 160 84% 39%;
-    --primary-glow: 160 84% 55%;
+    --primary: 142 76% 42%;
+    --primary-glow: 142 80% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 75% 55%;
+    --secondary: 0 72% 51%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 20%;
     --muted-foreground: 0 0% 60%;
 
-    --accent: 217 91% 60%;
-    --accent-glow: 217 91% 75%;
+    --accent: 167 76% 48%;
+    --accent-glow: 167 82% 60%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -54,14 +54,14 @@ All colors MUST be HSL.
 
     --radius: 1rem;
 
-    /* Gradient colors - Green to Red spectrum */
-    --gradient-green-dark: 145 75% 35%;
-    --gradient-green: 145 70% 45%;
-    --gradient-green-light: 145 65% 55%;
-    --gradient-red-dark: 0 80% 45%;
-    --gradient-red: 0 75% 55%;
-    --gradient-red-light: 0 70% 65%;
-    --gradient-yellow: 45 90% 55%;
+    /* Smooth gradient spectrum - Clean green to red */
+    --gradient-green-start: 158 64% 52%;
+    --gradient-green: 142 76% 42%;
+    --gradient-green-mid: 120 60% 45%;
+    --gradient-yellow: 45 93% 58%;
+    --gradient-orange: 15 85% 55%;
+    --gradient-red: 0 72% 51%;
+    --gradient-red-end: 348 83% 47%;
 
     /* Bubblemap YES colors (greens + blues) */
     --bubble-yes-small: 167 85% 55%;
@@ -143,10 +143,21 @@ All colors MUST be HSL.
     font-weight: 700;
   }
 
-  /* Gradient text effect */
+  /* Gradient text effect - Smooth green to red */
   .gradient-text {
-    @apply bg-gradient-to-r from-[hsl(var(--gradient-green))] via-[hsl(var(--gradient-yellow))] to-[hsl(var(--gradient-red))] bg-clip-text text-transparent;
-    animation: gradient-shift 3s ease infinite;
+    background: linear-gradient(
+      135deg, 
+      hsl(var(--gradient-green-start)) 0%,
+      hsl(var(--gradient-green)) 15%,
+      hsl(var(--gradient-green-mid)) 30%,
+      hsl(var(--gradient-yellow)) 50%,
+      hsl(var(--gradient-orange)) 70%,
+      hsl(var(--gradient-red)) 85%,
+      hsl(var(--gradient-red-end)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     background-size: 200% auto;
   }
 
@@ -197,46 +208,65 @@ All colors MUST be HSL.
     box-shadow: 0 20px 60px 0 rgba(16,185,129,0.3), 0 30px 90px 0 rgba(16,185,129,0.15);
   }
 
-  /* Gradient text effects */
+  /* Gradient text effects - Premium smooth gradient */
   .gradient-text-premium {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary-glow)));
+    background: linear-gradient(
+      135deg, 
+      hsl(var(--gradient-green-start)) 0%,
+      hsl(var(--gradient-green)) 20%,
+      hsl(var(--gradient-green-mid)) 35%,
+      hsl(var(--gradient-yellow)) 50%,
+      hsl(var(--gradient-orange)) 65%,
+      hsl(var(--gradient-red)) 80%,
+      hsl(var(--gradient-red-end)) 100%
+    );
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: gradient-shift 3s ease infinite;
+    animation: gradient-shift 8s ease-in-out infinite;
   }
 
-  /* Metric highlights for data */
+  /* Metric highlights for data - Smooth gradient */
   .metric-highlight {
     font-size: 2.25rem;
     font-weight: 900;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary-glow)) 100%);
+    background: linear-gradient(
+      135deg, 
+      hsl(var(--gradient-green-start)) 0%,
+      hsl(var(--gradient-green)) 25%,
+      hsl(var(--gradient-yellow)) 50%,
+      hsl(var(--gradient-orange)) 70%,
+      hsl(var(--gradient-red)) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Glow effects */
+  /* Glow effects - Smooth green/red gradient glow */
   .glow-green-dark {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 20px hsl(var(--gradient-green) / 0.6), 0 0 40px hsl(var(--gradient-green) / 0.4);
   }
 
   .glow-green {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 20px hsl(var(--gradient-green-start) / 0.5), 0 0 40px hsl(var(--gradient-green-start) / 0.3);
   }
 
   .glow-green-light {
-    box-shadow: 0 0 20px rgba(52, 211, 153, 0.5), 0 0 40px rgba(52, 211, 153, 0.3);
+    box-shadow: 0 0 20px hsl(var(--gradient-green-mid) / 0.5), 0 0 40px hsl(var(--gradient-green-mid) / 0.3);
   }
 
   .glow-red {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 20px hsl(var(--gradient-red) / 0.5), 0 0 40px hsl(var(--gradient-red) / 0.3);
   }
 
   .glow-gradient {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(245, 158, 11, 0.3), 0 0 90px rgba(239, 68, 68, 0.2);
+    box-shadow: 
+      0 0 30px hsl(var(--gradient-green) / 0.4), 
+      0 0 60px hsl(var(--gradient-yellow) / 0.3), 
+      0 0 90px hsl(var(--gradient-red) / 0.2);
     animation: glow-pulse-dual 3s ease-in-out infinite;
   }
 
@@ -252,22 +282,28 @@ All colors MUST be HSL.
 
   @keyframes glow-pulse-dual {
     0%, 100% {
-      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(245, 158, 11, 0.3), 0 0 90px rgba(239, 68, 68, 0.2);
+      box-shadow: 
+        0 0 30px hsl(var(--gradient-green) / 0.4), 
+        0 0 60px hsl(var(--gradient-yellow) / 0.3), 
+        0 0 90px hsl(var(--gradient-red) / 0.2);
     }
     50% {
-      box-shadow: 0 0 40px rgba(16, 185, 129, 0.6), 0 0 80px rgba(245, 158, 11, 0.5), 0 0 120px rgba(239, 68, 68, 0.3);
+      box-shadow: 
+        0 0 40px hsl(var(--gradient-green) / 0.6), 
+        0 0 80px hsl(var(--gradient-yellow) / 0.5), 
+        0 0 120px hsl(var(--gradient-red) / 0.3);
     }
   }
 
   @keyframes logo-illuminate {
     0%, 100% {
-      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4)) drop-shadow(0 0 16px rgba(16, 185, 129, 0.2));
+      filter: drop-shadow(0 0 8px hsl(var(--gradient-green) / 0.4)) drop-shadow(0 0 16px hsl(var(--gradient-green) / 0.2));
     }
     33% {
-      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.3));
+      filter: drop-shadow(0 0 12px hsl(var(--gradient-yellow) / 0.5)) drop-shadow(0 0 24px hsl(var(--gradient-yellow) / 0.3));
     }
     66% {
-      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.5)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.3));
+      filter: drop-shadow(0 0 12px hsl(var(--gradient-red) / 0.5)) drop-shadow(0 0 24px hsl(var(--gradient-red) / 0.3));
     }
   }
 
