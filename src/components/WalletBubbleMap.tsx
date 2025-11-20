@@ -133,169 +133,102 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [market.id, market.source]);
+  }, [market.id]);
 
-  // Categorize wallet by tier
-  const getTier = (amount: number): "small" | "medium" | "large" | "whale" => {
-    if (amount >= 5000) return "whale";
-    if (amount >= 1000) return "large";
-    if (amount >= 100) return "medium";
-    return "small";
+  const getTier = (volume: number): WalletData['tier'] => {
+    if (volume >= 5000) return 'whale';
+    if (volume >= 1000) return 'large';
+    if (volume >= 100) return 'medium';
+    return 'small';
   };
 
-  // Get color based on side and tier
-  const getColor = (side: "yes" | "no", tier: string) => {
-    if (side === "yes") {
+  const getColor = (side: 'yes' | 'no', tier: string) => {
+    if (side === 'yes') {
       switch (tier) {
-        case "whale": return "from-bubble-yes-whale via-bubble-yes-large to-bubble-yes-whale";
-        case "large": return "from-bubble-yes-large via-bubble-yes-medium to-bubble-yes-large";
-        case "medium": return "from-bubble-yes-medium via-bubble-yes-small to-bubble-yes-medium";
-        default: return "from-bubble-yes-small via-cyan-400 to-bubble-yes-small";
+        case 'whale': return 'from-bubble-yes-whale to-bubble-yes-large';
+        case 'large': return 'from-bubble-yes-large to-bubble-yes-medium';
+        case 'medium': return 'from-bubble-yes-medium to-bubble-yes-small';
+        default: return 'from-bubble-yes-small to-bubble-yes-medium/50';
       }
     } else {
       switch (tier) {
-        case "whale": return "from-bubble-no-whale via-bubble-no-large to-bubble-no-whale";
-        case "large": return "from-bubble-no-large via-bubble-no-medium to-bubble-no-large";
-        case "medium": return "from-bubble-no-medium via-bubble-no-small to-bubble-no-medium";
-        default: return "from-bubble-no-small via-pink-400 to-bubble-no-small";
+        case 'whale': return 'from-bubble-no-whale to-bubble-no-large';
+        case 'large': return 'from-bubble-no-large to-bubble-no-medium';
+        case 'medium': return 'from-bubble-no-medium to-bubble-no-small';
+        default: return 'from-bubble-no-small to-bubble-no-medium/50';
       }
     }
   };
 
-  // Get glow color
-  const getGlowColor = (side: "yes" | "no", tier: string) => {
-    if (side === "yes") {
-      switch (tier) {
-        case "whale": return "0 0 40px rgba(16, 185, 129, 1), 0 0 80px rgba(16, 185, 129, 0.6), 0 0 120px rgba(16, 185, 129, 0.3)";
-        case "large": return "0 0 30px rgba(16, 185, 129, 0.9), 0 0 60px rgba(16, 185, 129, 0.5)";
-        case "medium": return "0 0 20px rgba(52, 211, 153, 0.7), 0 0 40px rgba(52, 211, 153, 0.4)";
-        default: return "0 0 15px rgba(52, 211, 153, 0.5), 0 0 30px rgba(52, 211, 153, 0.2)";
-      }
-    } else {
-      switch (tier) {
-        case "whale": return "0 0 40px rgba(239, 68, 68, 1), 0 0 80px rgba(239, 68, 68, 0.6), 0 0 120px rgba(239, 68, 68, 0.3)";
-        case "large": return "0 0 30px rgba(239, 68, 68, 0.9), 0 0 60px rgba(239, 68, 68, 0.5)";
-        case "medium": return "0 0 20px rgba(251, 113, 133, 0.7), 0 0 40px rgba(251, 113, 133, 0.4)";
-        default: return "0 0 15px rgba(251, 113, 133, 0.5), 0 0 30px rgba(251, 113, 133, 0.2)";
-      }
-    }
+  const getGlowColor = (side: 'yes' | 'no', tier: string) => {
+    const baseColor = side === 'yes' ? '16, 185, 129' : '239, 68, 68';
+    const intensity = tier === 'whale' ? 0.8 : tier === 'large' ? 0.6 : tier === 'medium' ? 0.4 : 0.2;
+    return `0 0 ${tier === 'whale' ? '40' : tier === 'large' ? '30' : '20'}px rgba(${baseColor}, ${intensity})`;
   };
 
-  // Generate wallet data
-  const wallets = useMemo(() => {
+  const wallets = useMemo<WalletData[]>(() => {
     if (realWallets.length === 0) return [];
 
-    const processedWallets: WalletData[] = [];
-    const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => a.volume - b.volume);
-    const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => a.volume - b.volume);
-    
-    const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
-      const traders: WalletData[] = [];
+    const yesPrice = market.yes_price || 0.5;
+    const noPrice = market.no_price || 0.5;
+
+    return realWallets.map((w, index) => {
+      const tier = getTier(w.volume);
+      const currentPrice = w.side === 'yes' ? yesPrice : noPrice;
+      const pnl = (currentPrice - w.avgPrice) * w.volume;
       
-      // Group wallets by tier
-      const walletsByTier = {
-        whale: wallets.filter(w => getTier(w.volume) === 'whale'),
-        large: wallets.filter(w => getTier(w.volume) === 'large'),
-        medium: wallets.filter(w => getTier(w.volume) === 'medium'),
-        small: wallets.filter(w => getTier(w.volume) === 'small'),
+      let size = 30;
+      switch (tier) {
+        case 'whale': size = 90; break;
+        case 'large': size = 70; break;
+        case 'medium': size = 50; break;
+        default: size = 30;
+      }
+
+      let yBase = 50;
+      let spread = 8;
+      switch (tier) {
+        case 'whale': yBase = 28; spread = 6; break;
+        case 'large': yBase = 54; spread = 5; break;
+        case 'medium': yBase = 73; spread = 4; break;
+        default: yBase = 88; spread = 3;
+      }
+
+      const offset = (Math.random() - 0.5) * spread;
+      const y = yBase + offset;
+
+      const sideOffset = w.side === 'yes' ? -15 : 15;
+      const tierSpacing = tier === 'whale' ? 10 : tier === 'large' ? 8 : tier === 'medium' ? 6 : 4;
+      const x = 50 + sideOffset + (Math.random() - 0.5) * tierSpacing;
+
+      return {
+        id: `${w.address}-${index}`,
+        address: w.address,
+        side: w.side,
+        amount: w.volume,
+        size,
+        tier,
+        x: Math.max(5, Math.min(95, x)),
+        y: Math.max(5, Math.min(95, y)),
+        color: getColor(w.side, tier),
+        glowColor: getGlowColor(w.side, tier),
+        trades: w.trades,
+        avgPrice: w.avgPrice,
+        profit: pnl,
+        entryTime: w.firstEntry
       };
-      
-      // Vertical zones for each tier - more space for larger tiers
-      const tierZones = {
-        whale: { start: 12, height: 30 },   // Bottom zone - most space
-        large: { start: 44, height: 22 },   // Middle-bottom
-        medium: { start: 68, height: 16 },  // Middle-top
-        small: { start: 86, height: 10 },   // Top zone - least space
-      };
-      
-      let processedIndex = 0;
-      
-      // Process each tier
-      (['whale', 'large', 'medium', 'small'] as const).forEach(tier => {
-        const tierWallets = walletsByTier[tier];
-        if (tierWallets.length === 0) return;
-        
-        const zone = tierZones[tier];
-        // Reduced bubble sizes for no overlap
-        const baseSize = tier === "whale" ? 80 : tier === "large" ? 60 : tier === "medium" ? 45 : 32;
-        
-        // Calculate grid layout
-        const walletsPerRow = tier === "whale" ? 4 : tier === "large" ? 5 : tier === "medium" ? 6 : 8;
-        const totalRows = Math.ceil(tierWallets.length / walletsPerRow);
-        
-        tierWallets.forEach((wallet, i) => {
-          const size = tier === "whale" 
-            ? Math.min(90, baseSize + Math.sqrt(wallet.volume) * 0.15)
-            : tier === "large"
-            ? Math.min(70, baseSize + Math.sqrt(wallet.volume) * 0.1)
-            : tier === "medium"
-            ? Math.min(52, baseSize + Math.sqrt(wallet.volume) * 0.08)
-            : Math.min(38, baseSize);
-          
-          const row = Math.floor(i / walletsPerRow);
-          const col = i % walletsPerRow;
-          
-          // Horizontal positioning with proper spacing
-          const horizontalSpread = tier === "whale" ? 24 : tier === "large" ? 22 : tier === "medium" ? 20 : 18;
-          const colCount = Math.min(walletsPerRow, tierWallets.length - row * walletsPerRow);
-          const xStep = horizontalSpread / Math.max(1, colCount + 1);
-          const xOffset = (col + 1) * xStep - horizontalSpread / 2;
-          
-          let x: number;
-          if (side === 'yes') {
-            x = 25 - xOffset; // YES side center at 25%
-          } else {
-            x = 75 + xOffset; // NO side center at 75%
-          }
-          
-          // Vertical position with even spacing
-          const yStep = totalRows > 1 ? zone.height / (totalRows + 1) : zone.height / 2;
-          const y = zone.start + (row + 1) * yStep;
-          
-          const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
-          const profit = wallet.volume * (currentPrice - wallet.avgPrice);
-          
-          traders.push({
-            id: `${wallet.address}-${processedIndex}`,
-            address: wallet.address,
-            side,
-            amount: wallet.volume,
-            size,
-            tier,
-            x: Math.max(4, Math.min(96, x)),
-            y: Math.max(5, Math.min(95, y)),
-            color: getColor(side, tier),
-            glowColor: getGlowColor(side, tier),
-            trades: wallet.trades,
-            avgPrice: wallet.avgPrice,
-            profit,
-            entryTime: wallet.firstEntry
-          });
-          
-          processedIndex++;
-        });
-      });
-      
-      return traders;
-    };
-    
-    processedWallets.push(...positionWallets(yesWallets, 'yes'));
-    processedWallets.push(...positionWallets(noWallets, 'no'));
-    
-    return processedWallets;
+    });
   }, [realWallets, market.yes_price, market.no_price]);
 
-  // Apply filters
   const filteredWallets = useMemo(() => {
-    return wallets.filter(w => {
-      if (sideFilter !== "all" && w.side !== sideFilter) return false;
-      if (tierFilter !== "all" && w.tier !== tierFilter) return false;
-      if (searchTerm && !w.address.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      return true;
+    return wallets.filter(wallet => {
+      const sideMatch = sideFilter === "all" || wallet.side === sideFilter;
+      const tierMatch = tierFilter === "all" || wallet.tier === tierFilter;
+      const searchMatch = searchTerm === "" || wallet.address.toLowerCase().includes(searchTerm.toLowerCase());
+      return sideMatch && tierMatch && searchMatch;
     });
   }, [wallets, sideFilter, tierFilter, searchTerm]);
 
-  // Calculate stats
   const stats = useMemo(() => {
     const yesVolume = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
     const noVolume = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.amount, 0);
@@ -439,7 +372,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         </div>
         <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-secondary/10 to-destructive/10 border border-secondary/30">
           <div className="text-xs text-muted-foreground mb-1">NO P&L</div>
-          <div className="text-base sm:text-lg font-bold ${stats.noPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
+          <div className={`text-base sm:text-lg font-bold ${stats.noPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
             {stats.noPnL >= 0 ? '+' : ''}${stats.noPnL.toLocaleString()}
           </div>
         </div>
