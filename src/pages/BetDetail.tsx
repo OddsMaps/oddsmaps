@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
+import WalletBubbleMap from "@/components/WalletBubbleMap";
 
 interface BetDetails {
   id: string;
@@ -284,6 +285,10 @@ const BetDetail = () => {
             </Card>
           </div>
 
+          {/* Wallet Bubble Map */}
+          {currentMarket && (
+            <WalletBubbleMap market={currentMarket} />
+          )}
 
           {/* Market Info */}
           {currentMarket && (
