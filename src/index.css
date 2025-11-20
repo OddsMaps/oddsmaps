@@ -50,6 +50,18 @@ All colors MUST be HSL.
     --gradient-red-light: 0 70% 65%;
     --gradient-yellow: 45 90% 55%;
 
+    /* Bubblemap YES colors (greens + blues) */
+    --bubble-yes-small: 180 70% 50%;
+    --bubble-yes-medium: 160 75% 45%;
+    --bubble-yes-large: 145 80% 40%;
+    --bubble-yes-whale: 130 85% 35%;
+    
+    /* Bubblemap NO colors (reds + pinks + purples) */
+    --bubble-no-small: 340 75% 55%;
+    --bubble-no-medium: 0 80% 50%;
+    --bubble-no-large: 320 75% 45%;
+    --bubble-no-whale: 280 70% 45%;
+
     /* Glass effects */
     --glass-bg: 0 0% 12%;
     --glass-border: 145 30% 25%;

@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Wallet, DollarSign, ExternalLink, Clock, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Filter, Search } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { WalletProfileModal } from "./WalletProfileModal";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 
 interface WalletBubbleMapProps {
   market: Market;
@@ -15,24 +17,28 @@ interface WalletData {
   side: "yes" | "no";
   amount: number;
   size: number;
+  tier: "small" | "medium" | "large" | "whale";
   x: number;
   y: number;
   color: string;
+  glowColor: string;
   trades: number;
   avgPrice: number;
   profit: number;
   entryTime: Date;
-  timeColor: string;
 }
 
 const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
-  const navigate = useNavigate();
   const [hoveredWallet, setHoveredWallet] = useState<WalletData | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<WalletData | null>(null);
   const [realWallets, setRealWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sideFilter, setSideFilter] = useState<"all" | "yes" | "no">("all");
+  const [tierFilter, setTierFilter] = useState<"all" | "small" | "medium" | "large" | "whale">("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch real wallet data from database for Polymarket markets
+  // Fetch real wallet data from database
   useEffect(() => {
     const fetchWalletData = async () => {
       const isPolymarket = market.source.toLowerCase() === 'polymarket';
@@ -46,7 +52,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         setLoading(true);
         setError(null);
         
-        // Fetch all transactions for this market from the database
         const { data: transactions, error: txError } = await supabase
           .from('wallet_transactions')
           .select('*')
@@ -56,7 +61,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         if (txError) throw txError;
 
         if (transactions && transactions.length > 0) {
-          // Aggregate transactions by wallet address and track first entry time
           const walletMap = new Map<string, {
             address: string;
             volume: number;
@@ -75,7 +79,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               existing.volume += Number(tx.amount);
               existing.trades += 1;
               existing.totalCost += Number(tx.amount) * Number(tx.price);
-              // Track earliest entry
               if (txDate < existing.firstEntry) {
                 existing.firstEntry = txDate;
               }
@@ -92,7 +95,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             }
           });
 
-          // Convert to array and calculate averages
           const walletsArray = Array.from(walletMap.values()).map(w => ({
             ...w,
             avgPrice: w.totalCost / w.volume
@@ -112,7 +114,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
     fetchWalletData();
 
-    // Set up realtime subscription for new transactions
     const channel = supabase
       .channel('wallet-transactions-changes')
       .on(
@@ -124,7 +125,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           filter: `market_id=eq.${market.id}`
         },
         () => {
-          // Refetch when new transactions arrive
           fetchWalletData();
         }
       )
@@ -135,427 +135,333 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     };
   }, [market.id, market.source]);
 
-  // Generate wallet data from real Polymarket data only
+  // Categorize wallet by tier
+  const getTier = (amount: number): "small" | "medium" | "large" | "whale" => {
+    if (amount >= 5000) return "whale";
+    if (amount >= 1000) return "large";
+    if (amount >= 100) return "medium";
+    return "small";
+  };
+
+  // Get color based on side and tier
+  const getColor = (side: "yes" | "no", tier: string) => {
+    if (side === "yes") {
+      switch (tier) {
+        case "whale": return "from-bubble-yes-whale to-bubble-yes-large";
+        case "large": return "from-bubble-yes-large to-bubble-yes-medium";
+        case "medium": return "from-bubble-yes-medium to-bubble-yes-small";
+        default: return "from-bubble-yes-small to-cyan-400";
+      }
+    } else {
+      switch (tier) {
+        case "whale": return "from-bubble-no-whale to-bubble-no-large";
+        case "large": return "from-bubble-no-large to-bubble-no-medium";
+        case "medium": return "from-bubble-no-medium to-bubble-no-small";
+        default: return "from-bubble-no-small to-pink-400";
+      }
+    }
+  };
+
+  // Get glow color
+  const getGlowColor = (side: "yes" | "no", tier: string) => {
+    if (side === "yes") {
+      return tier === "whale" || tier === "large" 
+        ? "0 0 30px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4)"
+        : "0 0 15px rgba(52, 211, 153, 0.6), 0 0 30px rgba(52, 211, 153, 0.3)";
+    } else {
+      return tier === "whale" || tier === "large"
+        ? "0 0 30px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4)"
+        : "0 0 15px rgba(251, 113, 133, 0.6), 0 0 30px rgba(251, 113, 133, 0.3)";
+    }
+  };
+
+  // Generate wallet data
   const wallets = useMemo(() => {
     if (realWallets.length === 0) return [];
 
-    const yesTraders: WalletData[] = [];
-    const noTraders: WalletData[] = [];
-
-    // Find earliest and latest entry times for color mapping
-    const now = new Date();
-    const times = realWallets.map(w => w.firstEntry.getTime());
-    const oldestTime = Math.min(...times);
-    const newestTime = Math.max(...times);
-    const timeRange = newestTime - oldestTime || 1;
-
-    // Function to get time-based color (blue=recent, purple=older, pink=oldest)
-    const getTimeColor = (entryTime: Date): string => {
-      const age = now.getTime() - entryTime.getTime();
-      const normalizedAge = Math.min(1, age / timeRange);
-      
-      // Color gradient: blue (recent) -> cyan -> purple -> pink (old)
-      if (normalizedAge < 0.25) return "from-blue-500 to-blue-600";
-      if (normalizedAge < 0.5) return "from-cyan-500 to-cyan-600";
-      if (normalizedAge < 0.75) return "from-purple-500 to-purple-600";
-      return "from-pink-500 to-pink-600";
-    };
-
-    // Calculate profit based on current price vs entry price
-    const calculateProfit = (wallet: any, isYes: boolean): number => {
-      const currentPrice = isYes ? market.yes_price : market.no_price;
-      const entryPrice = wallet.avgPrice;
-      return wallet.volume * (currentPrice - entryPrice);
-    };
-
-    // Separate and sort YES and NO wallets by volume (smallest first for center placement)
+    const processedWallets: WalletData[] = [];
     const yesWallets = realWallets.filter(w => w.side === 'yes').sort((a, b) => a.volume - b.volume);
     const noWallets = realWallets.filter(w => w.side === 'no').sort((a, b) => a.volume - b.volume);
     
-    // Function to position wallets in a clean left/right split with organic flow
     const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
       const traders: WalletData[] = [];
       const totalWallets = wallets.length;
       
       wallets.forEach((wallet, i) => {
-        const size = Math.min(140, Math.max(40, Math.sqrt(wallet.volume) * 2.5));
+        const tier = getTier(wallet.volume);
+        const baseSize = tier === "whale" ? 120 : tier === "large" ? 90 : tier === "medium" ? 65 : 45;
+        const size = Math.min(140, baseSize + Math.sqrt(wallet.volume) * 0.5);
         
-        // Calculate position: SMALL bets near center (50%), LARGE bets at edges (0% or 100%)
-        const progress = i / Math.max(1, totalWallets - 1); // 0 to 1
+        const progress = i / Math.max(1, totalWallets - 1);
         
-        // Create organic spiral pattern flowing from center to edges
-        const spiralTurns = 2;
-        const baseAngle = progress * Math.PI * spiralTurns;
-        const angle = baseAngle + Math.sin(i * 1.5) * 0.3; // Add organic variation
+        // Organic spiral pattern
+        const spiralTurns = 2.5;
+        const angle = progress * Math.PI * spiralTurns + Math.sin(i * 1.2) * 0.4;
         
-        // Radius grows from center (0%) to edges (45% of half-width)
-        const maxRadius = 45; // Maximum distance from center line
-        const radius = Math.pow(progress, 0.75) * maxRadius;
+        // Distance from center based on size
+        const maxRadius = 42;
+        const radius = Math.pow(progress, 0.7) * maxRadius;
         
-        // Calculate position - YES on left (0-50%), NO on right (50-100%)
         let x: number;
         if (side === 'yes') {
-          // YES: Start at 47% (near center), expand to 5% (left edge)
-          x = 47 - radius;
+          x = 48 - radius;
         } else {
-          // NO: Start at 53% (near center), expand to 95% (right edge)
-          x = 53 + radius;
+          x = 52 + radius;
         }
         
-        // Vertical position with organic flow
         const centerY = 50;
-        const verticalSpread = 35; // Vertical spread percentage
-        const y = centerY + Math.sin(angle) * verticalSpread + Math.cos(i * 0.8) * 8;
+        const verticalSpread = 38;
+        const y = centerY + Math.sin(angle) * verticalSpread + Math.cos(i * 0.7) * 10;
         
-        const walletData: WalletData = {
+        const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
+        const profit = wallet.volume * (currentPrice - wallet.avgPrice);
+        
+        traders.push({
           id: `${wallet.address}-${i}`,
           address: wallet.address,
           side,
           amount: wallet.volume,
           size,
-          x: Math.max(1, Math.min(99, x)), // Keep within bounds
-          y: Math.max(8, Math.min(92, y)),
-          color: side === 'yes' ? "from-green-500 to-green-600" : "from-red-500 to-red-600",
+          tier,
+          x: Math.max(2, Math.min(98, x)),
+          y: Math.max(10, Math.min(90, y)),
+          color: getColor(side, tier),
+          glowColor: getGlowColor(side, tier),
           trades: wallet.trades,
           avgPrice: wallet.avgPrice,
-          profit: calculateProfit(wallet, side === 'yes'),
-          entryTime: wallet.firstEntry,
-          timeColor: getTimeColor(wallet.firstEntry),
-        };
-        
-        traders.push(walletData);
+          profit,
+          entryTime: wallet.firstEntry
+        });
       });
       
       return traders;
     };
     
-    // Position YES and NO wallets separately
-    yesTraders.push(...positionWallets(yesWallets, 'yes'));
-    noTraders.push(...positionWallets(noWallets, 'no'));
+    processedWallets.push(...positionWallets(yesWallets, 'yes'));
+    processedWallets.push(...positionWallets(noWallets, 'no'));
+    
+    return processedWallets;
+  }, [realWallets, market.yes_price, market.no_price]);
 
-    return [...yesTraders, ...noTraders];
-  }, [market, realWallets]);
+  // Apply filters
+  const filteredWallets = useMemo(() => {
+    return wallets.filter(w => {
+      if (sideFilter !== "all" && w.side !== sideFilter) return false;
+      if (tierFilter !== "all" && w.tier !== tierFilter) return false;
+      if (searchTerm && !w.address.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    });
+  }, [wallets, sideFilter, tierFilter, searchTerm]);
 
-  const isPolymarket = market.source.toLowerCase() === 'polymarket';
-  const hasRealData = realWallets.length > 0;
+  // Calculate stats
+  const stats = useMemo(() => {
+    const yesVolume = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
+    const noVolume = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.amount, 0);
+    const totalVolume = yesVolume + noVolume;
+    const yesPnL = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.profit, 0);
+    const noPnL = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.profit, 0);
+    
+    return { yesVolume, noVolume, totalVolume, yesPnL, noPnL };
+  }, [wallets]);
 
-  const yesTotal = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
-  const noTotal = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.amount, 0);
-  const totalProfit = wallets.reduce((sum, w) => sum + w.profit, 0);
-
-  // Show loading or no data message for non-Polymarket or empty data
-  if (!isPolymarket) {
+  if (market.source.toLowerCase() !== 'polymarket') {
     return (
-      <div className="glass-strong rounded-3xl p-12 text-center">
-        <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">Blockchain Data Unavailable</h3>
-        <p className="text-muted-foreground">
-          Wallet distribution is only available for Polymarket markets with on-chain transaction data.
-        </p>
+      <div className="w-full h-[600px] rounded-xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
+        <p className="text-muted-foreground">Live wallet distribution only available for Polymarket markets</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="glass-strong rounded-3xl p-12 text-center">
-        <Activity className="w-16 h-16 mx-auto mb-4 text-primary animate-pulse" />
-        <h3 className="text-xl font-semibold mb-2">Loading Real-Time Data</h3>
-        <p className="text-muted-foreground">Fetching Polymarket transactions...</p>
+      <div className="w-full h-[600px] rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-border/30 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading wallet data...</p>
+        </div>
       </div>
     );
   }
 
-  if (!hasRealData) {
+  if (error || wallets.length === 0) {
     return (
-      <div className="glass-strong rounded-3xl p-12 text-center">
-        <Wallet className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">No Transaction Data</h3>
-        <p className="text-muted-foreground">
-          {error || "No wallet transactions have been recorded for this market yet. Check back soon!"}
-        </p>
+      <div className="w-full h-[600px] rounded-xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
+        <p className="text-muted-foreground">{error || 'No wallet data available yet'}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="glass-strong rounded-xl p-5 border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-lg bg-green-500/20">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">YES Volume</div>
-              <div className="text-xl font-bold text-green-400">
-                ${(yesTotal / 1000).toFixed(1)}K
-              </div>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {wallets.filter(w => w.side === "yes").length} wallets
-          </div>
+    <div className="w-full space-y-4">
+      {/* Header & Controls */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold gradient-text">Live Wallet Distribution</h2>
+          <p className="text-sm text-muted-foreground mt-1">Real-time prediction market activity</p>
         </div>
-
-        <div className="glass-strong rounded-xl p-5 border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-lg bg-red-500/20">
-              <TrendingDown className="w-5 h-5 text-red-400" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">NO Volume</div>
-              <div className="text-xl font-bold text-red-400">
-                ${(noTotal / 1000).toFixed(1)}K
-              </div>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {wallets.filter(w => w.side === "no").length} wallets
-          </div>
-        </div>
-
-        <div className="glass-strong rounded-xl p-5 border border-primary/20 hover:border-primary/40 transition-all duration-300">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-lg bg-primary/20">
-              <DollarSign className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">Total Volume</div>
-              <div className="text-xl font-bold gradient-text">
-                ${((yesTotal + noTotal) / 1000).toFixed(1)}K
-              </div>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {wallets.length} total wallets
-          </div>
-        </div>
-
-        <div className={`glass-strong rounded-xl p-5 border transition-all duration-300 ${
-          totalProfit >= 0 ? 'border-green-500/20 hover:border-green-500/40' : 'border-red-500/20 hover:border-red-500/40'
-        }`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`p-2.5 rounded-lg ${totalProfit >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-              <Activity className={`w-5 h-5 ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`} />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">Total P&L</div>
-              <div className={`text-xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {totalProfit >= 0 ? '+' : ''}${(totalProfit / 1000).toFixed(1)}K
-              </div>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Live unrealized
-          </div>
-        </div>
-      </div>
-
-      {/* Bubble Map */}
-      <div className="glass-strong rounded-2xl overflow-hidden border border-border/50">
-        <div className="bg-gradient-to-r from-background/80 to-background/40 p-6 border-b border-border/50">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-2xl font-bold">Live Wallet Distribution</h3>
-                <div className="px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-xs font-semibold text-green-400">LIVE</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Real-time Polymarket transaction data • Updated every 2 minutes
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground font-medium">Position:</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full border-2 border-green-400" />
-                  <span>YES</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full border-2 border-red-400" />
-                  <span>NO</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground font-medium">Entry Time:</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" />
-                  <span>Recent</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600" />
-                  <span>Days</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600" />
-                  <span>Weeks</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-pink-600" />
-                  <span>Oldest</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Map Container */}
-        <div className="relative min-h-[700px] overflow-hidden">
-          {/* Split Background Gradients */}
-          <div className="absolute inset-0">
-            <div className="absolute inset-y-0 left-0 right-1/2 bg-gradient-to-r from-green-950/20 via-green-900/10 to-transparent" />
-            <div className="absolute inset-y-0 left-1/2 right-0 bg-gradient-to-l from-red-950/20 via-red-900/10 to-transparent" />
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 p-1 rounded-lg bg-muted/30">
+            <Button
+              size="sm"
+              variant={sideFilter === "all" ? "default" : "ghost"}
+              onClick={() => setSideFilter("all")}
+              className="text-xs"
+            >
+              All
+            </Button>
+            <Button
+              size="sm"
+              variant={sideFilter === "yes" ? "default" : "ghost"}
+              onClick={() => setSideFilter("yes")}
+              className="text-xs"
+            >
+              YES
+            </Button>
+            <Button
+              size="sm"
+              variant={sideFilter === "no" ? "default" : "ghost"}
+              onClick={() => setSideFilter("no")}
+              className="text-xs"
+            >
+              NO
+            </Button>
           </div>
           
-          {/* Side Labels */}
-          <div className="absolute top-8 left-8 px-5 py-3 rounded-xl bg-green-500/15 border border-green-500/40 backdrop-blur-sm z-10 shadow-lg">
-            <div className="text-base font-bold text-green-400 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              YES SIDE
-            </div>
+          <div className="flex gap-1 p-1 rounded-lg bg-muted/30">
+            <Button
+              size="sm"
+              variant={tierFilter === "all" ? "default" : "ghost"}
+              onClick={() => setTierFilter("all")}
+              className="text-xs"
+            >
+              <Filter className="w-3 h-3 mr-1" />
+              All
+            </Button>
+            <Button
+              size="sm"
+              variant={tierFilter === "whale" ? "default" : "ghost"}
+              onClick={() => setTierFilter("whale")}
+              className="text-xs"
+            >
+              🐋
+            </Button>
           </div>
-          <div className="absolute top-8 right-8 px-5 py-3 rounded-xl bg-red-500/15 border border-red-500/40 backdrop-blur-sm z-10 shadow-lg">
-            <div className="text-base font-bold text-red-400 flex items-center gap-2">
-              NO SIDE
-              <TrendingDown className="w-5 h-5" />
-            </div>
+          
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-40 h-9 text-xs"
+            />
           </div>
-
-          {/* Center Divider */}
-          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-gradient-to-b from-transparent via-white/30 to-transparent shadow-lg" />
-
-          {/* Wallet Bubbles */}
-          <div className="relative w-full h-full min-h-[700px] p-8">
-            {wallets.map((wallet, index) => (
-              <div
-                key={wallet.id}
-                className="absolute cursor-pointer group transition-all duration-300 bubble-animate-in"
-                style={{
-                  left: `${wallet.x}%`,
-                  top: `${wallet.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: hoveredWallet?.id === wallet.id ? 50 : 1,
-                  animationDelay: `${index * 0.02}s`,
-                  opacity: 0,
-                }}
-                onMouseEnter={() => setHoveredWallet(wallet)}
-                onMouseLeave={() => setHoveredWallet(null)}
-                onClick={() => navigate(`/wallet/${wallet.address}`)}
-              >
-                <div
-                  className={`rounded-full bg-gradient-to-br ${wallet.timeColor} 
-                    flex items-center justify-center 
-                    border-[4px] transition-all duration-300 ease-out
-                    ${wallet.side === 'yes' 
-                      ? 'border-green-400/50 group-hover:border-green-400 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]' 
-                      : 'border-red-400/50 group-hover:border-red-400 group-hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                    }
-                    group-hover:scale-125 shadow-xl backdrop-blur-sm hover:z-50`}
-                  style={{
-                    width: `${wallet.size}px`,
-                    height: `${wallet.size}px`,
-                  }}
-                >
-                  <Wallet className="w-4 h-4 text-white drop-shadow-lg" />
-                </div>
-                {/* Pulse ring on hover */}
-                {hoveredWallet?.id === wallet.id && (
-                  <div 
-                    className={`absolute inset-0 rounded-full border-2 animate-ping ${
-                      wallet.side === 'yes' ? 'border-green-400' : 'border-red-400'
-                    }`}
-                    style={{
-                      width: `${wallet.size}px`,
-                      height: `${wallet.size}px`,
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Hover Info Card */}
-          {hoveredWallet && (
-            <div className="absolute bottom-6 left-6 right-6 glass-strong p-6 rounded-xl animate-fade-in border-2 border-primary/50 shadow-2xl z-20 backdrop-blur-xl">
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`p-2 rounded-lg ${
-                      hoveredWallet.side === "yes" ? "bg-green-500/20" : "bg-red-500/20"
-                    }`}>
-                      <Wallet className={`w-4 h-4 ${
-                        hoveredWallet.side === "yes" ? "text-green-400" : "text-red-400"
-                      }`} />
-                    </div>
-                    <code className="text-base font-mono font-semibold">{hoveredWallet.address}</code>
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold tracking-wide ${
-                      hoveredWallet.side === "yes" 
-                        ? "bg-green-500/20 text-green-400 border border-green-500/30" 
-                        : "bg-red-500/20 text-red-400 border border-red-500/30"
-                    }`}>
-                      {hoveredWallet.side.toUpperCase()}
-                    </span>
-                    <button
-                      onClick={() => navigate(`/wallet/${hoveredWallet.address}`)}
-                      className="ml-auto flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 hover:border-primary/50 rounded-lg transition-all duration-300 text-sm font-medium"
-                    >
-                      View Profile
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-5 gap-5">
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
-                        <DollarSign className="w-3 h-3" />
-                        Position
-                      </div>
-                      <div className="text-xl font-bold">${(hoveredWallet.amount / 1000).toFixed(2)}K</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
-                        <Activity className="w-3 h-3" />
-                        Trades
-                      </div>
-                      <div className="text-xl font-bold">{hoveredWallet.trades}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" />
-                        Entry
-                      </div>
-                      <div className="text-xl font-bold">
-                        {formatDistanceToNow(hoveredWallet.entryTime, { addSuffix: true })}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Avg Price</div>
-                      <div className="text-xl font-bold">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                        Unrealized P&L
-                      </div>
-                      <div className={`text-xl font-bold flex items-center gap-1 ${
-                        hoveredWallet.profit >= 0 ? "text-green-400" : "text-red-400"
-                      }`}>
-                        {hoveredWallet.profit >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                        {hoveredWallet.profit >= 0 ? "+" : ""}${(hoveredWallet.profit / 1000).toFixed(2)}K
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 rounded-lg bg-gradient-to-br from-bubble-yes-medium/20 to-bubble-yes-large/10 border border-bubble-yes-medium/30">
+          <div className="text-xs text-muted-foreground mb-1">YES Volume</div>
+          <div className="text-lg font-bold text-foreground">${stats.yesVolume.toLocaleString()}</div>
+        </div>
+        <div className="p-3 rounded-lg bg-gradient-to-br from-bubble-no-medium/20 to-bubble-no-large/10 border border-bubble-no-medium/30">
+          <div className="text-xs text-muted-foreground mb-1">NO Volume</div>
+          <div className="text-lg font-bold text-foreground">${stats.noVolume.toLocaleString()}</div>
+        </div>
+        <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30">
+          <div className="text-xs text-muted-foreground mb-1">YES P&L</div>
+          <div className={`text-lg font-bold ${stats.yesPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
+            {stats.yesPnL >= 0 ? '+' : ''}${stats.yesPnL.toLocaleString()}
+          </div>
+        </div>
+        <div className="p-3 rounded-lg bg-gradient-to-br from-secondary/10 to-destructive/10 border border-secondary/30">
+          <div className="text-xs text-muted-foreground mb-1">NO P&L</div>
+          <div className={`text-lg font-bold ${stats.noPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
+            {stats.noPnL >= 0 ? '+' : ''}${stats.noPnL.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* Bubblemap */}
+      <div className="relative w-full h-[600px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
+        {/* Background gradient zones */}
+        <div className="absolute inset-0 bg-gradient-to-r from-bubble-yes-medium/5 via-background to-bubble-no-medium/5" />
+        
+        {/* Side labels */}
+        <div className="absolute top-4 left-4 z-10">
+          <Badge className="bg-bubble-yes-medium/80 backdrop-blur-sm text-white border-none">
+            <TrendingUp className="w-3 h-3 mr-1" />
+            YES
+          </Badge>
+        </div>
+        <div className="absolute top-4 right-4 z-10">
+          <Badge className="bg-bubble-no-medium/80 backdrop-blur-sm text-white border-none">
+            <TrendingDown className="w-3 h-3 mr-1" />
+            NO
+          </Badge>
+        </div>
+
+        {/* Center divider with glow */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border to-transparent transform -translate-x-1/2" 
+             style={{ boxShadow: '0 0 20px rgba(255, 255, 255, 0.1)' }} />
+
+        {/* Wallet bubbles */}
+        <div className="absolute inset-0">
+          {filteredWallets.map((wallet, index) => (
+            <div
+              key={wallet.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 cursor-pointer animate-float bubble-animate-in"
+              style={{
+                left: `${wallet.x}%`,
+                top: `${wallet.y}%`,
+                width: `${wallet.size}px`,
+                height: `${wallet.size}px`,
+                animationDelay: `${index * 0.02}s`,
+                animationDuration: `${6 + (index % 3)}s`,
+              }}
+              onMouseEnter={() => setHoveredWallet(wallet)}
+              onMouseLeave={() => setHoveredWallet(null)}
+              onClick={() => setSelectedWallet(wallet)}
+            >
+              <div
+                className={`w-full h-full rounded-full bg-gradient-to-br ${wallet.color} transition-all duration-300 ${
+                  hoveredWallet?.id === wallet.id ? 'scale-125' : 'scale-100'
+                } ${wallet.tier === 'whale' || wallet.tier === 'large' ? 'animate-pulse-glow' : ''}`}
+                style={{
+                  boxShadow: hoveredWallet?.id === wallet.id
+                    ? wallet.glowColor
+                    : wallet.tier === 'whale' || wallet.tier === 'large'
+                    ? wallet.glowColor
+                    : '0 0 10px rgba(0, 0, 0, 0.3)',
+                  border: wallet.tier === 'whale' ? '3px solid rgba(255, 255, 255, 0.3)' : wallet.tier === 'large' ? '2px solid rgba(255, 255, 255, 0.2)' : 'none',
+                }}
+              />
+              
+              {/* Hover tooltip */}
+              {hoveredWallet?.id === wallet.id && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-24 bg-card/95 backdrop-blur-xl border border-border/50 rounded-lg p-3 shadow-xl z-50 min-w-[180px] animate-fade-in">
+                  <div className="text-xs space-y-1">
+                    <div className="font-mono text-foreground">{wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}</div>
+                    <div className="text-muted-foreground">Size: ${wallet.amount.toLocaleString()}</div>
+                    <div className="text-muted-foreground">Trades: {wallet.trades}</div>
+                    <div className={wallet.profit >= 0 ? 'text-primary' : 'text-destructive'}>
+                      P&L: {wallet.profit >= 0 ? '+' : ''}${wallet.profit.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <WalletProfileModal
+        isOpen={!!selectedWallet}
+        onClose={() => setSelectedWallet(null)}
+        wallet={selectedWallet}
+      />
     </div>
   );
 };
