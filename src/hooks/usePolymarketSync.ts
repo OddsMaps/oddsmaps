@@ -37,8 +37,8 @@ export const usePolymarketSync = () => {
     // Initial sync on mount
     syncPolymarketData();
 
-    // Sync every 1 minute for real-time data
-    const interval = setInterval(syncPolymarketData, 60 * 1000);
+    // Sync every 30 seconds for real-time data
+    const interval = setInterval(syncPolymarketData, 30 * 1000);
 
     return () => clearInterval(interval);
   }, [syncPolymarketData]);
