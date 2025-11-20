@@ -21,7 +21,7 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
       Back to Markets
     </Button>
 
-    <div className="glass-strong rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 animate-fade-in border border-border/50">
+    <div className="data-card mb-6 sm:mb-8 animate-fade-in">
       <div className="flex flex-col lg:flex-row items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
         <div className="flex-1 w-full">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -42,7 +42,7 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
             </span>
           </div>
           
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 break-words">
+          <h1 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 sm:mb-4 break-words leading-tight tracking-tight">
             {market.title}
           </h1>
           
@@ -53,39 +53,41 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
           )}
         </div>
 
-        <div className="flex lg:flex-col items-center lg:items-end gap-3 sm:gap-4 w-full lg:w-auto justify-center lg:justify-start">
-          <div className={`flex items-center gap-2 text-3xl sm:text-4xl lg:text-5xl font-bold ${
-            isPositive ? "text-green-400" : "text-red-400"
-          }`}>
-            {isPositive ? (
-              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
-            ) : (
-              <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
-            )}
-            <span>{(market.yes_price * 100).toFixed(1)}¢</span>
-          </div>
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            Yes price
+        <div className="flex lg:flex-col items-center lg:items-end gap-3 sm:gap-4 w-full lg:w-auto justify-center lg:justify-start glass-premium rounded-2xl p-4 sm:p-6">
+          <div className="text-center lg:text-right">
+            <div className={`flex items-center justify-center lg:justify-end gap-3 text-4xl sm:text-5xl lg:text-6xl font-black font-mono ${
+              isPositive ? "text-green-400" : "text-red-400"
+            }`}>
+              {isPositive ? (
+                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              ) : (
+                <TrendingDown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
+              )}
+              <span>{(market.yes_price * 100).toFixed(1)}¢</span>
+            </div>
+            <div className="text-xs sm:text-sm text-muted-foreground mt-2 font-medium uppercase tracking-wider">
+              Yes Price
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 pt-4 sm:pt-6 border-t border-border/50">
-        <div className="space-y-1">
-          <div className="text-xs sm:text-sm text-muted-foreground">24h Volume</div>
-          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
+      <div className="grid grid-cols-3 gap-3 sm:gap-5 md:gap-6 pt-5 sm:pt-6 border-t border-border/30">
+        <div className="space-y-2">
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">24h Volume</div>
+          <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
             ${(market.volume_24h / 1000).toFixed(1)}K
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="text-xs sm:text-sm text-muted-foreground">Liquidity</div>
-          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
+        <div className="space-y-2">
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">Liquidity</div>
+          <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
             ${(market.liquidity / 1000).toFixed(1)}K
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="text-xs sm:text-sm text-muted-foreground">Volatility</div>
-          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
+        <div className="space-y-2">
+          <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">Volatility</div>
+          <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
             {market.volatility.toFixed(1)}%
           </div>
         </div>

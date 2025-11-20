@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -31,30 +31,36 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-8 animate-fade-in">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-          <span className="gradient-text">Visual Intelligence</span>
-          <br />
-          <span className="text-foreground">for Prediction Markets</span>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 text-center space-y-10 animate-fade-in">
+        <div className="inline-block glass-premium px-6 py-3 rounded-full mb-4 animate-pulse-glow">
+          <span className="text-sm font-semibold gradient-text-premium uppercase tracking-wider">
+            🚀 Real-time Market Intelligence
+          </span>
+        </div>
+        
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-display font-black leading-[0.95] tracking-tight">
+          <span className="gradient-text-premium block mb-2">Visual Intelligence</span>
+          <span className="text-foreground/90 block">for Prediction Markets</span>
         </h1>
         
-        <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
-          Turn odds and transactions into intuitive visual maps — spot liquidity flows and market momentum in real time.
+        <p className="text-lg sm:text-xl md:text-2xl text-foreground/70 max-w-3xl mx-auto leading-relaxed px-2 font-medium">
+          Transform complex market data into <span className="text-primary font-bold">actionable insights</span>. 
+          Track liquidity flows, analyze whale movements, and spot opportunities before they happen.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 px-4">
           <Button 
             size="lg" 
-            className="glass-strong glow-gradient hover:scale-105 active:scale-95 transition-all duration-300 group w-full sm:w-auto px-8 py-7 text-lg font-semibold touch-manipulation min-h-[56px]"
+            className="glow-gradient hover:scale-105 active:scale-95 transition-all duration-500 group w-full sm:w-auto px-10 py-8 text-lg font-bold touch-manipulation min-h-[64px] rounded-2xl shadow-2xl"
             onClick={() => navigate('/markets')}
           >
             Explore Live Maps
-            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
           </Button>
           <Button 
             size="lg" 
             variant="outline"
-            className="glass border-2 hover:glass-strong hover:scale-105 active:scale-95 transition-all duration-300 group w-full sm:w-auto px-8 py-7 text-lg font-semibold touch-manipulation min-h-[56px]"
+            className="glass-strong border-2 border-white/20 hover:glass-premium hover:scale-105 hover:border-primary/50 active:scale-95 transition-all duration-500 group w-full sm:w-auto px-10 py-8 text-lg font-bold touch-manipulation min-h-[64px] rounded-2xl"
             onClick={() => {
               navigate('/markets');
               setTimeout(() => {
@@ -62,9 +68,24 @@ const Hero = () => {
               }, 100);
             }}
           >
-            <TrendingUp className="mr-2 w-5 h-5" />
+            <TrendingUp className="mr-3 w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
             View Trending Bets
           </Button>
+        </div>
+        
+        <div className="flex items-center justify-center gap-8 pt-12 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+            <span className="font-mono">Live Data</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            <span className="font-mono">Real-time Updates</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <span className="font-mono">Smart Analytics</span>
+          </div>
         </div>
       </div>
 
