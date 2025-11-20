@@ -4,7 +4,6 @@ import SearchBar from "@/components/SearchBar";
 import MarketMapLive from "@/components/MarketMapLive";
 import AnalyticsLive from "@/components/AnalyticsLive";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
-import { AllTransactions } from "@/components/AllTransactions";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
 import Footer from "@/components/Footer";
