@@ -2,7 +2,7 @@ import logo from "@/assets/oddsmap-logo-new.png";
 
 const Footer = () => {
   const links = {
-    Product: ["Features", "Pricing", "API", "Documentation"],
+    Product: ["Features", "API", "Documentation"],
     Company: ["About", "Blog", "Careers", "Contact"],
     Legal: ["Privacy", "Terms", "Security", "Cookies"],
     Resources: ["Help Center", "Community", "Partners", "Status"],
@@ -35,7 +35,7 @@ const Footer = () => {
               <ul className="space-y-3">
                 {items.map((item) => {
                   const urlMap: Record<string, string> = {
-                    "Features": "/features", "Pricing": "/pricing", "API": "#", "Documentation": "#",
+                    "Features": "/features", "API": "#", "Documentation": "#",
                     "About": "/about", "Blog": "/blog", "Careers": "/careers", "Contact": "/contact",
                     "Privacy": "/privacy", "Terms": "/terms", "Security": "/security", "Cookies": "/cookies",
                     "Help Center": "/help", "Community": "/community", "Partners": "/partners", "Status": "/status"
