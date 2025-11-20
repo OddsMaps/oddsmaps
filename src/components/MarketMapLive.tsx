@@ -173,6 +173,7 @@ const MarketMapLive = memo(() => {
                   top: `${market.y}%`,
                   transform: 'translate(-50%, -50%)',
                   zIndex: hoveredMarket?.id === market.id ? 20 : 10,
+                  transition: 'left 0.8s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease-out, z-index 0s',
                 }}
                 onMouseEnter={() => setHoveredMarket(market)}
                 onMouseLeave={() => setHoveredMarket(null)}
