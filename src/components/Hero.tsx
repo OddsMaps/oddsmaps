@@ -44,7 +44,7 @@ const Hero = () => {
           </h1>
           
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-foreground/60 max-w-4xl mx-auto leading-relaxed px-2 font-light">
-            Transform complex market data into <span className="gradient-text-premium font-bold">actionable insights</span>
+            Turn odds and transactions into intuitive visual maps — spot <span className="gradient-text-premium font-bold">liquidity flows</span> and market momentum in real time
           </p>
         </div>
 
