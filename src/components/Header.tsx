@@ -164,6 +164,7 @@ const Header = () => {
             </Sheet>
           </div>
         </div>
+      </div>
       </header>
 
       {/* Search Modal */}
