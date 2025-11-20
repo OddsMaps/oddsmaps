@@ -5,7 +5,7 @@ const Footer = () => {
     Product: ["Features", "API", "Documentation"],
     Company: ["About", "Blog", "Careers", "Contact"],
     Legal: ["Privacy", "Terms", "Security", "Cookies"],
-    Resources: ["Help Center", "Community", "Partners", "Status"],
+    Resources: ["Help Center", "Community", "Status"],
   };
 
   return (
@@ -38,7 +38,7 @@ const Footer = () => {
                     "Features": "/features", "API": "#", "Documentation": "#",
                     "About": "/about", "Blog": "/blog", "Careers": "/careers", "Contact": "/contact",
                     "Privacy": "/privacy", "Terms": "/terms", "Security": "/security", "Cookies": "/cookies",
-                    "Help Center": "/help", "Community": "/community", "Partners": "/partners", "Status": "/status"
+                    "Help Center": "/help", "Community": "/community", "Status": "/status"
                   };
                   return (
                     <li key={item}>
