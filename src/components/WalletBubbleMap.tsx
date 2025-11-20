@@ -302,8 +302,11 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const totalVolume = yesVolume + noVolume;
     const yesPnL = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.profit, 0);
     const noPnL = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.profit, 0);
+    const totalWallets = wallets.length;
+    const yesWallets = wallets.filter(w => w.side === "yes").length;
+    const noWallets = wallets.filter(w => w.side === "no").length;
     
-    return { yesVolume, noVolume, totalVolume, yesPnL, noPnL };
+    return { yesVolume, noVolume, totalVolume, yesPnL, noPnL, totalWallets, yesWallets, noWallets };
   }, [wallets]);
 
   if (market.source.toLowerCase() !== 'polymarket') {
@@ -339,10 +342,26 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold gradient-text">Live Wallet Distribution</h2>
-          <p className="text-sm text-muted-foreground mt-1">Real-time prediction market activity</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Showing {filteredWallets.length} of {stats.totalWallets} wallets ({stats.yesWallets} YES, {stats.noWallets} NO)
+          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
+          {(sideFilter !== "all" || tierFilter !== "all" || searchTerm !== "") && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSideFilter("all");
+                setTierFilter("all");
+                setSearchTerm("");
+              }}
+              className="text-xs text-destructive border-destructive hover:bg-destructive/10"
+            >
+              Clear Filters
+            </Button>
+          )}
           <div className="flex gap-1 p-1 rounded-lg bg-muted/30">
             <Button
               size="sm"
