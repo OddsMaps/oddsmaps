@@ -180,29 +180,39 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       
       let size = 30;
       switch (tier) {
-        case 'whale': size = 100; break;
-        case 'large': size = 75; break;
-        case 'medium': size = 55; break;
-        default: size = 35;
+        case 'whale': size = 95; break;
+        case 'large': size = 72; break;
+        case 'medium': size = 52; break;
+        default: size = 34;
       }
 
-      // Initial positioning with more spread
+      // Y-axis positioning by tier (stratified layers)
       let yBase = 50;
-      let ySpread = 35;
+      let ySpread = 20;
       switch (tier) {
-        case 'whale': yBase = 25; ySpread = 15; break;
-        case 'large': yBase = 50; ySpread = 20; break;
-        case 'medium': yBase = 70; ySpread = 15; break;
-        default: yBase = 85; ySpread = 10;
+        case 'whale': yBase = 22; ySpread = 12; break;
+        case 'large': yBase = 48; ySpread = 16; break;
+        case 'medium': yBase = 68; ySpread = 14; break;
+        default: yBase = 86; ySpread = 8;
       }
 
       const offset = (Math.random() - 0.5) * ySpread;
       const y = yBase + offset;
 
-      // Separate yes/no sides more and add tier-based spacing
-      const sideOffset = w.side === 'yes' ? -25 : 25;
-      const tierSpacing = tier === 'whale' ? 20 : tier === 'large' ? 16 : tier === 'medium' ? 12 : 8;
-      const x = 50 + sideOffset + (Math.random() - 0.5) * tierSpacing;
+      // X-axis: Strict side separation with clear boundaries
+      // YES side: 10-40%, NO side: 60-90%
+      let x;
+      if (w.side === 'yes') {
+        const tierBase = tier === 'whale' ? 18 : tier === 'large' ? 22 : tier === 'medium' ? 26 : 30;
+        const tierWidth = tier === 'whale' ? 16 : tier === 'large' ? 14 : tier === 'medium' ? 12 : 8;
+        x = tierBase + (Math.random() - 0.5) * tierWidth;
+        x = Math.max(10, Math.min(40, x)); // Enforce YES boundary
+      } else {
+        const tierBase = tier === 'whale' ? 82 : tier === 'large' ? 78 : tier === 'medium' ? 74 : 70;
+        const tierWidth = tier === 'whale' ? 16 : tier === 'large' ? 14 : tier === 'medium' ? 12 : 8;
+        x = tierBase + (Math.random() - 0.5) * tierWidth;
+        x = Math.max(60, Math.min(90, x)); // Enforce NO boundary
+      }
 
       return {
         id: `${w.address}-${index}`,
@@ -211,8 +221,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         amount: w.volume,
         size,
         tier,
-        x: Math.max(5, Math.min(95, x)),
-        y: Math.max(5, Math.min(95, y)),
+        x,
+        y: Math.max(8, Math.min(92, y)),
         color: getColor(w.side, tier),
         glowColor: getGlowColor(w.side, tier),
         trades: w.trades,
@@ -222,10 +232,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       };
     });
 
-    // Second pass: Collision detection and separation
+    // Second pass: Collision detection with strict boundary enforcement
     const separateBubbles = (bubbles: WalletData[]): WalletData[] => {
-      const maxIterations = 50;
-      const minDistance = 1.3; // Minimum distance as multiplier of combined radii
+      const maxIterations = 60;
+      const minDistance = 1.35; // Minimum distance multiplier
       
       for (let iteration = 0; iteration < maxIterations; iteration++) {
         let moved = false;
@@ -235,46 +245,60 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             const b1 = bubbles[i];
             const b2 = bubbles[j];
             
+            // Skip if bubbles are on different sides (no cross-side collision)
+            if (b1.side !== b2.side) continue;
+            
             const dx = b2.x - b1.x;
             const dy = b2.y - b1.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Calculate minimum distance needed (in percentage units)
-            const r1 = b1.size / 20; // Convert size to percentage unit
+            // Calculate minimum distance needed
+            const r1 = b1.size / 20;
             const r2 = b2.size / 20;
             const minDist = (r1 + r2) * minDistance;
             
             if (distance < minDist && distance > 0) {
               moved = true;
               
-              // Calculate separation force
+              // Calculate separation
               const overlap = minDist - distance;
-              const separationForce = overlap * 0.5;
+              const force = overlap * 0.45;
               
               // Normalize direction
               const nx = dx / distance;
               const ny = dy / distance;
               
-              // Move both bubbles apart (weighted by size - larger bubbles move less)
+              // Weight by size (larger moves less)
               const totalSize = b1.size + b2.size;
-              const weight1 = b2.size / totalSize;
-              const weight2 = b1.size / totalSize;
+              const w1 = b2.size / totalSize;
+              const w2 = b1.size / totalSize;
               
-              b1.x -= nx * separationForce * weight1;
-              b1.y -= ny * separationForce * weight1;
-              b2.x += nx * separationForce * weight2;
-              b2.y += ny * separationForce * weight2;
+              // Apply forces
+              b1.x -= nx * force * w1;
+              b1.y -= ny * force * w1;
+              b2.x += nx * force * w2;
+              b2.y += ny * force * w2;
               
-              // Keep within bounds
-              b1.x = Math.max(8, Math.min(92, b1.x));
+              // Enforce strict side boundaries
+              if (b1.side === 'yes') {
+                b1.x = Math.max(10, Math.min(40, b1.x));
+              } else {
+                b1.x = Math.max(60, Math.min(90, b1.x));
+              }
+              
+              if (b2.side === 'yes') {
+                b2.x = Math.max(10, Math.min(40, b2.x));
+              } else {
+                b2.x = Math.max(60, Math.min(90, b2.x));
+              }
+              
+              // Y bounds
               b1.y = Math.max(8, Math.min(92, b1.y));
-              b2.x = Math.max(8, Math.min(92, b2.x));
               b2.y = Math.max(8, Math.min(92, b2.y));
             }
           }
         }
         
-        // If no bubbles moved, we've reached equilibrium
         if (!moved) break;
       }
       
@@ -444,52 +468,64 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
       {/* Bubblemap */}
       <div className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
-        {/* Background gradient zones with tier sections */}
+        {/* Enhanced background with clean separation */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-bubble-yes-large/8 via-background to-bubble-no-large/8" />
-          {/* Tier zone backgrounds */}
-          <div className="absolute left-0 right-0 top-[15%] h-[28%] bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-          <div className="absolute left-0 right-0 top-[45%] h-[20%] bg-gradient-to-b from-transparent via-accent/3 to-transparent" />
+          {/* YES side gradient (left) */}
+          <div className="absolute left-0 top-0 bottom-0 w-[45%] bg-gradient-to-r from-bubble-yes-large/12 via-bubble-yes-medium/6 to-transparent" />
+          
+          {/* NO side gradient (right) */}
+          <div className="absolute right-0 top-0 bottom-0 w-[45%] bg-gradient-to-l from-bubble-no-large/12 via-bubble-no-medium/6 to-transparent" />
+          
+          {/* Center neutral zone */}
+          <div className="absolute left-[45%] right-[45%] top-0 bottom-0 bg-gradient-to-r from-transparent via-background/40 to-transparent" />
+          
+          {/* Tier zone highlights */}
+          <div className="absolute left-0 right-0 top-[15%] h-[28%] bg-gradient-to-b from-transparent via-primary/4 to-transparent" />
+          <div className="absolute left-0 right-0 top-[45%] h-[20%] bg-gradient-to-b from-transparent via-accent/2 to-transparent" />
         </div>
         
         {/* Tier labels */}
         <div className="absolute left-2 top-[29%] z-10">
-          <div className="glass-strong rounded-lg px-3 py-1.5 text-xs font-bold">
-            🐋 WHALE<br/>$5k+
+          <div className="glass-premium rounded-lg px-3 py-1.5 text-xs font-black shadow-lg">
+            🐋 WHALE<br/><span className="text-2xs text-muted-foreground">$5k+</span>
           </div>
         </div>
         <div className="absolute left-2 top-[55%] z-10">
-          <div className="glass rounded-lg px-3 py-1.5 text-xs font-semibold">
-            LARGE<br/>$1k-5k
+          <div className="glass-strong rounded-lg px-3 py-1.5 text-xs font-bold shadow-md">
+            LARGE<br/><span className="text-2xs text-muted-foreground">$1k-5k</span>
           </div>
         </div>
         <div className="absolute left-2 top-[74%] z-10">
-          <div className="glass rounded-lg px-2.5 py-1 text-xs">
-            MED<br/>$100-1k
+          <div className="glass rounded-lg px-2.5 py-1 text-xs font-semibold shadow-sm">
+            MED<br/><span className="text-2xs text-muted-foreground">$100-1k</span>
           </div>
         </div>
         <div className="absolute left-2 top-[89%] z-10">
-          <div className="glass rounded-lg px-2.5 py-1 text-xs opacity-75">
-            SMALL<br/>$0-100
+          <div className="glass rounded-lg px-2.5 py-1 text-xs opacity-80">
+            SMALL<br/><span className="text-2xs text-muted-foreground">$0-100</span>
           </div>
         </div>
         
-        {/* Side labels */}
+        {/* Enhanced side labels */}
         <div className="absolute top-4 left-4 z-10">
-          <Badge className="bg-bubble-yes-large/90 backdrop-blur-sm text-white border-none shadow-lg px-4 py-2">
+          <Badge className="bg-gradient-to-r from-bubble-yes-large to-bubble-yes-medium backdrop-blur-sm text-white border-none shadow-[0_0_20px_rgba(16,185,129,0.3)] px-4 py-2 font-black">
             <TrendingUp className="w-4 h-4 mr-2" />
-            <span className="text-sm font-bold">YES BETS</span>
+            <span className="text-sm">YES BETS</span>
           </Badge>
         </div>
         <div className="absolute top-4 right-4 z-10">
-          <Badge className="bg-bubble-no-large/90 backdrop-blur-sm text-white border-none shadow-lg px-4 py-2">
+          <Badge className="bg-gradient-to-r from-bubble-no-medium to-bubble-no-large backdrop-blur-sm text-white border-none shadow-[0_0_20px_rgba(239,68,68,0.3)] px-4 py-2 font-black">
             <TrendingDown className="w-4 h-4 mr-2" />
-            <span className="text-sm font-bold">NO BETS</span>
+            <span className="text-sm">NO BETS</span>
           </Badge>
         </div>
 
-        {/* Center divider with enhanced glow */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary to-transparent transform -translate-x-1/2 shadow-[0_0_30px_rgba(16,185,129,0.3)]" />
+        {/* Premium center divider with double-line effect */}
+        <div className="absolute left-1/2 top-0 bottom-0 transform -translate-x-1/2">
+          <div className="absolute left-[-1px] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/50 to-transparent" />
+          <div className="absolute left-[1px] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/50 to-transparent" />
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-transparent via-primary to-transparent blur-sm opacity-50" />
+        </div>
 
         {/* Wallet bubbles */}
         <div className="absolute inset-0">
