@@ -55,25 +55,45 @@ export const AllTransactions = () => {
       const { data, error } = await supabase
         .from('wallet_transactions')
         .select(`
-          *,
-          markets!inner(title, market_id, source)
+          id,
+          wallet_address,
+          amount,
+          price,
+          side,
+          timestamp,
+          transaction_hash,
+          markets!inner (
+            title,
+            market_id,
+            source
+          )
         `)
         .eq('markets.source', 'polymarket')
         .gte('amount', 10000)
         .order('timestamp', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
       // Transform data to match Transaction interface
       const transformedData = (data || []).map((item: any) => ({
-        ...item,
+        id: item.id,
+        wallet_address: item.wallet_address,
+        amount: item.amount,
+        price: item.price,
+        side: item.side,
+        timestamp: item.timestamp,
+        transaction_hash: item.transaction_hash,
         market: {
           title: item.markets.title,
           market_id: item.markets.market_id,
         }
       }));
       
+      console.log('Fetched whale transactions:', transformedData.length);
       setTransactions(transformedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
