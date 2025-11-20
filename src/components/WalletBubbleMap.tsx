@@ -147,17 +147,17 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const getColor = (side: "yes" | "no", tier: string) => {
     if (side === "yes") {
       switch (tier) {
-        case "whale": return "from-bubble-yes-whale to-bubble-yes-large";
-        case "large": return "from-bubble-yes-large to-bubble-yes-medium";
-        case "medium": return "from-bubble-yes-medium to-bubble-yes-small";
-        default: return "from-bubble-yes-small to-cyan-400";
+        case "whale": return "from-bubble-yes-whale via-bubble-yes-large to-bubble-yes-whale";
+        case "large": return "from-bubble-yes-large via-bubble-yes-medium to-bubble-yes-large";
+        case "medium": return "from-bubble-yes-medium via-bubble-yes-small to-bubble-yes-medium";
+        default: return "from-bubble-yes-small via-cyan-400 to-bubble-yes-small";
       }
     } else {
       switch (tier) {
-        case "whale": return "from-bubble-no-whale to-bubble-no-large";
-        case "large": return "from-bubble-no-large to-bubble-no-medium";
-        case "medium": return "from-bubble-no-medium to-bubble-no-small";
-        default: return "from-bubble-no-small to-pink-400";
+        case "whale": return "from-bubble-no-whale via-bubble-no-large to-bubble-no-whale";
+        case "large": return "from-bubble-no-large via-bubble-no-medium to-bubble-no-large";
+        case "medium": return "from-bubble-no-medium via-bubble-no-small to-bubble-no-medium";
+        default: return "from-bubble-no-small via-pink-400 to-bubble-no-small";
       }
     }
   };
@@ -165,13 +165,19 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   // Get glow color
   const getGlowColor = (side: "yes" | "no", tier: string) => {
     if (side === "yes") {
-      return tier === "whale" || tier === "large" 
-        ? "0 0 30px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4)"
-        : "0 0 15px rgba(52, 211, 153, 0.6), 0 0 30px rgba(52, 211, 153, 0.3)";
+      switch (tier) {
+        case "whale": return "0 0 40px rgba(16, 185, 129, 1), 0 0 80px rgba(16, 185, 129, 0.6), 0 0 120px rgba(16, 185, 129, 0.3)";
+        case "large": return "0 0 30px rgba(16, 185, 129, 0.9), 0 0 60px rgba(16, 185, 129, 0.5)";
+        case "medium": return "0 0 20px rgba(52, 211, 153, 0.7), 0 0 40px rgba(52, 211, 153, 0.4)";
+        default: return "0 0 15px rgba(52, 211, 153, 0.5), 0 0 30px rgba(52, 211, 153, 0.2)";
+      }
     } else {
-      return tier === "whale" || tier === "large"
-        ? "0 0 30px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4)"
-        : "0 0 15px rgba(251, 113, 133, 0.6), 0 0 30px rgba(251, 113, 133, 0.3)";
+      switch (tier) {
+        case "whale": return "0 0 40px rgba(239, 68, 68, 1), 0 0 80px rgba(239, 68, 68, 0.6), 0 0 120px rgba(239, 68, 68, 0.3)";
+        case "large": return "0 0 30px rgba(239, 68, 68, 0.9), 0 0 60px rgba(239, 68, 68, 0.5)";
+        case "medium": return "0 0 20px rgba(251, 113, 133, 0.7), 0 0 40px rgba(251, 113, 133, 0.4)";
+        default: return "0 0 15px rgba(251, 113, 133, 0.5), 0 0 30px rgba(251, 113, 133, 0.2)";
+      }
     }
   };
 
@@ -185,56 +191,79 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     
     const positionWallets = (wallets: any[], side: 'yes' | 'no') => {
       const traders: WalletData[] = [];
-      const totalWallets = wallets.length;
       
-      // Group wallets into rows based on size
-      const rowHeight = 18; // Vertical spacing between rows
-      const startY = 20; // Start from top
+      // Group wallets by tier
+      const walletsByTier = {
+        whale: wallets.filter(w => getTier(w.volume) === 'whale'),
+        large: wallets.filter(w => getTier(w.volume) === 'large'),
+        medium: wallets.filter(w => getTier(w.volume) === 'medium'),
+        small: wallets.filter(w => getTier(w.volume) === 'small'),
+      };
       
-      wallets.forEach((wallet, i) => {
-        const tier = getTier(wallet.volume);
-        const baseSize = tier === "whale" ? 120 : tier === "large" ? 90 : tier === "medium" ? 65 : 45;
-        const size = Math.min(140, baseSize + Math.sqrt(wallet.volume) * 0.5);
+      // Vertical zones for each tier (top to bottom)
+      const tierZones = {
+        whale: { start: 15, height: 28 },   // Bottom zone - most space
+        large: { start: 45, height: 20 },   // Middle-bottom
+        medium: { start: 67, height: 15 },  // Middle-top
+        small: { start: 84, height: 10 },   // Top zone - least space
+      };
+      
+      let processedIndex = 0;
+      
+      // Process each tier
+      (['whale', 'large', 'medium', 'small'] as const).forEach(tier => {
+        const tierWallets = walletsByTier[tier];
+        if (tierWallets.length === 0) return;
         
-        const progress = i / Math.max(1, totalWallets - 1);
+        const zone = tierZones[tier];
+        const baseSize = tier === "whale" ? 130 : tier === "large" ? 95 : tier === "medium" ? 70 : 50;
         
-        // Calculate row number - smaller wallets at top, larger at bottom
-        const rowIndex = Math.floor(progress * 4); // 4 rows
-        const walletsPerRow = Math.ceil(totalWallets / 4);
-        const positionInRow = i % walletsPerRow;
-        
-        // Horizontal position - expand from center based on tier
-        const horizontalSpread = tier === "whale" ? 35 : tier === "large" ? 30 : tier === "medium" ? 25 : 20;
-        const xOffset = (positionInRow / Math.max(1, walletsPerRow - 1) - 0.5) * horizontalSpread;
-        
-        let x: number;
-        if (side === 'yes') {
-          x = 35 - xOffset; // YES side: center at 35%
-        } else {
-          x = 65 + xOffset; // NO side: center at 65%
-        }
-        
-        // Vertical position - rows from top to bottom
-        const y = startY + (rowIndex * rowHeight);
-        
-        const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
-        const profit = wallet.volume * (currentPrice - wallet.avgPrice);
-        
-        traders.push({
-          id: `${wallet.address}-${i}`,
-          address: wallet.address,
-          side,
-          amount: wallet.volume,
-          size,
-          tier,
-          x: Math.max(2, Math.min(98, x)),
-          y: Math.max(10, Math.min(90, y)),
-          color: getColor(side, tier),
-          glowColor: getGlowColor(side, tier),
-          trades: wallet.trades,
-          avgPrice: wallet.avgPrice,
-          profit,
-          entryTime: wallet.firstEntry
+        tierWallets.forEach((wallet, i) => {
+          const size = Math.min(150, baseSize + Math.sqrt(wallet.volume) * 0.3);
+          
+          // Arrange in clean horizontal rows within tier zone
+          const walletsPerRow = tier === "whale" ? 3 : tier === "large" ? 4 : tier === "medium" ? 5 : 6;
+          const row = Math.floor(i / walletsPerRow);
+          const col = i % walletsPerRow;
+          const totalRows = Math.ceil(tierWallets.length / walletsPerRow);
+          
+          // Horizontal spread - centered on each side
+          const horizontalSpread = tier === "whale" ? 28 : tier === "large" ? 26 : tier === "medium" ? 24 : 22;
+          const xStep = horizontalSpread / Math.max(1, walletsPerRow - 1);
+          const xOffset = walletsPerRow > 1 ? (col * xStep - horizontalSpread / 2) : 0;
+          
+          let x: number;
+          if (side === 'yes') {
+            x = 25 - xOffset; // YES side center at 25%
+          } else {
+            x = 75 + xOffset; // NO side center at 75%
+          }
+          
+          // Vertical position within tier zone
+          const yStep = totalRows > 1 ? zone.height / (totalRows - 1) : 0;
+          const y = zone.start + (row * yStep);
+          
+          const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
+          const profit = wallet.volume * (currentPrice - wallet.avgPrice);
+          
+          traders.push({
+            id: `${wallet.address}-${processedIndex}`,
+            address: wallet.address,
+            side,
+            amount: wallet.volume,
+            size,
+            tier,
+            x: Math.max(3, Math.min(97, x)),
+            y: Math.max(8, Math.min(92, y)),
+            color: getColor(side, tier),
+            glowColor: getGlowColor(side, tier),
+            trades: wallet.trades,
+            avgPrice: wallet.avgPrice,
+            profit,
+            entryTime: wallet.firstEntry
+          });
+          
+          processedIndex++;
         });
       });
       
@@ -389,58 +418,99 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       </div>
 
       {/* Bubblemap */}
-      <div className="relative w-full h-[600px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
-        {/* Background gradient zones */}
-        <div className="absolute inset-0 bg-gradient-to-r from-bubble-yes-medium/5 via-background to-bubble-no-medium/5" />
+      <div className="relative w-full h-[700px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
+        {/* Background gradient zones with tier sections */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-r from-bubble-yes-large/8 via-background to-bubble-no-large/8" />
+          {/* Tier zone backgrounds */}
+          <div className="absolute left-0 right-0 top-[15%] h-[28%] bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+          <div className="absolute left-0 right-0 top-[45%] h-[20%] bg-gradient-to-b from-transparent via-accent/3 to-transparent" />
+        </div>
+        
+        {/* Tier labels */}
+        <div className="absolute left-2 top-[29%] z-10">
+          <div className="glass-strong rounded-lg px-3 py-1.5 text-xs font-bold">
+            🐋 WHALE<br/>$5k+
+          </div>
+        </div>
+        <div className="absolute left-2 top-[55%] z-10">
+          <div className="glass rounded-lg px-3 py-1.5 text-xs font-semibold">
+            LARGE<br/>$1k-5k
+          </div>
+        </div>
+        <div className="absolute left-2 top-[74%] z-10">
+          <div className="glass rounded-lg px-2.5 py-1 text-xs">
+            MED<br/>$100-1k
+          </div>
+        </div>
+        <div className="absolute left-2 top-[89%] z-10">
+          <div className="glass rounded-lg px-2.5 py-1 text-xs opacity-75">
+            SMALL<br/>$0-100
+          </div>
+        </div>
         
         {/* Side labels */}
         <div className="absolute top-4 left-4 z-10">
-          <Badge className="bg-bubble-yes-medium/80 backdrop-blur-sm text-white border-none">
-            <TrendingUp className="w-3 h-3 mr-1" />
-            YES
+          <Badge className="bg-bubble-yes-large/90 backdrop-blur-sm text-white border-none shadow-lg px-4 py-2">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            <span className="text-sm font-bold">YES BETS</span>
           </Badge>
         </div>
         <div className="absolute top-4 right-4 z-10">
-          <Badge className="bg-bubble-no-medium/80 backdrop-blur-sm text-white border-none">
-            <TrendingDown className="w-3 h-3 mr-1" />
-            NO
+          <Badge className="bg-bubble-no-large/90 backdrop-blur-sm text-white border-none shadow-lg px-4 py-2">
+            <TrendingDown className="w-4 h-4 mr-2" />
+            <span className="text-sm font-bold">NO BETS</span>
           </Badge>
         </div>
 
-        {/* Center divider with glow */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border to-transparent transform -translate-x-1/2" 
-             style={{ boxShadow: '0 0 20px rgba(255, 255, 255, 0.1)' }} />
+        {/* Center divider with enhanced glow */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-transparent via-primary to-transparent transform -translate-x-1/2 shadow-[0_0_30px_rgba(16,185,129,0.3)]" />
 
         {/* Wallet bubbles */}
         <div className="absolute inset-0">
           {filteredWallets.map((wallet, index) => (
             <div
               key={wallet.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 cursor-pointer bubble-animate-in"
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-500 cursor-pointer bubble-animate-in group"
               style={{
                 left: `${wallet.x}%`,
                 top: `${wallet.y}%`,
                 width: `${wallet.size}px`,
                 height: `${wallet.size}px`,
-                animationDelay: `${index * 0.03}s`,
+                animationDelay: `${index * 0.025}s`,
               }}
               onMouseEnter={() => setHoveredWallet(wallet)}
               onMouseLeave={() => setHoveredWallet(null)}
               onClick={() => setSelectedWallet(wallet)}
             >
               <div
-                className={`w-full h-full rounded-full bg-gradient-to-br ${wallet.color} transition-all duration-300 ${
-                  hoveredWallet?.id === wallet.id ? 'scale-125' : 'scale-100'
+                className={`w-full h-full rounded-full bg-gradient-to-br ${wallet.color} transition-all duration-500 ${
+                  hoveredWallet?.id === wallet.id ? 'scale-110' : 'scale-100'
                 } ${wallet.tier === 'whale' || wallet.tier === 'large' ? 'animate-pulse-glow' : ''}`}
                 style={{
                   boxShadow: hoveredWallet?.id === wallet.id
                     ? wallet.glowColor
                     : wallet.tier === 'whale' || wallet.tier === 'large'
                     ? wallet.glowColor
-                    : '0 0 10px rgba(0, 0, 0, 0.3)',
-                  border: wallet.tier === 'whale' ? '3px solid rgba(255, 255, 255, 0.3)' : wallet.tier === 'large' ? '2px solid rgba(255, 255, 255, 0.2)' : 'none',
+                    : '0 4px 20px rgba(0, 0, 0, 0.4)',
+                  border: wallet.tier === 'whale' 
+                    ? '4px solid rgba(255, 255, 255, 0.4)' 
+                    : wallet.tier === 'large' 
+                    ? '3px solid rgba(255, 255, 255, 0.3)' 
+                    : wallet.tier === 'medium'
+                    ? '2px solid rgba(255, 255, 255, 0.2)'
+                    : '1px solid rgba(255, 255, 255, 0.1)',
                 }}
-              />
+              >
+                {/* Size indicator for large bets */}
+                {(wallet.tier === 'whale' || wallet.tier === 'large') && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white font-bold text-xs drop-shadow-lg">
+                      ${(wallet.amount / 1000).toFixed(1)}k
+                    </span>
+                  </div>
+                )}
+              </div>
               
               {/* Hover tooltip */}
               {hoveredWallet?.id === wallet.id && (
