@@ -311,7 +311,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     };
 
     return separateBubbles(initialBubbles);
-  }, [realWallets, market.yes_price, market.no_price]);
+  }, [realWallets, market]);
 
   const filteredWallets = useMemo(() => {
     return wallets.filter(wallet => {
