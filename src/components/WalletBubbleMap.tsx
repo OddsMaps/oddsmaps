@@ -200,12 +200,12 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         small: wallets.filter(w => getTier(w.volume) === 'small'),
       };
       
-      // Vertical zones for each tier (top to bottom)
+      // Vertical zones for each tier - more space for larger tiers
       const tierZones = {
-        whale: { start: 15, height: 28 },   // Bottom zone - most space
-        large: { start: 45, height: 20 },   // Middle-bottom
-        medium: { start: 67, height: 15 },  // Middle-top
-        small: { start: 84, height: 10 },   // Top zone - least space
+        whale: { start: 12, height: 30 },   // Bottom zone - most space
+        large: { start: 44, height: 22 },   // Middle-bottom
+        medium: { start: 68, height: 16 },  // Middle-top
+        small: { start: 86, height: 10 },   // Top zone - least space
       };
       
       let processedIndex = 0;
@@ -216,21 +216,30 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         if (tierWallets.length === 0) return;
         
         const zone = tierZones[tier];
-        const baseSize = tier === "whale" ? 130 : tier === "large" ? 95 : tier === "medium" ? 70 : 50;
+        // Reduced bubble sizes for no overlap
+        const baseSize = tier === "whale" ? 80 : tier === "large" ? 60 : tier === "medium" ? 45 : 32;
+        
+        // Calculate grid layout
+        const walletsPerRow = tier === "whale" ? 4 : tier === "large" ? 5 : tier === "medium" ? 6 : 8;
+        const totalRows = Math.ceil(tierWallets.length / walletsPerRow);
         
         tierWallets.forEach((wallet, i) => {
-          const size = Math.min(150, baseSize + Math.sqrt(wallet.volume) * 0.3);
+          const size = tier === "whale" 
+            ? Math.min(90, baseSize + Math.sqrt(wallet.volume) * 0.15)
+            : tier === "large"
+            ? Math.min(70, baseSize + Math.sqrt(wallet.volume) * 0.1)
+            : tier === "medium"
+            ? Math.min(52, baseSize + Math.sqrt(wallet.volume) * 0.08)
+            : Math.min(38, baseSize);
           
-          // Arrange in clean horizontal rows within tier zone
-          const walletsPerRow = tier === "whale" ? 3 : tier === "large" ? 4 : tier === "medium" ? 5 : 6;
           const row = Math.floor(i / walletsPerRow);
           const col = i % walletsPerRow;
-          const totalRows = Math.ceil(tierWallets.length / walletsPerRow);
           
-          // Horizontal spread - centered on each side
-          const horizontalSpread = tier === "whale" ? 28 : tier === "large" ? 26 : tier === "medium" ? 24 : 22;
-          const xStep = horizontalSpread / Math.max(1, walletsPerRow - 1);
-          const xOffset = walletsPerRow > 1 ? (col * xStep - horizontalSpread / 2) : 0;
+          // Horizontal positioning with proper spacing
+          const horizontalSpread = tier === "whale" ? 24 : tier === "large" ? 22 : tier === "medium" ? 20 : 18;
+          const colCount = Math.min(walletsPerRow, tierWallets.length - row * walletsPerRow);
+          const xStep = horizontalSpread / Math.max(1, colCount + 1);
+          const xOffset = (col + 1) * xStep - horizontalSpread / 2;
           
           let x: number;
           if (side === 'yes') {
@@ -239,9 +248,9 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             x = 75 + xOffset; // NO side center at 75%
           }
           
-          // Vertical position within tier zone
-          const yStep = totalRows > 1 ? zone.height / (totalRows - 1) : 0;
-          const y = zone.start + (row * yStep);
+          // Vertical position with even spacing
+          const yStep = totalRows > 1 ? zone.height / (totalRows + 1) : zone.height / 2;
+          const y = zone.start + (row + 1) * yStep;
           
           const currentPrice = side === 'yes' ? market.yes_price : market.no_price;
           const profit = wallet.volume * (currentPrice - wallet.avgPrice);
@@ -253,8 +262,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             amount: wallet.volume,
             size,
             tier,
-            x: Math.max(3, Math.min(97, x)),
-            y: Math.max(8, Math.min(92, y)),
+            x: Math.max(4, Math.min(96, x)),
+            y: Math.max(5, Math.min(95, y)),
             color: getColor(side, tier),
             glowColor: getGlowColor(side, tier),
             trades: wallet.trades,
@@ -505,7 +514,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 {/* Size indicator for large bets */}
                 {(wallet.tier === 'whale' || wallet.tier === 'large') && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold text-xs drop-shadow-lg">
+                    <span className="text-white font-bold drop-shadow-lg" style={{ fontSize: wallet.tier === 'whale' ? '11px' : '9px' }}>
                       ${(wallet.amount / 1000).toFixed(1)}k
                     </span>
                   </div>
