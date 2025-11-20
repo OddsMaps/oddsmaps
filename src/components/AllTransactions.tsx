@@ -150,9 +150,11 @@ export const AllTransactions = () => {
               {/* Mobile: Amount and Time in Row */}
               <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 sm:shrink-0">
                 <div className="text-left sm:text-right">
-                  <p className="font-bold text-sm sm:text-base">${tx.amount.toLocaleString()}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    @ ${tx.price.toFixed(2)}
+                  <p className="font-bold text-base sm:text-lg gradient-text-premium">
+                    ${tx.amount.toLocaleString()}
+                  </p>
+                  <p className={`text-sm sm:text-base font-bold ${getSideColor(tx.side).split(' ')[0]}`}>
+                    {tx.side.toUpperCase()} @ {(tx.price * 100).toFixed(1)}¢
                   </p>
                 </div>
                 <div className="text-right text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
