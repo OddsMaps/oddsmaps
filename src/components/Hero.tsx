@@ -31,30 +31,30 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6 animate-fade-in">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-8 animate-fade-in">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
           <span className="gradient-text">Visual Intelligence</span>
           <br />
           <span className="text-foreground">for Prediction Markets</span>
         </h1>
         
-        <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-4">
+        <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2">
           Turn odds and transactions into intuitive visual maps — spot liquidity flows and market momentum in real time.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-6 px-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 px-4">
           <Button 
             size="lg" 
-            className="glass-strong glow-gradient hover:scale-105 transition-all duration-300 group w-full sm:w-auto px-6 py-6 sm:py-4 text-base touch-manipulation"
+            className="glass-strong glow-gradient hover:scale-105 active:scale-95 transition-all duration-300 group w-full sm:w-auto px-8 py-7 text-lg font-semibold touch-manipulation min-h-[56px]"
             onClick={() => navigate('/markets')}
           >
             Explore Live Maps
-            <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
           <Button 
             size="lg" 
             variant="outline"
-            className="glass border-2 hover:glass-strong hover:scale-105 transition-all duration-300 group w-full sm:w-auto px-6 py-6 sm:py-4 text-base touch-manipulation"
+            className="glass border-2 hover:glass-strong hover:scale-105 active:scale-95 transition-all duration-300 group w-full sm:w-auto px-8 py-7 text-lg font-semibold touch-manipulation min-h-[56px]"
             onClick={() => {
               navigate('/markets');
               setTimeout(() => {
@@ -62,7 +62,7 @@ const Hero = () => {
               }, 100);
             }}
           >
-            <TrendingUp className="mr-2" />
+            <TrendingUp className="mr-2 w-5 h-5" />
             View Trending Bets
           </Button>
         </div>

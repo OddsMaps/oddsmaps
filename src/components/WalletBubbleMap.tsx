@@ -337,12 +337,12 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Live Wallet Distribution</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold gradient-text">Live Wallet Distribution</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Showing {filteredWallets.length} of {stats.totalWallets} wallets ({stats.yesWallets} YES, {stats.noWallets} NO)
           </p>
         </div>
@@ -422,31 +422,31 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 rounded-lg bg-gradient-to-br from-bubble-yes-medium/20 to-bubble-yes-large/10 border border-bubble-yes-medium/30">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-bubble-yes-medium/20 to-bubble-yes-large/10 border border-bubble-yes-medium/30">
           <div className="text-xs text-muted-foreground mb-1">YES Volume</div>
-          <div className="text-lg font-bold text-foreground">${stats.yesVolume.toLocaleString()}</div>
+          <div className="text-base sm:text-lg font-bold text-foreground">${stats.yesVolume.toLocaleString()}</div>
         </div>
-        <div className="p-3 rounded-lg bg-gradient-to-br from-bubble-no-medium/20 to-bubble-no-large/10 border border-bubble-no-medium/30">
+        <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-bubble-no-medium/20 to-bubble-no-large/10 border border-bubble-no-medium/30">
           <div className="text-xs text-muted-foreground mb-1">NO Volume</div>
-          <div className="text-lg font-bold text-foreground">${stats.noVolume.toLocaleString()}</div>
+          <div className="text-base sm:text-lg font-bold text-foreground">${stats.noVolume.toLocaleString()}</div>
         </div>
-        <div className="p-3 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30">
+        <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30">
           <div className="text-xs text-muted-foreground mb-1">YES P&L</div>
-          <div className={`text-lg font-bold ${stats.yesPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
+          <div className={`text-base sm:text-lg font-bold ${stats.yesPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
             {stats.yesPnL >= 0 ? '+' : ''}${stats.yesPnL.toLocaleString()}
           </div>
         </div>
-        <div className="p-3 rounded-lg bg-gradient-to-br from-secondary/10 to-destructive/10 border border-secondary/30">
+        <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-secondary/10 to-destructive/10 border border-secondary/30">
           <div className="text-xs text-muted-foreground mb-1">NO P&L</div>
-          <div className={`text-lg font-bold ${stats.noPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
+          <div className="text-base sm:text-lg font-bold ${stats.noPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
             {stats.noPnL >= 0 ? '+' : ''}${stats.noPnL.toLocaleString()}
           </div>
         </div>
       </div>
 
       {/* Bubblemap */}
-      <div className="relative w-full h-[700px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] rounded-xl overflow-hidden border border-border/30 bg-gradient-to-br from-background via-background to-muted/20">
         {/* Background gradient zones with tier sections */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-r from-bubble-yes-large/8 via-background to-bubble-no-large/8" />

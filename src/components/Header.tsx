@@ -106,14 +106,25 @@ const Header = () => {
               </kbd>
             </button>
 
-            {/* Mobile Menu */}
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
+            {/* Mobile Search & Menu */}
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className={`p-3 rounded-lg transition-all duration-300 touch-manipulation active:scale-95 ${
+                  isScrolled ? 'bg-muted/50 hover:bg-muted' : 'bg-background/20 hover:bg-background/40'
+                }`}
+                aria-label="Search markets"
+              >
+                <Search className="w-6 h-6" />
+              </button>
+              
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="flex-shrink-0">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px] p-6">
                 <nav className="flex flex-col gap-6 mt-8">
                   {/* Search in mobile menu */}
                   <button
