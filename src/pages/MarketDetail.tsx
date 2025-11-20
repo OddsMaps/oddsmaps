@@ -15,25 +15,25 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
     <Button
       variant="ghost"
       onClick={onBack}
-      className="mb-6 glass hover:glass-strong"
+      className="mb-4 sm:mb-6 glass hover:glass-strong touch-manipulation"
     >
       <ArrowLeft className="w-4 h-4 mr-2" />
       Back to Markets
     </Button>
 
-    <div className="glass-strong rounded-2xl p-8 mb-8 animate-fade-in border border-border/50">
-      <div className="flex items-start justify-between gap-6 mb-6">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="px-4 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-sm font-bold uppercase tracking-wide">
+    <div className="glass-strong rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 animate-fade-in border border-border/50">
+      <div className="flex flex-col lg:flex-row items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <div className="flex-1 w-full">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <span className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-xs sm:text-sm font-bold uppercase tracking-wide">
               {market.source}
             </span>
             {market.category && (
-              <span className="px-3 py-1 glass rounded-lg text-sm">
+              <span className="px-2 sm:px-3 py-1 glass rounded-lg text-xs sm:text-sm">
                 {market.category}
               </span>
             )}
-            <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+            <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-semibold ${
               market.status === 'active' 
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                 : 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -42,50 +42,50 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
             </span>
           </div>
           
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 break-words">
             {market.title}
           </h1>
           
           {market.description && (
-            <p className="text-lg text-muted-foreground">
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground break-words">
               {market.description}
             </p>
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-4">
-          <div className={`flex items-center gap-2 text-5xl font-bold ${
+        <div className="flex lg:flex-col items-center lg:items-end gap-3 sm:gap-4 w-full lg:w-auto justify-center lg:justify-start">
+          <div className={`flex items-center gap-2 text-3xl sm:text-4xl lg:text-5xl font-bold ${
             isPositive ? "text-green-400" : "text-red-400"
           }`}>
             {isPositive ? (
-              <TrendingUp className="w-10 h-10" />
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
             ) : (
-              <TrendingDown className="w-10 h-10" />
+              <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
             )}
             <span>{(market.yes_price * 100).toFixed(1)}¢</span>
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs sm:text-sm text-muted-foreground">
             Yes price
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-6 border-t border-border/50">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 pt-4 sm:pt-6 border-t border-border/50">
         <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">24h Volume</div>
-          <div className="text-2xl font-bold gradient-text">
+          <div className="text-xs sm:text-sm text-muted-foreground">24h Volume</div>
+          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
             ${(market.volume_24h / 1000).toFixed(1)}K
           </div>
         </div>
         <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">Liquidity</div>
-          <div className="text-2xl font-bold gradient-text">
+          <div className="text-xs sm:text-sm text-muted-foreground">Liquidity</div>
+          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
             ${(market.liquidity / 1000).toFixed(1)}K
           </div>
         </div>
         <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">Volatility</div>
-          <div className="text-2xl font-bold gradient-text">
+          <div className="text-xs sm:text-sm text-muted-foreground">Volatility</div>
+          <div className="text-base sm:text-xl md:text-2xl font-bold gradient-text break-words">
             {market.volatility.toFixed(1)}%
           </div>
         </div>

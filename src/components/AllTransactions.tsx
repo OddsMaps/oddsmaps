@@ -112,12 +112,12 @@ export const AllTransactions = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Whale Activity 🐋</h2>
-          <p className="text-muted-foreground">Real-time bets over $10,000 on Polymarket</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Whale Activity 🐋</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">Real-time bets over $10,000 on Polymarket</p>
         </div>
-        <Badge variant="outline" className="gap-2">
+        <Badge variant="outline" className="gap-2 self-start sm:self-auto">
           <Activity className="h-3 w-3 animate-pulse text-green-500" />
           {transactions.length} Whales
         </Badge>
@@ -127,32 +127,37 @@ export const AllTransactions = () => {
         {displayedTransactions.map((tx) => (
           <Card
             key={tx.id}
-            className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+            className="p-3 sm:p-4 hover:bg-accent/50 transition-colors cursor-pointer touch-manipulation active:scale-[0.98]"
             onClick={() => navigate(`/wallet/${tx.wallet_address}`)}
           >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Badge className={`${getSideColor(tx.side)} border`}>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              {/* Mobile: Badge and Market Info Stacked */}
+              <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                <Badge className={`${getSideColor(tx.side)} border shrink-0 text-xs`}>
                   <span className="flex items-center gap-1">
                     {getSideIcon(tx.side)}
-                    {tx.side.toUpperCase()}
+                    <span className="hidden xs:inline">{tx.side.toUpperCase()}</span>
                   </span>
                 </Badge>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{tx.market?.title}</p>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="font-medium text-sm sm:text-base line-clamp-2 sm:truncate break-words">{tx.market?.title}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold">${tx.amount.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">
-                  @ ${tx.price.toFixed(2)}
-                </p>
-              </div>
-              <div className="text-right text-sm text-muted-foreground whitespace-nowrap">
-                {formatTime(tx.timestamp)}
+              
+              {/* Mobile: Amount and Time in Row */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 sm:shrink-0">
+                <div className="text-left sm:text-right">
+                  <p className="font-bold text-sm sm:text-base">${tx.amount.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    @ ${tx.price.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                  {formatTime(tx.timestamp)}
+                </div>
               </div>
             </div>
           </Card>
