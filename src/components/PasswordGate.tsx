@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import logo from "@/assets/oddsmap-logo-new.png";
 
-const CORRECT_PASSWORD = "Dyaski99";
+const CORRECT_PASSWORD = "Dylaski99";
 const STORAGE_KEY = "site_authenticated";
 
 interface PasswordGateProps {
