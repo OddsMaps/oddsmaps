@@ -29,7 +29,11 @@ interface WalletDetails {
   market_id: string;
 }
 
-export const LiveWalletDistribution = () => {
+interface LiveWalletDistributionProps {
+  marketId: string;
+}
+
+export const LiveWalletDistribution = ({ marketId }: LiveWalletDistributionProps) => {
   const [bubbles, setBubbles] = useState<WalletBubble[]>([]);
   const [hoveredBubble, setHoveredBubble] = useState<string | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<WalletDetails | null>(null);
@@ -50,7 +54,7 @@ export const LiveWalletDistribution = () => {
           price,
           markets!inner(title, market_id)
         `)
-        .eq('markets.source', 'polymarket')
+        .eq('market_id', marketId)
         .gte('amount', 1000)
         .order('timestamp', { ascending: false })
         .limit(200);
@@ -93,13 +97,14 @@ export const LiveWalletDistribution = () => {
 
     // Subscribe to real-time updates
     const channel = supabase
-      .channel('wallet-updates')
+      .channel(`wallet-updates-${marketId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'wallet_transactions',
+          filter: `market_id=eq.${marketId}`
         },
         () => {
           fetchWallets();
@@ -110,7 +115,7 @@ export const LiveWalletDistribution = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [marketId]);
 
   // Physics animation
   useEffect(() => {
