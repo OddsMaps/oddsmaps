@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '@/lib/utils';
 
 interface Transaction {
   id: string;
@@ -94,10 +95,10 @@ export const AllTransactions = () => {
         }
       }));
       
-      console.log('Fetched whale transactions:', transformedData.length);
+      logger.log('Fetched whale transactions:', transformedData.length);
       setTransactions(transformedData);
     } catch (error) {
-      console.error('Error fetching transactions:', error);
+      logger.error('Error fetching transactions:', error);
     } finally {
       setLoading(false);
     }

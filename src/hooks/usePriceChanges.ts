@@ -64,9 +64,14 @@ export const usePriceChanges = (markets: Market[] | undefined) => {
       setActiveMarkets(newActiveMarkets);
 
       // Clear active markets after animation duration
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setActiveMarkets(new Set());
       }, 3000);
+
+      // Cleanup timeout on unmount or when markets change
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
   }, [markets]);
 
