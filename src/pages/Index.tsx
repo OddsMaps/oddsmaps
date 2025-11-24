@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import SearchBar from "@/components/SearchBar";
 import AnalyticsLive from "@/components/AnalyticsLive";
 import { AllTransactions } from "@/components/AllTransactions";
+import { LiveWalletDistribution } from "@/components/LiveWalletDistribution";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
 import Footer from "@/components/Footer";
@@ -24,6 +25,9 @@ const Index = () => {
       </div>
       <div id="whale-activity" className="container mx-auto px-4 py-16">
         <AllTransactions />
+      </div>
+      <div id="wallet-distribution">
+        <LiveWalletDistribution />
       </div>
       <div id="how-it-works">
         <HowItWorks />
