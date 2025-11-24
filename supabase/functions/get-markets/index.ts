@@ -5,15 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to batch array into chunks
-const batchArray = <T,>(array: T[], batchSize: number): T[][] => {
-  const batches: T[][] = [];
-  for (let i = 0; i < array.length; i += batchSize) {
-    batches.push(array.slice(i, i + batchSize));
-  }
-  return batches;
-};
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,19 +19,16 @@ Deno.serve(async (req) => {
     );
 
     // Parse request body
-    const { source, category, limit = 100 } = await req.json().catch(() => ({}));
+    const { source, category, limit = 200 } = await req.json().catch(() => ({}));
     console.log('Request params:', { source, category, limit });
 
-    // Reduced default limit to 100 for better performance
-    const finalLimit = Math.min(limit, 100);
-
-    // Build query - fetch markets
+    // Build query - fetch markets and their latest data separately for better performance
     let marketsQuery = supabaseClient
       .from('markets')
       .select('*')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(finalLimit);
+      .limit(limit);
 
     // Add filters
     if (source) {
@@ -57,69 +45,44 @@ Deno.serve(async (req) => {
       throw marketsError;
     }
 
-    if (!markets || markets.length === 0) {
-      console.log('No markets found');
-      return new Response(
-        JSON.stringify({ markets: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const marketIds = markets.map((m: any) => m.id);
+    // Fetch latest market data for each market
+    const marketIds = markets?.map(m => m.id) || [];
     
     let marketDataList: any[] = [];
-    let tradesCountMap = new Map();
+    let recentTrades: any[] = [];
 
-    // Process market IDs in smaller batches to avoid connection issues
-    const BATCH_SIZE = 25;
-    const marketIdBatches = batchArray(marketIds, BATCH_SIZE);
+    // Only fetch data if we have market IDs
+    if (marketIds.length > 0) {
+      const { data: dataList, error: dataError } = await supabaseClient
+        .from('market_data')
+        .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
+        .in('market_id', marketIds)
+        .order('timestamp', { ascending: false });
 
-    // Fetch market data in batches
-    for (const batch of marketIdBatches) {
-      try {
-        const { data: dataList, error: dataError } = await supabaseClient
-          .from('market_data')
-          .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
-          .in('market_id', batch)
-          .order('timestamp', { ascending: false });
-
-        if (dataError) {
-          console.error('Error fetching market data batch:', dataError);
-          // Continue with other batches even if one fails
-          continue;
-        }
-
-        if (dataList) {
-          marketDataList.push(...dataList);
-        }
-      } catch (error) {
-        console.error('Error processing market data batch:', error);
-        // Continue with other batches
+      if (dataError) {
+        console.error('Error fetching market data:', dataError);
+        throw dataError;
       }
-    }
 
-    // Fetch trade counts in batches (optional - skip if causing issues)
-    try {
+      marketDataList = dataList || [];
+
+      // Calculate actual trades_24h from wallet_transactions for each market
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      
-      for (const batch of marketIdBatches) {
-        const { data: trades } = await supabaseClient
-          .from('wallet_transactions')
-          .select('market_id')
-          .in('market_id', batch)
-          .gte('timestamp', twentyFourHoursAgo);
+      const { data: trades } = await supabaseClient
+        .from('wallet_transactions')
+        .select('market_id')
+        .in('market_id', marketIds)
+        .gte('timestamp', twentyFourHoursAgo);
 
-        if (trades) {
-          trades.forEach((trade: any) => {
-            const count = tradesCountMap.get(trade.market_id) || 0;
-            tradesCountMap.set(trade.market_id, count + 1);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching trade counts (non-critical):', error);
-      // Trade counts are optional, continue without them
+      recentTrades = trades || [];
     }
+
+    // Count trades per market
+    const tradesCountMap = new Map();
+    recentTrades.forEach(trade => {
+      const count = tradesCountMap.get(trade.market_id) || 0;
+      tradesCountMap.set(trade.market_id, count + 1);
+    });
 
     // Create a map of latest market data by market_id
     const latestDataMap = new Map();
@@ -129,8 +92,8 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Combine markets with their latest data
-    const enhancedMarkets = markets.map((market: any) => {
+    // Combine markets with their latest data and real trade counts
+    const enhancedMarkets = markets?.map(market => {
       const latestData = latestDataMap.get(market.id);
       const actualTrades24h = tradesCountMap.get(market.id) || 0;
       return {
@@ -151,7 +114,7 @@ Deno.serve(async (req) => {
         volatility: latestData?.volatility || 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
-    });
+    }) || [];
 
     console.log(`Returning ${enhancedMarkets.length} markets`);
 
@@ -163,7 +126,7 @@ Deno.serve(async (req) => {
     console.error('Error in get-markets function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage, details: error instanceof Error ? error.stack : '' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
