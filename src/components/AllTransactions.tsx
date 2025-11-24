@@ -72,7 +72,7 @@ export const AllTransactions = () => {
         .eq('markets.source', 'polymarket')
         .gte('amount', 10000)
         .order('timestamp', { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (error) {
         console.error('Supabase error:', error);
