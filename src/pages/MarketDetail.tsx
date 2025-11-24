@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
 import TransactionTimeline from "@/components/TransactionTimeline";
+import { LiveWalletDistribution } from "@/components/LiveWalletDistribution";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -298,6 +299,8 @@ const MarketDetail = () => {
             change={change}
             onBack={() => navigate("/")}
           />
+
+          <LiveWalletDistribution marketId={market.id} />
 
           <div className="space-y-8 mb-8">
             <WalletBubbleMap market={market} />
