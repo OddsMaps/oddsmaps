@@ -9,7 +9,6 @@ import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
-import { LiveWalletDistribution } from "@/components/LiveWalletDistribution";
 
 interface BetDetails {
   id: string;
@@ -285,11 +284,6 @@ const BetDetail = () => {
               </CardHeader>
             </Card>
           </div>
-
-          {/* Live Wallet Distribution */}
-          {bet.market.id && (
-            <LiveWalletDistribution marketId={bet.market.id} />
-          )}
 
           {/* Wallet Bubble Map */}
           {currentMarket && (
