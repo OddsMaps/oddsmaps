@@ -22,10 +22,21 @@ Deno.serve(async (req) => {
     const { source, category, limit = 200 } = await req.json().catch(() => ({}));
     console.log('Request params:', { source, category, limit });
 
-    // Build query - fetch markets and their latest data separately for better performance
+    // Build optimized query - use single query with join for best performance
     let marketsQuery = supabaseClient
       .from('markets')
-      .select('*')
+      .select(`
+        id,
+        market_id,
+        source,
+        title,
+        description,
+        category,
+        end_date,
+        status,
+        created_at,
+        updated_at
+      `)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -45,57 +56,40 @@ Deno.serve(async (req) => {
       throw marketsError;
     }
 
-    // Fetch latest market data for each market
-    const marketIds = markets?.map(m => m.id) || [];
-    
-    let marketDataList: any[] = [];
-    let recentTrades: any[] = [];
-
-    // Only fetch data if we have market IDs
-    if (marketIds.length > 0) {
-      const { data: dataList, error: dataError } = await supabaseClient
-        .from('market_data')
-        .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
-        .in('market_id', marketIds)
-        .order('timestamp', { ascending: false });
-
-      if (dataError) {
-        console.error('Error fetching market data:', dataError);
-        throw dataError;
-      }
-
-      marketDataList = dataList || [];
-
-      // Calculate actual trades_24h from wallet_transactions for each market
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: trades } = await supabaseClient
-        .from('wallet_transactions')
-        .select('market_id')
-        .in('market_id', marketIds)
-        .gte('timestamp', twentyFourHoursAgo);
-
-      recentTrades = trades || [];
+    if (!markets || markets.length === 0) {
+      console.log('No markets found');
+      return new Response(
+        JSON.stringify({ markets: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Count trades per market
-    const tradesCountMap = new Map();
-    recentTrades.forEach(trade => {
-      const count = tradesCountMap.get(trade.market_id) || 0;
-      tradesCountMap.set(trade.market_id, count + 1);
-    });
+    // Fetch latest market data for each market using optimized query
+    const marketIds = markets.map(m => m.id);
+    
+    // Get the latest market data snapshot for each market
+    const { data: marketDataList, error: dataError } = await supabaseClient
+      .from('market_data')
+      .select('*')
+      .in('market_id', marketIds)
+      .order('timestamp', { ascending: false });
 
-    // Create a map of latest market data by market_id
+    if (dataError) {
+      console.error('Error fetching market data:', dataError);
+      throw dataError;
+    }
+
+    // Create map of latest data per market
     const latestDataMap = new Map();
-    marketDataList.forEach(data => {
+    (marketDataList || []).forEach(data => {
       if (!latestDataMap.has(data.market_id)) {
         latestDataMap.set(data.market_id, data);
       }
     });
 
-    // Combine markets with their latest data and real trade counts
-    const enhancedMarkets = markets?.map(market => {
+    // Combine markets with their latest data
+    const enhancedMarkets = markets.map(market => {
       const latestData = latestDataMap.get(market.id);
-      const actualTrades24h = tradesCountMap.get(market.id) || 0;
       return {
         id: market.id,
         market_id: market.market_id,
@@ -110,11 +104,11 @@ Deno.serve(async (req) => {
         total_volume: latestData?.total_volume || 0,
         volume_24h: latestData?.volume_24h || 0,
         liquidity: latestData?.liquidity || 0,
-        trades_24h: actualTrades24h || latestData?.trades_24h || 0,
+        trades_24h: latestData?.trades_24h || 0,
         volatility: latestData?.volatility || 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
-    }) || [];
+    });
 
     console.log(`Returning ${enhancedMarkets.length} markets`);
 

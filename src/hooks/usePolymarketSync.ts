@@ -9,24 +9,13 @@ export const usePolymarketSync = () => {
     try {
       console.log('Syncing Polymarket data...');
       
-      // Sync markets and transactions in parallel for better performance
-      const [marketsResult, transactionsResult] = await Promise.allSettled([
-        supabase.functions.invoke('fetch-polymarket-markets'),
-        supabase.functions.invoke('fetch-polymarket-transactions')
-      ]);
+      // Only sync transactions, markets are handled by realtime
+      const result = await supabase.functions.invoke('fetch-polymarket-transactions');
 
-      if (marketsResult.status === 'fulfilled' && !marketsResult.value.error) {
-        console.log('Markets synced:', marketsResult.value.data);
-        // Invalidate markets cache to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['markets'] });
+      if (result.error) {
+        console.error('Transactions sync failed:', result.error);
       } else {
-        console.error('Markets sync failed:', marketsResult);
-      }
-
-      if (transactionsResult.status === 'fulfilled' && !transactionsResult.value.error) {
-        console.log('Transactions synced:', transactionsResult.value.data);
-      } else {
-        console.error('Transactions sync failed:', transactionsResult);
+        console.log('Transactions synced:', result.data);
       }
     } catch (error) {
       console.error('Failed to sync Polymarket data:', error);
@@ -37,8 +26,8 @@ export const usePolymarketSync = () => {
     // Initial sync on mount
     syncPolymarketData();
 
-    // Sync every 30 seconds for real-time data
-    const interval = setInterval(syncPolymarketData, 30 * 1000);
+    // Sync every 60 seconds (reduced from 30s for better performance)
+    const interval = setInterval(syncPolymarketData, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [syncPolymarketData]);
