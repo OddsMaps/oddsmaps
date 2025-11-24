@@ -1,15 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useMarkets } from "@/hooks/useMarkets";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMarket } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import { LiveWalletDistribution } from "@/components/LiveWalletDistribution";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/utils";
 
 const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
   <>
@@ -110,13 +113,31 @@ interface WhaleTransaction {
 }
 
 const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
-  const [transactions, setTransactions] = useState<WhaleTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
+  // Use React Query for caching whale transactions
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ["whale-transactions", marketId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('market_id', marketId)
+        .gte('amount', 10000)
+        .order('timestamp', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return (data || []) as WhaleTransaction[];
+    },
+    staleTime: 15 * 1000, // Cache for 15 seconds
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
+    refetchInterval: 20 * 1000, // Refetch every 20 seconds
+  });
+
+  // Set up realtime subscription for live updates
   useEffect(() => {
-    fetchTransactions();
-
     const channel = supabase
       .channel(`whale-transactions-${marketId}`)
       .on(
@@ -128,7 +149,8 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
           filter: `market_id=eq.${marketId}`
         },
         () => {
-          fetchTransactions();
+          // Invalidate cache to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ["whale-transactions", marketId] });
         }
       )
       .subscribe();
@@ -136,28 +158,10 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [marketId]);
+  }, [marketId, queryClient]);
 
-  const fetchTransactions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('wallet_transactions')
-        .select('*')
-        .eq('market_id', marketId)
-        .gte('amount', 10000)
-        .order('timestamp', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setTransactions(data || []);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatTime = (timestamp: string) => {
+  // Memoize formatTime function
+  const formatTime = useCallback((timestamp: string) => {
     const now = new Date().getTime();
     const txTime = new Date(timestamp).getTime();
     const diff = Math.floor((now - txTime) / 1000);
@@ -166,7 +170,7 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
-  };
+  }, []);
 
   const getSideIcon = (side: string) => {
     return side === 'yes' ? (
@@ -182,7 +186,20 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
       : 'text-red-500 bg-red-500/10 border-red-500/20';
   };
 
-  if (loading || transactions.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="space-y-4 mb-8">
+        <Skeleton className="h-12 w-64" />
+        <div className="grid gap-3">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (transactions.length === 0) {
     return null;
   }
 
@@ -242,11 +259,11 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
 const MarketDetail = () => {
   const { marketId } = useParams();
   const navigate = useNavigate();
-  const { data: markets } = useMarkets('polymarket');
   
-  const market = markets?.find(m => m.market_id === marketId);
+  // Use optimized hook to fetch single market (checks cache first)
+  const { data: market, isLoading: marketLoading } = useMarket(marketId);
 
-  // Auto-sync this market's transactions every 2 minutes
+  // Auto-sync this market's transactions every 2 minutes (less frequent for better performance)
   useEffect(() => {
     if (!market) return;
 
@@ -256,18 +273,46 @@ const MarketDetail = () => {
           body: { marketId: market.market_id }
         });
       } catch (error) {
-        console.error('Auto-sync error:', error);
+        logger.error('Auto-sync error:', error);
       }
     };
 
     // Initial sync
     syncMarket();
 
-    // Sync every 2 minutes
-    const interval = setInterval(syncMarket, 2 * 60 * 1000);
+    // Sync every 5 minutes (reduced from 2 minutes for better performance)
+    const interval = setInterval(syncMarket, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [market]);
+
+  // Memoize calculations
+  const change = useMemo(() => {
+    if (!market) return "0.0";
+    return ((market.yes_price - 0.5) * 100).toFixed(1);
+  }, [market]);
+
+  const isPositive = useMemo(() => {
+    return parseFloat(change) > 0;
+  }, [change]);
+
+  if (marketLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="pt-24 pb-16 px-6">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <Skeleton className="h-10 w-24" />
+            <div className="space-y-6">
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-64 w-full rounded-2xl" />
+              <Skeleton className="h-96 w-full rounded-2xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!market) {
     return (
@@ -283,9 +328,6 @@ const MarketDetail = () => {
       </div>
     );
   }
-
-  const change = ((market.yes_price - 0.5) * 100).toFixed(1);
-  const isPositive = parseFloat(change) > 0;
 
   return (
     <div className="min-h-screen bg-background">

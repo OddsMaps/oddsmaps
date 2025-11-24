@@ -13,6 +13,17 @@ const MarketMapLive = memo(() => {
   const bubbles = useMemo(() => {
     if (!allMarkets) return [];
     
+    // Deterministic hash function for consistent positioning
+    const hash = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return Math.abs(hash);
+    };
+    
     const markets = allMarkets.slice(0, 12).map((market, index) => {
       const size = Math.min(140, Math.max(60, Math.sqrt(market.liquidity) / 50));
       const isPositive = market.yes_price > 0.5;
@@ -24,6 +35,11 @@ const MarketMapLive = memo(() => {
         : 61 + (sideIndex % 3) * 12; // Right side: 61-85%
       const baseY = 20 + (index % 6) * 13;
       
+      // Use deterministic hash instead of Math.random() for consistent positioning
+      const marketHash = hash(market.id);
+      const offsetX = ((marketHash % 100) / 100) * 3 - 1.5; // -1.5 to 1.5
+      const offsetY = (((marketHash * 7) % 100) / 100) * 3 - 1.5; // Different offset for Y
+      
       const color = isPositive
         ? index % 2 === 0 ? "from-emerald-500 to-green-600" : "from-green-500 to-emerald-600"
         : index % 2 === 0 ? "from-rose-500 to-red-600" : "from-red-500 to-rose-600";
@@ -31,8 +47,8 @@ const MarketMapLive = memo(() => {
       return {
         ...market,
         size,
-        x: baseX + Math.random() * 3 - 1.5,
-        y: baseY + Math.random() * 3 - 1.5,
+        x: baseX + offsetX,
+        y: baseY + offsetY,
         color,
         change: ((market.yes_price - 0.5) * 100).toFixed(1),
         isPositive,
