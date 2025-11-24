@@ -1,24 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useMemo, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  DollarSign,
-  Target,
-  Award,
-  Calendar,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Activity, DollarSign, Target, Award, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
-import { logger } from "@/lib/utils";
 
 interface WalletProfile {
   wallet_address: string;
@@ -33,7 +20,7 @@ interface WalletProfile {
 
 interface Position {
   id: string;
-  side: "yes" | "no";
+  side: 'yes' | 'no';
   position_size: number;
   avg_entry_price: number;
   current_price: number;
@@ -70,101 +57,62 @@ const WalletProfile = () => {
   const { address } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<WalletProfile | null>(null);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [stats, setStats] = useState<any>(null);
 
-  // Use React Query for caching and better performance
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["wallet-profile", address],
-    queryFn: async () => {
-      if (!address) throw new Error("Wallet address is required");
-
-      const { data: responseData, error: responseError } = await supabase.functions.invoke<{
-        profile: WalletProfile;
-        positions: Position[];
-        transactions: Transaction[];
-        stats: any;
-      }>("get-wallet-profile", {
-        body: { walletAddress: address },
-      });
-
-      if (responseError) throw responseError;
-      return responseData;
-    },
-    enabled: !!address,
-    staleTime: 30 * 1000, // Cache for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    retry: 1,
-  });
-
-  const profile = data?.profile;
-  const positions = data?.positions || [];
-  const transactions = data?.transactions || [];
-  const stats = data?.stats;
-
-  // Show error toast only once when error occurs
   useEffect(() => {
-    if (error) {
-      logger.error("Error fetching wallet profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load wallet profile",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
+    if (!address) return;
 
-  // Memoize formatTimestamp function
-  const formatTimestamp = useCallback((timestamp: string) => {
+    const fetchWalletProfile = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase.functions.invoke('get-wallet-profile', {
+          body: { walletAddress: address }
+        });
+
+        if (error) throw error;
+
+        setProfile(data.profile);
+        setPositions(data.positions || []);
+        setTransactions(data.transactions || []);
+        setStats(data.stats);
+      } catch (error) {
+        console.error('Error fetching wallet profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load wallet profile",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWalletProfile();
+  }, [address, toast]);
+
+  const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
     if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  }, []);
+  };
 
-  // Memoize filtered positions
-  const activePositions = useMemo(
-    () => positions.filter((p) => p.status === "active"),
-    [positions]
-  );
-  const closedPositions = useMemo(
-    () => positions.filter((p) => p.status === "closed"),
-    [positions]
-  );
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="pt-24 pb-16 px-6">
-          <div className="max-w-7xl mx-auto space-y-8">
-            {/* Back Button Skeleton */}
-            <Skeleton className="h-10 w-24" />
-            
-            {/* Header Skeleton */}
-            <div className="glass-strong rounded-3xl p-8 space-y-6">
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex-1 space-y-4">
-                  <Skeleton className="h-12 w-64" />
-                  <Skeleton className="h-6 w-96" />
-                </div>
-                <Skeleton className="h-16 w-32" />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-24 rounded-xl" />
-                ))}
-              </div>
-            </div>
-
-            {/* Tabs Skeleton */}
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full rounded-lg" />
-              <Skeleton className="h-64 w-full rounded-2xl" />
-            </div>
+          <div className="max-w-7xl mx-auto flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
         </div>
       </div>
@@ -185,11 +133,13 @@ const WalletProfile = () => {
     );
   }
 
+  const activePositions = positions.filter(p => p.status === 'active');
+  const closedPositions = positions.filter(p => p.status === 'closed');
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
+      
       <div className="pt-24 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
@@ -211,24 +161,17 @@ const WalletProfile = () => {
                     <Wallet className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold gradient-text">
-                      Wallet Profile
-                    </h1>
-                    <code className="text-sm text-muted-foreground font-mono">
-                      {address}
-                    </code>
+                    <h1 className="text-3xl font-bold gradient-text">Wallet Profile</h1>
+                    <code className="text-sm text-muted-foreground font-mono">{address}</code>
                   </div>
                 </div>
               </div>
 
               <div className="text-right">
-                <div
-                  className={`text-4xl font-bold mb-2 ${
-                    stats?.totalPnL >= 0 ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {stats?.totalPnL >= 0 ? "+" : ""}$
-                  {stats?.totalPnL?.toFixed(2) || "0.00"}
+                <div className={`text-4xl font-bold mb-2 ${
+                  stats?.totalPnL >= 0 ? "text-green-400" : "text-red-400"
+                }`}>
+                  {stats?.totalPnL >= 0 ? "+" : ""}${stats?.totalPnL?.toFixed(2) || "0.00"}
                 </div>
                 <div className="text-sm text-muted-foreground">Total P&L</div>
               </div>
@@ -269,9 +212,7 @@ const WalletProfile = () => {
               <div className="glass rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Award className="w-4 h-4 text-green-400" />
-                  <span className="text-xs text-muted-foreground">
-                    Win Rate
-                  </span>
+                  <span className="text-xs text-muted-foreground">Win Rate</span>
                 </div>
                 <div className="text-xl font-bold text-green-400">
                   {stats?.winRate?.toFixed(1) || 0}%
@@ -303,10 +244,7 @@ const WalletProfile = () => {
             <div className="flex items-center gap-6 mt-6 pt-6 border-t border-border/50 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>
-                  First seen:{" "}
-                  {new Date(profile.first_seen).toLocaleDateString()}
-                </span>
+                <span>First seen: {new Date(profile.first_seen).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -331,10 +269,8 @@ const WalletProfile = () => {
             {/* Active Positions */}
             <TabsContent value="positions" className="space-y-4">
               <div className="glass-strong rounded-2xl p-6">
-                <h3 className="text-xl font-bold gradient-text mb-6">
-                  Active Positions
-                </h3>
-
+                <h3 className="text-xl font-bold gradient-text mb-6">Active Positions</h3>
+                
                 {activePositions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     No active positions
@@ -345,9 +281,7 @@ const WalletProfile = () => {
                       <div
                         key={position.id}
                         className="glass border border-border/50 rounded-xl p-5 hover:border-primary/50 transition-all duration-300 cursor-pointer"
-                        onClick={() =>
-                          navigate(`/market/${position.markets.id}`)
-                        }
+                        onClick={() => navigate(`/market/${position.markets.id}`)}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
@@ -355,57 +289,30 @@ const WalletProfile = () => {
                               <span className="px-3 py-1 glass rounded-full text-xs font-semibold">
                                 {position.markets.source}
                               </span>
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                  position.side === "yes"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : "bg-red-500/20 text-red-400"
-                                }`}
-                              >
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                position.side === 'yes' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                              }`}>
                                 {position.side.toUpperCase()}
                               </span>
                             </div>
-                            <h4 className="font-semibold mb-2">
-                              {position.markets.title}
-                            </h4>
+                            <h4 className="font-semibold mb-2">{position.markets.title}</h4>
                             <div className="grid grid-cols-4 gap-4 text-sm">
                               <div>
-                                <div className="text-muted-foreground text-xs">
-                                  Position
-                                </div>
-                                <div className="font-semibold">
-                                  ${position.position_size.toFixed(2)}
-                                </div>
+                                <div className="text-muted-foreground text-xs">Position</div>
+                                <div className="font-semibold">${position.position_size.toFixed(2)}</div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground text-xs">
-                                  Entry
-                                </div>
-                                <div className="font-semibold">
-                                  {(position.avg_entry_price * 100).toFixed(1)}¢
-                                </div>
+                                <div className="text-muted-foreground text-xs">Entry</div>
+                                <div className="font-semibold">{(position.avg_entry_price * 100).toFixed(1)}¢</div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground text-xs">
-                                  Current
-                                </div>
-                                <div className="font-semibold">
-                                  {(position.current_price * 100).toFixed(1)}¢
-                                </div>
+                                <div className="text-muted-foreground text-xs">Current</div>
+                                <div className="font-semibold">{(position.current_price * 100).toFixed(1)}¢</div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground text-xs">
-                                  P&L
-                                </div>
-                                <div
-                                  className={`font-semibold ${
-                                    position.pnl >= 0
-                                      ? "text-green-400"
-                                      : "text-red-400"
-                                  }`}
-                                >
-                                  {position.pnl >= 0 ? "+" : ""}$
-                                  {position.pnl.toFixed(2)}
+                                <div className="text-muted-foreground text-xs">P&L</div>
+                                <div className={`font-semibold ${position.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(2)}
                                 </div>
                               </div>
                             </div>
@@ -421,10 +328,8 @@ const WalletProfile = () => {
             {/* Transaction History */}
             <TabsContent value="history" className="space-y-4">
               <div className="glass-strong rounded-2xl p-6">
-                <h3 className="text-xl font-bold gradient-text mb-6">
-                  Transaction History
-                </h3>
-
+                <h3 className="text-xl font-bold gradient-text mb-6">Transaction History</h3>
+                
                 {transactions.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     No transactions found
@@ -439,13 +344,11 @@ const WalletProfile = () => {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                  tx.side === "buy" || tx.side === "yes"
-                                    ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                                    : "bg-red-500/20 text-red-400 border border-red-500/50"
-                                }`}
-                              >
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                tx.side === 'buy' || tx.side === 'yes' 
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                              }`}>
                                 {tx.side.toUpperCase()}
                               </span>
                               <span className="px-2 py-1 glass rounded text-xs">
@@ -455,9 +358,7 @@ const WalletProfile = () => {
                                 {formatTimestamp(tx.timestamp)}
                               </span>
                             </div>
-                            <div className="text-sm font-medium mb-1">
-                              {tx.markets?.title || "Unknown Market"}
-                            </div>
+                            <div className="text-sm font-medium mb-1">{tx.markets?.title || 'Unknown Market'}</div>
                             <div className="text-xs text-muted-foreground">
                               {tx.markets?.source}
                             </div>

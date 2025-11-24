@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,83 +10,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 
-// Memoized Stats Cards component
-const StatsCards = memo(({ markets, formatVolume }: { markets: any[], formatVolume: (v: number) => string }) => {
-  const totalVolume = useMemo(
-    () => markets.reduce((sum, m) => sum + (m.total_volume || 0), 0),
-    [markets]
-  );
-  const activeCount = useMemo(
-    () => markets.filter(m => m.status === 'active').length,
-    [markets]
-  );
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-      <Card className="glass">
-        <CardHeader className="pb-2">
-          <CardDescription>Total Markets</CardDescription>
-          <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="glass">
-        <CardHeader className="pb-2">
-          <CardDescription>Total Volume</CardDescription>
-          <CardTitle className="text-3xl gradient-text">
-            {formatVolume(totalVolume)}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-      <Card className="glass">
-        <CardHeader className="pb-2">
-          <CardDescription>Active Now</CardDescription>
-          <CardTitle className="text-3xl gradient-text">
-            {activeCount}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-    </div>
-  );
-});
-
-StatsCards.displayName = 'StatsCards';
-
-const Markets = memo(() => {
+const Markets = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
-  // Memoize filtered markets to avoid recalculating on every render
-  const filteredMarkets = useMemo(() => {
-    if (!markets) return undefined;
-    const query = searchQuery.toLowerCase();
-    return markets.filter(market =>
-      market.title.toLowerCase().includes(query) ||
-      market.description?.toLowerCase().includes(query)
-    );
-  }, [markets, searchQuery]);
+  const filteredMarkets = markets?.filter(market =>
+    market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    market.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Memoize trending markets calculation
-  const trendingMarkets = useMemo(() => {
-    if (!markets) return [];
-    return [...markets]
-      .sort((a, b) => b.volume_24h - a.volume_24h)
-      .slice(0, 6);
-  }, [markets]);
+  // Get top 6 trending markets by 24h volume
+  const trendingMarkets = [...(markets || [])]
+    .sort((a, b) => b.volume_24h - a.volume_24h)
+    .slice(0, 6);
 
-  // Memoize formatVolume function
-  const formatVolume = useCallback((volume: number) => {
+  const formatVolume = (volume: number) => {
     if (volume >= 1000000) {
       return `$${(volume / 1000000).toFixed(1)}M`;
     }
     return `$${(volume / 1000).toFixed(0)}K`;
-  }, []);
+  };
 
-  // Memoize getPriceChange function
-  const getPriceChange = useCallback((market: any) => {
+  const getPriceChange = (market: any) => {
     const yesPrice = market.yes_price || 0;
     return yesPrice >= 0.5 ? "bullish" : "bearish";
-  }, []);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,7 +136,30 @@ const Markets = memo(() => {
 
           {/* Stats */}
           {markets && (
-            <StatsCards markets={markets} formatVolume={formatVolume} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Total Markets</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Total Volume</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">
+                    {formatVolume(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0))}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardDescription>Active Now</CardDescription>
+                  <CardTitle className="text-3xl gradient-text">
+                    {markets.filter(m => m.status === 'active').length}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
           )}
 
           {/* Markets Grid */}
@@ -290,8 +262,6 @@ const Markets = memo(() => {
       <Footer />
     </div>
   );
-});
-
-Markets.displayName = 'Markets';
+};
 
 export default Markets;

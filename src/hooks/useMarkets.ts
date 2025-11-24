@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface Market {
   id: string;
@@ -73,44 +74,8 @@ export const useMarkets = (source?: string, category?: string) => {
       if (error) throw error;
       return data?.markets || [];
     },
-    refetchInterval: 10000, // Refetch every 10 seconds (reduced from 5s for better performance)
-    staleTime: 8000, // Data is fresh for 8 seconds (reduced unnecessary refetches)
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-  });
-};
-
-// Hook to fetch a single market by market_id (more efficient than fetching all)
-export const useMarket = (marketId?: string) => {
-  const queryClient = useQueryClient();
-  
-  return useQuery({
-    queryKey: ["market", marketId],
-    queryFn: async () => {
-      if (!marketId) throw new Error("Market ID is required");
-
-      // First try to get from cache if we have markets list
-      const cachedMarkets = queryClient.getQueryData<Market[]>(["markets", "polymarket"]);
-      
-      if (cachedMarkets) {
-        const cachedMarket = cachedMarkets.find(m => m.market_id === marketId);
-        if (cachedMarket) {
-          return cachedMarket;
-        }
-      }
-
-      // If not in cache, fetch all markets (will use cache if available)
-      const { data, error } = await supabase.functions.invoke<GetMarketsResponse>("get-markets", {
-        body: { source: "polymarket" },
-      });
-
-      if (error) throw error;
-      const market = data?.markets?.find(m => m.market_id === marketId);
-      if (!market) throw new Error("Market not found");
-      return market;
-    },
-    enabled: !!marketId,
-    staleTime: 10 * 1000, // Cache for 10 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchInterval: 1000, // Refetch every 1 second for real-time price updates
+    staleTime: 0, // Always consider data stale for immediate updates
   });
 };
 

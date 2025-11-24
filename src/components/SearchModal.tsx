@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
@@ -59,10 +58,10 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
       
       if (data && data.length > 0) {
         setTransactions(data as any);
-        logger.log(`Loaded ${data.length} Polymarket live bets for search`);
+        console.log(`Loaded ${data.length} Polymarket live bets for search`);
       } else {
         setTransactions([]);
-        logger.log('No Polymarket transactions found');
+        console.log('No Polymarket transactions found');
       }
     };
 
