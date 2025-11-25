@@ -45,14 +45,14 @@ Deno.serve(async (req) => {
       throw marketsError;
     }
 
-    // Fetch latest market data for each market
+    // Fetch latest market data for each market (limit to one per market)
     const marketIds = markets?.map(m => m.id) || [];
     
     let marketDataList: any[] = [];
-    let recentTrades: any[] = [];
 
     // Only fetch data if we have market IDs
     if (marketIds.length > 0) {
+      // Use a more efficient query to get only the latest data per market
       const { data: dataList, error: dataError } = await supabaseClient
         .from('market_data')
         .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
@@ -65,24 +65,7 @@ Deno.serve(async (req) => {
       }
 
       marketDataList = dataList || [];
-
-      // Calculate actual trades_24h from wallet_transactions for each market
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: trades } = await supabaseClient
-        .from('wallet_transactions')
-        .select('market_id')
-        .in('market_id', marketIds)
-        .gte('timestamp', twentyFourHoursAgo);
-
-      recentTrades = trades || [];
     }
-
-    // Count trades per market
-    const tradesCountMap = new Map();
-    recentTrades.forEach(trade => {
-      const count = tradesCountMap.get(trade.market_id) || 0;
-      tradesCountMap.set(trade.market_id, count + 1);
-    });
 
     // Create a map of latest market data by market_id
     const latestDataMap = new Map();
@@ -92,10 +75,9 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Combine markets with their latest data and real trade counts
+    // Combine markets with their latest data
     const enhancedMarkets = markets?.map(market => {
       const latestData = latestDataMap.get(market.id);
-      const actualTrades24h = tradesCountMap.get(market.id) || 0;
       return {
         id: market.id,
         market_id: market.market_id,
@@ -110,7 +92,7 @@ Deno.serve(async (req) => {
         total_volume: latestData?.total_volume || 0,
         volume_24h: latestData?.volume_24h || 0,
         liquidity: latestData?.liquidity || 0,
-        trades_24h: actualTrades24h || latestData?.trades_24h || 0,
+        trades_24h: latestData?.trades_24h || 0,
         volatility: latestData?.volatility || 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
