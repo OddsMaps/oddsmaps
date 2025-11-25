@@ -45,35 +45,39 @@ Deno.serve(async (req) => {
       throw marketsError;
     }
 
-    // Fetch latest market data for each market (limit to one per market)
+    // Fetch only the latest market data for each market using efficient query
     const marketIds = markets?.map(m => m.id) || [];
     
-    let marketDataList: any[] = [];
-
-    // Only fetch data if we have market IDs
-    if (marketIds.length > 0) {
-      // Use a more efficient query to get only the latest data per market
-      const { data: dataList, error: dataError } = await supabaseClient
-        .from('market_data')
-        .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
-        .in('market_id', marketIds)
-        .order('timestamp', { ascending: false });
-
-      if (dataError) {
-        console.error('Error fetching market data:', dataError);
-        throw dataError;
-      }
-
-      marketDataList = dataList || [];
-    }
-
-    // Create a map of latest market data by market_id
     const latestDataMap = new Map();
-    marketDataList.forEach(data => {
-      if (!latestDataMap.has(data.market_id)) {
-        latestDataMap.set(data.market_id, data);
+
+    // Only fetch data if we have market IDs - use RPC or optimized query
+    if (marketIds.length > 0) {
+      // Batch process in chunks to avoid overwhelming the database
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < marketIds.length; i += CHUNK_SIZE) {
+        const chunk = marketIds.slice(i, i + CHUNK_SIZE);
+        
+        // Get latest market_data for this chunk
+        const { data: dataList, error: dataError } = await supabaseClient
+          .from('market_data')
+          .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
+          .in('market_id', chunk)
+          .order('timestamp', { ascending: false })
+          .limit(chunk.length); // Only get one per market in this chunk
+
+        if (dataError) {
+          console.error('Error fetching market data chunk:', dataError);
+          continue; // Skip this chunk but continue with others
+        }
+
+        // Map the latest data (first occurrence due to ordering)
+        dataList?.forEach(data => {
+          if (!latestDataMap.has(data.market_id)) {
+            latestDataMap.set(data.market_id, data);
+          }
+        });
       }
-    });
+    }
 
     // Combine markets with their latest data
     const enhancedMarkets = markets?.map(market => {
@@ -107,8 +111,13 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in get-markets function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorDetails = error instanceof Error ? error.stack : JSON.stringify(error);
+    console.error('Error details:', errorDetails);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: errorDetails
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

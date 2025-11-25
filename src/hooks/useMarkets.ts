@@ -74,8 +74,9 @@ export const useMarkets = (source?: string, category?: string) => {
       if (error) throw error;
       return data?.markets || [];
     },
-    refetchInterval: 5000, // Refetch every 5 seconds to reduce load
-    staleTime: 0, // Always consider data stale for immediate updates
+    refetchInterval: 10000, // Refetch every 10 seconds to reduce database load
+    staleTime: 5000, // Cache for 5 seconds
+    retry: 2, // Only retry twice on failure
   });
 };
 
