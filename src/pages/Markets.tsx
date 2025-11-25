@@ -67,13 +67,28 @@ const Markets = () => {
                 <span className="text-xs sm:text-sm font-medium text-green-500">LIVE</span>
               </div>
             </div>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-              Real-time data from Polymarket. All prices and volumes update automatically.
-            </p>
-          </div>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+            Real-time data from Polymarket. All prices and volumes update automatically.
+          </p>
+        </div>
 
-          {/* Trending Markets */}
-          {!isLoading && trendingMarkets.length > 0 && (
+        {/* Category Tabs */}
+        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full max-w-5xl mx-auto">
+          <TabsList className="w-full flex flex-wrap justify-start h-auto gap-2 bg-muted/30 p-2 rounded-xl">
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/50"
+              >
+                {category === "all" ? "All" : category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        {/* Trending Markets */}
+        {!isLoading && trendingMarkets.length > 0 && (
             <div id="trending" className="space-y-6 scroll-mt-20">
               <div className="flex items-center gap-3 px-2">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -136,32 +151,15 @@ const Markets = () => {
           )}
 
           {/* Search */}
-          <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search markets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 glass"
-              />
-            </div>
-            
-            {/* Category Tabs */}
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-              <TabsList className="w-full flex flex-wrap justify-start h-auto gap-2 bg-muted/30 p-2 rounded-xl">
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category}
-                    value={category}
-                    className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/50"
-                  >
-                    {category === "all" ? "All" : category}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search markets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-12 glass"
+            />
           </div>
 
           {/* Stats */}
