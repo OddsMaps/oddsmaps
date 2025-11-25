@@ -51,7 +51,7 @@ const Hero = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8 px-4">
           <Button 
             size="lg" 
-            className="relative bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:via-primary/90 hover:to-primary/70 transition-all duration-300 group w-full sm:w-auto px-8 py-6 text-lg font-semibold rounded-xl shadow-[0_8px_0_rgb(0,0,0,0.1),0_15px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_rgb(0,0,0,0.1),0_12px_25px_rgba(0,0,0,0.2)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-[0_2px_0_rgb(0,0,0,0.1),0_5px_15px_rgba(0,0,0,0.2)] border-b-4 border-primary/50 before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-t before:from-black/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity"
+            className="relative bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:via-primary/90 hover:to-primary/70 transition-all duration-300 group w-full sm:w-[220px] h-[60px] px-6 text-lg font-semibold rounded-xl shadow-[0_8px_0_rgb(0,0,0,0.1),0_15px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_rgb(0,0,0,0.1),0_12px_25px_rgba(0,0,0,0.2)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-[0_2px_0_rgb(0,0,0,0.1),0_5px_15px_rgba(0,0,0,0.2)] border-b-4 border-primary/50 before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-t before:from-black/20 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity"
             onClick={() => navigate('/markets')}
           >
             <span className="relative z-10">Explore Markets</span>
@@ -60,7 +60,7 @@ const Hero = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="relative glass-strong border-2 border-white/20 hover:glass-premium hover:border-primary/50 transition-all duration-300 group w-full sm:w-auto px-8 py-6 text-lg font-semibold rounded-xl shadow-[0_8px_0_rgba(255,255,255,0.05),0_15px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_rgba(255,255,255,0.05),0_12px_25px_rgba(0,0,0,0.2)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-[0_2px_0_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.2)] backdrop-blur-2xl"
+            className="relative glass-strong border-2 border-white/20 hover:glass-premium hover:border-primary/50 transition-all duration-300 group w-full sm:w-[220px] h-[60px] px-6 text-lg font-semibold rounded-xl shadow-[0_8px_0_rgba(255,255,255,0.05),0_15px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_rgba(255,255,255,0.05),0_12px_25px_rgba(0,0,0,0.2)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-[0_2px_0_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.2)] backdrop-blur-2xl"
             onClick={() => {
               document.getElementById('whale-activity')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
