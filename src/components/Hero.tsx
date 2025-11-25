@@ -51,11 +51,11 @@ const Hero = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8 px-4">
           <Button 
             size="lg" 
-            className="glow-gradient hover:scale-105 active:scale-95 transition-all duration-500 group w-full sm:w-auto px-12 py-8 text-xl font-black touch-manipulation min-h-[72px] rounded-2xl shadow-2xl"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors group w-full sm:w-auto px-8 py-6 text-lg font-semibold rounded-xl"
             onClick={() => navigate('/markets')}
           >
             Explore Markets
-            <ArrowRight className="ml-3 w-7 h-7 group-hover:translate-x-2 transition-transform duration-300" />
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
           <Button 
             size="lg" 
