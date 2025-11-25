@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp, Activity } from "lucide-react";
+import { ArrowRight, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -60,16 +60,13 @@ const Hero = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="glass-strong border-2 border-white/20 hover:glass-premium hover:scale-105 hover:border-primary/50 active:scale-95 transition-all duration-500 group w-full sm:w-auto px-12 py-8 text-xl font-black touch-manipulation min-h-[72px] rounded-2xl backdrop-blur-2xl"
+            className="relative glass-strong border-2 border-white/20 hover:glass-premium hover:border-primary/50 transition-all duration-300 group w-full sm:w-auto px-8 py-6 text-lg font-semibold rounded-xl shadow-[0_8px_0_rgba(255,255,255,0.05),0_15px_30px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_0_rgba(255,255,255,0.05),0_12px_25px_rgba(0,0,0,0.2)] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-[0_2px_0_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.2)] backdrop-blur-2xl"
             onClick={() => {
-              navigate('/markets');
-              setTimeout(() => {
-                document.getElementById('trending')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }, 100);
+              document.getElementById('whale-activity')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
           >
-            <TrendingUp className="mr-3 w-7 h-7 group-hover:scale-110 transition-transform duration-300" />
-            Trending Now
+            <Activity className="relative z-10 mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="relative z-10">Whale Activity</span>
           </Button>
         </div>
       </div>
