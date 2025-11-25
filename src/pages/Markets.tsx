@@ -8,17 +8,30 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 const Markets = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
-  const filteredMarkets = markets?.filter(market =>
-    market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = [
+    "all",
+    "Politics",
+    "Science and Technology",
+    "Climate and Weather",
+    "World",
+    "General"
+  ];
+
+  const filteredMarkets = markets?.filter(market => {
+    const matchesSearch = market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || market.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   // Get top 6 trending markets by 24h volume
   const trendingMarkets = [...(markets || [])]
@@ -123,15 +136,32 @@ const Markets = () => {
           )}
 
           {/* Search */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search markets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 glass"
-            />
+          <div className="space-y-6 max-w-5xl mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search markets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-12 glass"
+              />
+            </div>
+            
+            {/* Category Tabs */}
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+              <TabsList className="w-full flex flex-wrap justify-start h-auto gap-2 bg-muted/30 p-2 rounded-xl">
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/50"
+                  >
+                    {category === "all" ? "All" : category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           </div>
 
           {/* Stats */}
