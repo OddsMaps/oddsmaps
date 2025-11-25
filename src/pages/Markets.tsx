@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -96,16 +97,28 @@ const Markets = () => {
           </Tabs>
         </div>
 
-        {/* Trending Markets */}
-        {!isLoading && trendingMarkets.length > 0 && (
-            <div id="trending" className="space-y-6 scroll-mt-20">
+          {/* Trending Markets */}
+          {!isLoading && trendingMarkets.length > 0 && (
+            <motion.div 
+              id="trending" 
+              className="space-y-6 scroll-mt-20"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
               <div className="flex items-center gap-3 px-2">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 <h2 className="text-xl sm:text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {trendingMarkets.map((market) => (
-                  <Card
+                {trendingMarkets.map((market, index) => (
+                  <motion.div
+                    key={market.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                  >
+                    <Card
                     key={market.id}
                     className="glass-card cursor-pointer hover:scale-[1.02] transition-all duration-300 border-primary/30 touch-manipulation active:scale-[0.98]"
                     onClick={() => navigate(`/market/${market.market_id}`)}
@@ -153,10 +166,11 @@ const Markets = () => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Search */}
@@ -207,15 +221,29 @@ const Markets = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMarkets?.map((market) => {
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={selectedCategory}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {filteredMarkets?.map((market, index) => {
                 const priceChange = getPriceChange(market);
                 const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
                 const noPrice = ((market.no_price || 0) * 100).toFixed(1);
-                const yesPercentage = (market.yes_price || 0) * 100;
-                
-                return (
-                  <Card
+                  const yesPercentage = (market.yes_price || 0) * 100;
+                  
+                  return (
+                    <motion.div
+                      key={market.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                    >
+                      <Card
                     key={market.id}
                     className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-[1.02] group"
                     onClick={() => navigate(`/market/${market.market_id}`)}
@@ -282,10 +310,12 @@ const Markets = () => {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </AnimatePresence>
           )}
 
           {filteredMarkets?.length === 0 && !isLoading && (
