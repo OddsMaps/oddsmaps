@@ -424,4 +424,13 @@ All colors MUST be HSL.
     /* Prevent pull-to-refresh on mobile */
     overscroll-behavior-y: contain;
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
