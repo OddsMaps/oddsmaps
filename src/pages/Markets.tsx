@@ -69,19 +69,13 @@ const Markets = () => {
         <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="text-center space-y-3 sm:space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mb-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                <span className="gradient-text">Live Prediction Markets</span>
-              </h1>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium text-green-500">LIVE</span>
-              </div>
-            </div>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-            Real-time data from Polymarket. All prices and volumes update automatically.
-          </p>
-        </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+              <span className="gradient-text">Live Prediction Markets</span>
+            </h1>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+              Real-time data from Polymarket. All prices and volumes update automatically.
+            </p>
+          </div>
 
         {/* Category Tabs */}
         <div className="w-full max-w-6xl mx-auto">
