@@ -14,22 +14,33 @@ import { Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 const Markets = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("Trending");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
   const categories = [
-    "all",
+    "Trending",
+    "Breaking",
+    "New",
     "Politics",
-    "Science and Technology",
-    "Climate and Weather",
+    "Sports",
+    "Finance",
+    "Crypto",
+    "Earning",
+    "Tech",
+    "Culture",
     "World",
-    "General"
+    "Economy",
+    "Elections",
+    "Mentions"
   ];
 
   const filteredMarkets = markets?.filter(market => {
     const matchesSearch = market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       market.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || market.category === selectedCategory;
+    
+    // For now, show all markets for these categories since we don't have the data mapped yet
+    const matchesCategory = ["Trending", "Breaking", "New"].includes(selectedCategory) || 
+                           market.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -73,19 +84,23 @@ const Markets = () => {
         </div>
 
         {/* Category Tabs */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full max-w-5xl mx-auto">
-          <TabsList className="w-full flex flex-wrap justify-start h-auto gap-2 bg-muted/30 p-2 rounded-xl">
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category}
-                value={category}
-                className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm hover:bg-muted/50"
-              >
-                {category === "all" ? "All" : category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="w-full max-w-6xl mx-auto">
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+            <div className="relative">
+              <TabsList className="w-full justify-start h-auto gap-1.5 bg-transparent p-0 overflow-x-auto flex-nowrap scrollbar-hide border-b border-border/50">
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium transition-all data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent hover:text-foreground whitespace-nowrap"
+                  >
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+        </div>
 
         {/* Trending Markets */}
         {!isLoading && trendingMarkets.length > 0 && (
