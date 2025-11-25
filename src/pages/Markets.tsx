@@ -79,15 +79,16 @@ const Markets = () => {
           </div>
 
         {/* Category Tabs */}
-        <div className="w-full max-w-6xl mx-auto">
+        <div className="w-full -mx-4 sm:mx-0 sm:max-w-6xl sm:mx-auto">
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
             <div className="relative">
-              <TabsList className="w-full justify-start h-auto gap-1.5 bg-transparent p-0 overflow-x-auto flex-nowrap scrollbar-hide border-b border-border/50">
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 sm:hidden" />
+              <TabsList className="w-full justify-start h-auto gap-2 sm:gap-1.5 bg-transparent p-0 px-4 sm:px-0 overflow-x-auto flex-nowrap scrollbar-hide border-b border-border/50">
                 {categories.map((category) => (
                   <TabsTrigger
                     key={category}
                     value={category}
-                    className="rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium transition-all data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent hover:text-foreground whitespace-nowrap"
+                    className="rounded-none border-b-2 border-transparent px-3 sm:px-4 py-3 text-sm font-medium transition-all data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent hover:text-foreground whitespace-nowrap min-w-fit touch-manipulation"
                   >
                     {category}
                   </TabsTrigger>
