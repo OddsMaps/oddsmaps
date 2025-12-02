@@ -141,11 +141,17 @@ const Markets = () => {
                 </div>
                 {/* Decorative arrows */}
                 <div className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 flex items-center gap-4">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center rotate-12">
-                    <ArrowDown className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-xl bg-secondary/40 blur-xl scale-150" />
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center rotate-12 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                      <ArrowDown className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                    </div>
                   </div>
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center -rotate-12">
-                    <ArrowUp className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-xl bg-primary/40 blur-xl scale-150" />
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center -rotate-12 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                      <ArrowUp className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+                    </div>
                   </div>
                 </div>
               </div>
