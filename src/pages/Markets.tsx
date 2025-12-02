@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMarkets } from "@/hooks/useMarkets";
 import { usePriceChanges } from "@/hooks/usePriceChanges";
+import { usePriceHistory, generateSparklinePath } from "@/hooks/usePriceHistory";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown } from "lucide-react";
@@ -58,23 +59,19 @@ const Markets = () => {
     return b.volume_24h - a.volume_24h;
   });
 
+  // Get market IDs for price history
+  const marketIds = useMemo(() => 
+    filteredMarkets?.slice(0, 20).map(m => m.id) || [], 
+    [filteredMarkets]
+  );
+
+  // Fetch real price history for sparklines
+  const { data: priceHistory } = usePriceHistory(marketIds);
+
   // Get market image
   const getMarketImage = (market: any) => {
     if (market.image_url) return market.image_url;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
-  };
-
-  // Generate mini sparkline path
-  const generateSparkline = (change: number) => {
-    const isPositive = change >= 0;
-    const baseY = 15;
-    const amplitude = Math.min(Math.abs(change) * 0.3, 10);
-    
-    if (isPositive) {
-      return `M0,${baseY + amplitude} Q15,${baseY + amplitude * 0.5} 30,${baseY} T60,${baseY - amplitude}`;
-    } else {
-      return `M0,${baseY - amplitude} Q15,${baseY - amplitude * 0.5} 30,${baseY} T60,${baseY + amplitude}`;
-    }
   };
 
   // Mock news items for sidebar
@@ -188,8 +185,16 @@ const Markets = () => {
                   >
                     {filteredMarkets?.slice(0, 20).map((market, index) => {
                       const yesPrice = Math.round((market.yes_price || 0) * 100);
-                      const change = priceChanges[market.id]?.change || Math.floor(Math.random() * 50) + 10;
-                      const isPositive = change >= 0;
+                      const history = priceHistory?.[market.id];
+                      const { path: sparklinePath, isPositive: sparklinePositive } = generateSparklinePath(history);
+                      
+                      // Calculate price change from history
+                      let priceChange = 0;
+                      if (history && history.length >= 2) {
+                        const oldPrice = history[0].yes_price;
+                        const newPrice = history[history.length - 1].yes_price;
+                        priceChange = Math.round((newPrice - oldPrice) * 100);
+                      }
 
                       return (
                         <motion.div
@@ -220,8 +225,8 @@ const Markets = () => {
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-lg font-bold">{yesPrice}%</span>
-                              <span className={`text-sm flex items-center gap-0.5 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {isPositive ? '↗' : '↘'} {Math.abs(change)}%
+                              <span className={`text-sm flex items-center gap-0.5 ${priceChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {priceChange >= 0 ? '↗' : '↘'} {Math.abs(priceChange)}%
                               </span>
                             </div>
                           </div>
@@ -230,9 +235,9 @@ const Markets = () => {
                           <div className="hidden sm:block shrink-0">
                             <svg width="60" height="30" className="overflow-visible">
                               <path
-                                d={generateSparkline(change)}
+                                d={sparklinePath}
                                 fill="none"
-                                stroke={isPositive ? "#34d399" : "#f87171"}
+                                stroke={sparklinePositive ? "#34d399" : "#f87171"}
                                 strokeWidth="2"
                                 strokeLinecap="round"
                               />
