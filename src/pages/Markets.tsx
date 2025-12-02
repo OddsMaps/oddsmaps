@@ -84,7 +84,7 @@ const Markets = () => {
                 {tab.label}
               </button>
             ))}
-            <div className="h-6 w-px bg-border mx-2" />
+            <div className="h-5 w-px bg-border/60 mx-3 shrink-0" />
             {["Politics", "Sports", "Finance", "Crypto", "Tech", "Culture", "World", "Economy"].map((cat) => (
               <button
                 key={cat}
