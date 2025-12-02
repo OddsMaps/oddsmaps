@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { memo, useState, useEffect } from "react";
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
@@ -10,118 +10,95 @@ import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => {
+const MarketHeader = memo(({ market, onBack }: any) => {
   const getMarketImage = () => {
     if (market.image_url) return market.image_url;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
   };
 
   return (
-    <>
+    <div className="space-y-4">
       <Button
         variant="ghost"
+        size="sm"
         onClick={onBack}
-        className="mb-4 sm:mb-6 glass hover:glass-strong touch-manipulation"
+        className="glass hover:glass-strong"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Markets
+        Back
       </Button>
 
-      <div className="data-card mb-6 sm:mb-8 animate-fade-in">
-        <div className="flex flex-col lg:flex-row items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <div className="flex-1 w-full">
-            <div className="flex items-start gap-4 mb-3 sm:mb-4">
-              {/* Market Image */}
-              <img 
-                src={getMarketImage()} 
-                alt={market.title}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 border border-border/50"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
-                }}
-              />
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                  <span className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-xs sm:text-sm font-bold uppercase tracking-wide">
-                    {market.source}
-                  </span>
-                  {market.category && (
-                    <span className="px-2 sm:px-3 py-1 glass rounded-lg text-xs sm:text-sm">
-                      {market.category}
-                    </span>
-                  )}
-                  <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-semibold ${
-                    market.status === 'active' 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {market.status}
-                  </span>
-                </div>
-                
-                <h1 className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black break-words leading-tight tracking-tight">
-                  {market.title}
-                </h1>
-              </div>
+      {/* Main Header Card */}
+      <div className="data-card p-4 sm:p-5">
+        <div className="flex gap-4">
+          {/* Image */}
+          <img 
+            src={getMarketImage()} 
+            alt={market.title}
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-border/50"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
+            }}
+          />
+          
+          {/* Title & Badges */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+              <span className="px-2 py-0.5 rounded bg-primary/20 border border-primary/30 text-xs font-bold uppercase">
+                {market.source}
+              </span>
+              {market.category && (
+                <span className="px-2 py-0.5 glass rounded text-xs">
+                  {market.category}
+                </span>
+              )}
+              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                market.status === 'active' 
+                  ? 'bg-green-500/20 text-green-400' 
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {market.status}
+              </span>
             </div>
-            
-            {market.description && (
-              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground break-words">
-                {market.description}
-              </p>
-            )}
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
+              {market.title}
+            </h1>
           </div>
 
-          <div className="flex lg:flex-col items-center lg:items-end gap-3 sm:gap-4 w-full lg:w-auto justify-center lg:justify-start glass-premium rounded-2xl p-4 sm:p-6">
-            <div className="flex gap-4">
-              {/* YES Price */}
-              <div className="text-center">
-                <div className="text-xs sm:text-sm text-muted-foreground mb-1 font-medium uppercase tracking-wider">
-                  Yes
-                </div>
-                <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-emerald-400">
-                  {Math.round(market.yes_price * 100)}¢
-                </div>
+          {/* YES/NO Prices */}
+          <div className="flex gap-3 shrink-0">
+            <div className="text-center px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div className="text-[10px] text-emerald-400 font-medium uppercase">Yes</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+                {Math.round(market.yes_price * 100)}¢
               </div>
-              
-              {/* Divider */}
-              <div className="w-px bg-border/50 self-stretch" />
-              
-              {/* NO Price */}
-              <div className="text-center">
-                <div className="text-xs sm:text-sm text-muted-foreground mb-1 font-medium uppercase tracking-wider">
-                  No
-                </div>
-                <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-rose-400">
-                  {Math.round(market.no_price * 100)}¢
-                </div>
+            </div>
+            <div className="text-center px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
+              <div className="text-[10px] text-rose-400 font-medium uppercase">No</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-rose-400">
+                {Math.round(market.no_price * 100)}¢
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 sm:gap-5 md:gap-6 pt-5 sm:pt-6 border-t border-border/30">
-          <div className="space-y-2">
-            <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">24h Volume</div>
-            <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
-              ${(market.volume_24h / 1000).toFixed(1)}K
-            </div>
+        {/* Stats Row */}
+        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-border/30 text-sm">
+          <div>
+            <span className="text-muted-foreground">24h Vol: </span>
+            <span className="font-bold font-mono">${(market.volume_24h / 1000).toFixed(1)}K</span>
           </div>
-          <div className="space-y-2">
-            <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">Liquidity</div>
-            <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
-              ${(market.liquidity / 1000).toFixed(1)}K
-            </div>
+          <div>
+            <span className="text-muted-foreground">Liquidity: </span>
+            <span className="font-bold font-mono">${(market.liquidity / 1000).toFixed(1)}K</span>
           </div>
-          <div className="space-y-2">
-            <div className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider">Volatility</div>
-            <div className="text-lg sm:text-2xl md:text-3xl font-black gradient-text-premium break-words font-mono">
-              {market.volatility.toFixed(1)}%
-            </div>
+          <div>
+            <span className="text-muted-foreground">Volatility: </span>
+            <span className="font-bold font-mono">{market.volatility.toFixed(1)}%</span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 });
 
@@ -190,24 +167,10 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
     const txTime = new Date(timestamp).getTime();
     const diff = Math.floor((now - txTime) / 1000);
 
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  };
-
-  const getSideIcon = (side: string) => {
-    return side === 'yes' ? (
-      <TrendingUp className="h-4 w-4" />
-    ) : (
-      <TrendingDown className="h-4 w-4" />
-    );
-  };
-
-  const getSideColor = (side: string) => {
-    return side === 'yes' 
-      ? 'text-green-500 bg-green-500/10 border-green-500/20' 
-      : 'text-red-500 bg-red-500/10 border-red-500/20';
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    return `${Math.floor(diff / 86400)}d`;
   };
 
   if (loading || transactions.length === 0) {
@@ -215,49 +178,43 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
   }
 
   return (
-    <div className="space-y-4 mb-8">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Whale Activity 🐋</h2>
-          <p className="text-muted-foreground">Real-time bets over $10,000 on this market</p>
-        </div>
-        <Badge variant="outline" className="gap-2">
-          <Activity className="h-3 w-3 animate-pulse text-green-500" />
-          {transactions.length} Whales
-        </Badge>
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          🐋 Whale Activity
+          <Badge variant="outline" className="text-xs">
+            <Activity className="h-3 w-3 animate-pulse text-green-500 mr-1" />
+            {transactions.length}
+          </Badge>
+        </h2>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-2">
         {transactions.slice(0, 5).map((tx) => (
           <Card
             key={tx.id}
-            className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+            className="p-3 hover:bg-accent/50 transition-colors cursor-pointer"
             onClick={() => navigate(`/wallet/${tx.wallet_address}`)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold border ${getSideColor(tx.side)}`}>
-                  {getSideIcon(tx.side)}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`px-2 py-1 rounded text-xs font-bold ${
+                  tx.side === 'yes' 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
                   {tx.side.toUpperCase()}
                 </div>
-                <div className="flex-1">
-                  <div className="font-mono text-sm text-muted-foreground">
-                    {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
-                  </div>
-                </div>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
+                </span>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="text-2xl font-bold gradient-text">
-                    ${(tx.amount / 1000).toFixed(1)}K
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    @ {(tx.price * 100).toFixed(1)}¢
-                  </div>
+                  <span className="font-bold">${(tx.amount / 1000).toFixed(1)}K</span>
+                  <span className="text-xs text-muted-foreground ml-1">@ {(tx.price * 100).toFixed(0)}¢</span>
                 </div>
-                <div className="text-sm text-muted-foreground min-w-[80px] text-right">
-                  {formatTime(tx.timestamp)}
-                </div>
+                <span className="text-xs text-muted-foreground w-8">{formatTime(tx.timestamp)}</span>
               </div>
             </div>
           </Card>
@@ -274,7 +231,6 @@ const MarketDetail = () => {
   
   const market = markets?.find(m => m.market_id === marketId);
 
-  // Auto-sync this market's transactions every 2 minutes
   useEffect(() => {
     if (!market) return;
 
@@ -288,55 +244,45 @@ const MarketDetail = () => {
       }
     };
 
-    // Initial sync
     syncMarket();
-
-    // Sync every 2 minutes
     const interval = setInterval(syncMarket, 2 * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [market]);
 
   if (!market) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center glass-strong p-12 rounded-2xl">
-          <Activity className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-2xl font-bold mb-4">Market not found</h1>
-          <p className="text-muted-foreground mb-6">This Polymarket market doesn't exist or hasn't been synced yet.</p>
-          <Button onClick={() => navigate("/")} className="glow-gradient">
-            Back to Home
+        <div className="text-center glass-strong p-8 rounded-xl">
+          <Activity className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+          <h1 className="text-xl font-bold mb-2">Market not found</h1>
+          <p className="text-sm text-muted-foreground mb-4">This market doesn't exist or hasn't been synced.</p>
+          <Button onClick={() => navigate("/markets")} size="sm">
+            Back to Markets
           </Button>
         </div>
       </div>
     );
   }
 
-  const change = ((market.yes_price - 0.5) * 100).toFixed(1);
-  const isPositive = parseFloat(change) > 0;
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div className="pt-24 pb-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <MarketHeader 
-            market={market} 
-            isPositive={isPositive} 
-            change={change}
-            onBack={() => navigate("/")}
-          />
+      <div className="pt-20 pb-8 px-4">
+        <div className="max-w-6xl mx-auto space-y-4">
+          <MarketHeader market={market} onBack={() => navigate("/markets")} />
 
-          <div className="space-y-8 mb-8">
-            <WalletBubbleMap market={market} />
+          {/* Two Column Layout */}
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <WalletBubbleMap market={market} />
+            </div>
+            <div>
+              <MarketWhaleTransactions marketId={market.id} />
+            </div>
           </div>
 
-          <MarketWhaleTransactions marketId={market.id} />
-
-          <div className="space-y-8">
-            <TransactionTimeline market={market} />
-          </div>
+          <TransactionTimeline market={market} />
         </div>
       </div>
     </div>
