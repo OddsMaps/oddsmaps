@@ -65,7 +65,7 @@ const Markets = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 pt-20 pb-12">
+      <main className="container mx-auto px-4 pt-24 md:pt-28 pb-12">
         {/* Main Tab Navigation */}
         <div className="border-b border-border/50 mb-6">
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
