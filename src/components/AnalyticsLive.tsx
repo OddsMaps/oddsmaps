@@ -1,16 +1,13 @@
 import { memo, useMemo } from "react";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
-import { usePriceChanges } from "@/hooks/usePriceChanges";
 
 const AnalyticsLive = memo(() => {
   const navigate = useNavigate();
   
   // Only fetch Polymarket markets for better performance
   const { data: markets } = useMarkets('polymarket');
-  const { priceChanges, activeMarkets } = usePriceChanges(markets);
 
   // Calculate top markets (by volume)
   const topMarkets = useMemo(() => {
@@ -47,25 +44,12 @@ const AnalyticsLive = memo(() => {
         </div>
 
         <div className="grid gap-5 sm:gap-6">
-          {topMarkets.map((market, index) => {
-            const isActive = activeMarkets.has(market.id);
-            const priceChange = priceChanges.get(market.id);
-            const changePercent = priceChange?.changePercent || 0;
-            const isIncreasing = priceChange?.isIncreasing ?? false;
-            
-            return (
-              <div
-                key={market.id}
-                onClick={() => navigate(`/market/${market.id}`)}
-                className={`data-card cursor-pointer transition-all duration-500 touch-manipulation active:scale-[0.98] ${
-                  isActive 
-                    ? 'border-primary shadow-[0_0_40px_rgba(16,185,129,0.4)] scale-[1.02]' 
-                    : 'hover:scale-[1.02]'
-                }`}
-                style={{
-                  animation: isActive ? 'pulse-glow 2s ease-in-out' : undefined,
-                }}
-              >
+          {topMarkets.map((market, index) => (
+            <div
+              key={market.id}
+              onClick={() => navigate(`/market/${market.id}`)}
+              className="data-card cursor-pointer transition-all duration-300 touch-manipulation active:scale-[0.98] hover:scale-[1.01] hover:border-primary/50"
+            >
                 <div className="flex items-start justify-between gap-4 sm:gap-6 mb-4 sm:mb-5">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -87,24 +71,22 @@ const AnalyticsLive = memo(() => {
                     </h3>
                   </div>
                   
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <div className="metric-highlight">
-                      {(market.yes_price * 100).toFixed(1)}¢
-                    </div>
-                    {Math.abs(changePercent) > 0 && (
-                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-bold text-xs sm:text-sm ${
-                        isIncreasing 
-                          ? "bg-green-500/20 text-green-400 border border-green-500/30" 
-                          : "bg-red-500/20 text-red-400 border border-red-500/30"
-                      }`}>
-                        {isIncreasing ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4" />
-                        )}
-                        <span className="whitespace-nowrap font-mono">{Math.abs(changePercent).toFixed(2)}%</span>
-                      </div>
-                    )}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {/* YES Button */}
+                    <button className="flex flex-col items-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors min-w-[70px] sm:min-w-[80px]">
+                      <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 uppercase tracking-wide">Yes</span>
+                      <span className="text-lg sm:text-xl font-bold text-emerald-400 font-mono">
+                        {Math.round(market.yes_price * 100)}¢
+                      </span>
+                    </button>
+                    
+                    {/* NO Button */}
+                    <button className="flex flex-col items-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 transition-colors min-w-[70px] sm:min-w-[80px]">
+                      <span className="text-[10px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wide">No</span>
+                      <span className="text-lg sm:text-xl font-bold text-rose-400 font-mono">
+                        {Math.round(market.no_price * 100)}¢
+                      </span>
+                    </button>
                   </div>
                 </div>
 
@@ -135,8 +117,7 @@ const AnalyticsLive = memo(() => {
                   </div>
                 </div>
               </div>
-            );
-          })}
+          ))}
         </div>
       </div>
     </section>
