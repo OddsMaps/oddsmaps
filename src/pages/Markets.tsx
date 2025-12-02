@@ -131,7 +131,7 @@ const Markets = () => {
             {/* Main Content */}
             <div className="flex-1 min-w-0">
               {/* Hero Banner */}
-              <div className="relative rounded-xl overflow-hidden mb-6 bg-gradient-to-r from-[#1a3a5c] to-[#2a5a8c]">
+              <div className="relative rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-muted/80 via-card to-muted/60 border border-border/50">
                 <div className="p-6 md:p-8 relative z-10">
                   <p className="text-sm text-muted-foreground mb-1">{currentDate}</p>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Breaking News</h1>
@@ -141,11 +141,11 @@ const Markets = () => {
                 </div>
                 {/* Decorative arrows */}
                 <div className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 flex items-center gap-4">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#2a5a8c]/80 flex items-center justify-center rotate-12">
-                    <ArrowDown className="w-8 h-8 md:w-10 md:h-10 text-foreground/80" />
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center rotate-12">
+                    <ArrowDown className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
                   </div>
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#3a6a9c]/80 flex items-center justify-center -rotate-12">
-                    <ArrowUp className="w-8 h-8 md:w-10 md:h-10 text-foreground/80" />
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center -rotate-12">
+                    <ArrowUp className="w-8 h-8 md:w-10 md:h-10 text-primary" />
                   </div>
                 </div>
               </div>
