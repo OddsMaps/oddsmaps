@@ -15,34 +15,49 @@ import { Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 const Markets = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Trending");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
   const categories = [
+    "All",
     "Trending",
-    "Breaking",
-    "New",
     "Politics",
-    "Sports",
-    "Finance",
-    "Crypto",
-    "Earning",
-    "Tech",
-    "Culture",
     "World",
-    "Economy",
-    "Elections",
-    "Mentions"
+    "Science & Tech",
+    "Climate",
+    "General"
   ];
+
+  // Map UI category names to database category names
+  const categoryMap: Record<string, string | null> = {
+    "All": null,
+    "Trending": null, // Special: sorted by volume
+    "Politics": "Politics",
+    "World": "World",
+    "Science & Tech": "Science and Technology",
+    "Climate": "Climate and Weather",
+    "General": "General"
+  };
 
   const filteredMarkets = markets?.filter(market => {
     const matchesSearch = market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       market.description?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // For now, show all markets for these categories since we don't have the data mapped yet
-    const matchesCategory = ["Trending", "Breaking", "New"].includes(selectedCategory) || 
-                           market.category === selectedCategory;
+    // "All" and "Trending" show all markets
+    if (selectedCategory === "All" || selectedCategory === "Trending") {
+      return matchesSearch;
+    }
+    
+    // Map the selected category to the database category
+    const dbCategory = categoryMap[selectedCategory];
+    const matchesCategory = market.category === dbCategory;
     return matchesSearch && matchesCategory;
+  })?.sort((a, b) => {
+    // Sort by volume when "Trending" is selected
+    if (selectedCategory === "Trending") {
+      return b.volume_24h - a.volume_24h;
+    }
+    return 0;
   });
 
   // Get top 6 trending markets by 24h volume
