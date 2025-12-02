@@ -73,19 +73,28 @@ const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => {
           </div>
 
           <div className="flex lg:flex-col items-center lg:items-end gap-3 sm:gap-4 w-full lg:w-auto justify-center lg:justify-start glass-premium rounded-2xl p-4 sm:p-6">
-            <div className="text-center lg:text-right">
-              <div className={`flex items-center justify-center lg:justify-end gap-3 text-4xl sm:text-5xl lg:text-6xl font-black font-mono ${
-                isPositive ? "text-green-400" : "text-red-400"
-              }`}>
-                {isPositive ? (
-                  <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
-                ) : (
-                  <TrendingDown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12" />
-                )}
-                <span>{(market.yes_price * 100).toFixed(1)}¢</span>
+            <div className="flex gap-4">
+              {/* YES Price */}
+              <div className="text-center">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-1 font-medium uppercase tracking-wider">
+                  Yes
+                </div>
+                <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-emerald-400">
+                  {Math.round(market.yes_price * 100)}¢
+                </div>
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground mt-2 font-medium uppercase tracking-wider">
-                Yes Price
+              
+              {/* Divider */}
+              <div className="w-px bg-border/50 self-stretch" />
+              
+              {/* NO Price */}
+              <div className="text-center">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-1 font-medium uppercase tracking-wider">
+                  No
+                </div>
+                <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-rose-400">
+                  {Math.round(market.no_price * 100)}¢
+                </div>
               </div>
             </div>
           </div>
