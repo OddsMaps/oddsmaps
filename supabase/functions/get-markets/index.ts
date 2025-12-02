@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
         title: market.title,
         description: market.description,
         category: market.category,
+        image_url: market.image_url,
         end_date: market.end_date,
         status: market.status,
         yes_price: latestData?.yes_price || 0.5,

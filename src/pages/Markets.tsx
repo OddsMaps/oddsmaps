@@ -52,12 +52,13 @@ const Markets = () => {
     return `$${volume.toFixed(0)}`;
   };
 
-  // Generate a placeholder image URL based on market category/title
+  // Get market image - use real image_url or fallback
   const getMarketImage = (market: any) => {
-    const category = market.category?.toLowerCase() || 'general';
-    const seed = market.id.slice(0, 8);
-    // Using picsum for placeholder images with consistent seeds
-    return `https://picsum.photos/seed/${seed}/100/100`;
+    if (market.image_url) {
+      return market.image_url;
+    }
+    // Fallback to UI avatars based on title
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
   };
 
   return (

@@ -26,6 +26,7 @@ interface AnyMarket {
   liquidity?: string | number;
   outcomes?: Array<{ name?: string; price?: string | number }>;
   tokens?: Array<{ outcome?: string; price?: string | number }>;
+  image?: string; // Market image URL from Polymarket
 }
 
 function toNumber(v: unknown, fallback = 0): number {
@@ -120,6 +121,7 @@ Deno.serve(async (req) => {
         const title = m.question || m.title || m.name || 'Polymarket Market';
         const description = m.description || '';
         const category = m.category || (m.tags && m.tags[0]) || 'General';
+        const imageUrl = m.image || (m as any).icon || null;
 
         const endRaw = m.end_date_iso || m.endDate || m.endTime;
         const endDate = endRaw ? new Date(endRaw as any).toISOString() : null;
@@ -138,6 +140,7 @@ Deno.serve(async (req) => {
           title,
           description,
           category,
+          image_url: imageUrl,
           end_date: endDate,
           status: 'active',
           yes_price,
@@ -171,13 +174,14 @@ Deno.serve(async (req) => {
         .single();
 
       if (existing) {
-        // Update core info
+        // Update core info including image_url
         await supabase
           .from('markets')
           .update({
             title: m.title,
             description: m.description,
             category: m.category,
+            image_url: m.image_url,
             end_date: m.end_date,
             status: m.status,
             updated_at: new Date().toISOString(),
@@ -205,6 +209,7 @@ Deno.serve(async (req) => {
             title: m.title,
             description: m.description,
             category: m.category,
+            image_url: m.image_url,
             end_date: m.end_date,
             status: m.status,
           })

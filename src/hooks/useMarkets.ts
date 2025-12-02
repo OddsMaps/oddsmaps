@@ -10,6 +10,7 @@ export interface Market {
   title: string;
   description: string | null;
   category: string | null;
+  image_url: string | null;
   end_date: string | null;
   status: string;
   yes_price: number;

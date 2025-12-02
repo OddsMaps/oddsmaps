@@ -71,6 +71,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          image_url: string | null
           market_id: string
           source: string
           status: string | null
@@ -83,6 +84,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           market_id: string
           source: string
           status?: string | null
@@ -95,6 +97,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           market_id?: string
           source?: string
           status?: string | null
