@@ -160,135 +160,80 @@ const Markets = () => {
                 ))}
               </div>
 
-              {/* Search */}
-              <div className="relative max-w-2xl mx-auto mb-6">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search markets..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 glass"
-                />
-              </div>
-
-              {/* Stats */}
-              {markets && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-6">
-                  <Card className="glass">
-                    <CardHeader className="pb-2">
-                      <CardDescription>Total Markets</CardDescription>
-                      <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
-                    </CardHeader>
-                  </Card>
-                  <Card className="glass">
-                    <CardHeader className="pb-2">
-                      <CardDescription>Total Volume</CardDescription>
-                      <CardTitle className="text-3xl gradient-text">
-                        {formatVolume(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0))}
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
-                  <Card className="glass">
-                    <CardHeader className="pb-2">
-                      <CardDescription>Active Now</CardDescription>
-                      <CardTitle className="text-3xl gradient-text">
-                        {markets.filter(m => m.status === 'active').length}
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
-                </div>
-              )}
-
-              {/* Markets Grid */}
+              {/* Markets List */}
               {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
                   {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-64 rounded-2xl" />
+                    <Skeleton key={i} className="h-20 rounded-xl" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMarkets?.map((market) => {
-                const priceChange = getPriceChange(market);
-                const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
-                const noPrice = ((market.no_price || 0) * 100).toFixed(1);
-                const yesPercentage = (market.yes_price || 0) * 100;
-                
-                return (
-                  <Card
-                    key={market.id}
-                    className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-[1.02] group relative"
-                    onClick={() => navigate(`/market/${market.market_id}`)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <Badge variant={priceChange === "bullish" ? "default" : "secondary"} className="shrink-0">
-                          {priceChange === "bullish" ? (
-                            <TrendingUp className="w-3 h-3 mr-1" />
+                <div className="space-y-1">
+                  {filteredMarkets?.map((market, index) => {
+                    const yesPrice = ((market.yes_price || 0) * 100).toFixed(0);
+                    const yesPercentage = (market.yes_price || 0) * 100;
+                    
+                    return (
+                      <div
+                        key={market.id}
+                        className="flex items-center gap-4 py-4 px-2 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group border-b border-border/30 last:border-0"
+                        onClick={() => navigate(`/market/${market.market_id}`)}
+                      >
+                        {/* Rank Number */}
+                        <span className="text-muted-foreground text-sm w-6 shrink-0">{index + 1}</span>
+                        
+                        {/* Market Image */}
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
+                          {market.image_url ? (
+                            <img 
+                              src={market.image_url} 
+                              alt={market.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
                           ) : (
-                            <TrendingDown className="w-3 h-3 mr-1" />
+                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                              <span className="text-xs font-bold text-muted-foreground">
+                                {market.title.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
                           )}
-                          {yesPrice}%
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {market.category || "Other"}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                        {market.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {market.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Yes/No Distribution Bar */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="flex items-center gap-1 text-green-500 font-medium">
-                            <Activity className="w-3 h-3" />
-                            YES {yesPrice}%
-                          </span>
-                          <span className="flex items-center gap-1 text-red-500 font-medium">
-                            NO {noPrice}%
-                            <Activity className="w-3 h-3" />
-                          </span>
                         </div>
-                        <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
-                            style={{ width: `${yesPercentage}%` }}
-                          />
-                          <div 
-                            className="absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 to-red-400 transition-all duration-500"
-                            style={{ width: `${100 - yesPercentage}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-border/50">
-                        <div>
-                          <div className="text-muted-foreground text-xs">Total Volume</div>
-                          <div className="font-semibold">
-                            {formatVolume(market.total_volume || 0)}
+                        
+                        {/* Market Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                            {market.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-lg font-semibold text-foreground">{yesPrice}%</span>
+                            <span className="text-sm text-primary flex items-center gap-0.5">
+                              <TrendingUp className="w-3 h-3" />
+                              0%
+                            </span>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground text-xs">24h Volume</div>
-                          <div className="font-semibold">
-                            {formatVolume(market.volume_24h || 0)}
+                        
+                        {/* Progress Bar */}
+                        <div className="hidden md:flex items-center gap-3 w-32">
+                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary rounded-full transition-all duration-500"
+                              style={{ width: `${yesPercentage}%` }}
+                            />
                           </div>
                         </div>
+                        
+                        {/* Arrow */}
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors absolute top-4 right-4" />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )}
 
               {filteredMarkets?.length === 0 && !isLoading && (
                 <div className="text-center py-12">
