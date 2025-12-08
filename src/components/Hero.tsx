@@ -1,9 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   return (
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 px-4">
@@ -17,17 +27,47 @@ const Hero = () => {
         {/* Grid overlay for depth */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
         
-        {/* Branded floating bubbles with glow effects */}
-        <div className="absolute top-[15%] left-[8%] w-32 h-32 rounded-full bg-gradient-to-br from-primary/25 via-primary/10 to-transparent backdrop-blur-sm border border-primary/20 animate-float animate-bubble-glow shadow-[0_0_40px_rgba(34,197,94,0.25),inset_0_-10px_30px_rgba(0,0,0,0.1),inset_0_10px_20px_rgba(255,255,255,0.1)]" style={{ animationDuration: '8s', '--tw-animate-delay': '0s' } as React.CSSProperties} />
-        <div className="absolute top-[25%] right-[12%] w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 via-secondary/8 to-transparent backdrop-blur-sm border border-secondary/15 animate-float animate-bubble-glow shadow-[0_0_35px_rgba(239,68,68,0.2),inset_0_-8px_25px_rgba(0,0,0,0.1),inset_0_8px_15px_rgba(255,255,255,0.08)]" style={{ animationDelay: '1s', animationDuration: '10s' }} />
-        <div className="absolute bottom-[30%] left-[15%] w-20 h-20 rounded-full bg-gradient-to-br from-accent/20 via-accent/8 to-transparent backdrop-blur-sm border border-accent/15 animate-float animate-bubble-glow shadow-[0_0_30px_rgba(168,85,247,0.2),inset_0_-6px_20px_rgba(0,0,0,0.1),inset_0_6px_12px_rgba(255,255,255,0.08)]" style={{ animationDelay: '2s', animationDuration: '9s' }} />
-        <div className="absolute top-[45%] right-[25%] w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent backdrop-blur-sm border border-primary/12 animate-float animate-bubble-glow shadow-[0_0_25px_rgba(34,197,94,0.18),inset_0_-5px_15px_rgba(0,0,0,0.08),inset_0_5px_10px_rgba(255,255,255,0.06)]" style={{ animationDelay: '0.5s', animationDuration: '11s' }} />
-        <div className="absolute bottom-[20%] right-[8%] w-28 h-28 rounded-full bg-gradient-to-br from-secondary/18 via-secondary/6 to-transparent backdrop-blur-sm border border-secondary/12 animate-float animate-bubble-glow shadow-[0_0_45px_rgba(239,68,68,0.22),inset_0_-10px_30px_rgba(0,0,0,0.12),inset_0_10px_20px_rgba(255,255,255,0.1)]" style={{ animationDelay: '3s', animationDuration: '12s' }} />
-        <div className="absolute top-[60%] left-[5%] w-14 h-14 rounded-full bg-gradient-to-br from-primary/22 via-primary/8 to-transparent backdrop-blur-sm border border-primary/15 animate-float animate-bubble-glow shadow-[0_0_20px_rgba(34,197,94,0.2),inset_0_-4px_12px_rgba(0,0,0,0.08),inset_0_4px_8px_rgba(255,255,255,0.06)]" style={{ animationDelay: '1.5s', animationDuration: '7s' }} />
-        <div className="absolute top-[10%] left-[40%] w-12 h-12 rounded-full bg-gradient-to-br from-accent/18 via-accent/5 to-transparent backdrop-blur-sm border border-accent/10 animate-float animate-bubble-glow shadow-[0_0_18px_rgba(168,85,247,0.18),inset_0_-3px_10px_rgba(0,0,0,0.06),inset_0_3px_6px_rgba(255,255,255,0.05)]" style={{ animationDelay: '2.5s', animationDuration: '13s' }} />
-        <div className="absolute bottom-[40%] right-[18%] w-[72px] h-[72px] rounded-full bg-gradient-to-br from-secondary/15 via-secondary/4 to-transparent backdrop-blur-sm border border-secondary/10 animate-float animate-bubble-glow shadow-[0_0_22px_rgba(239,68,68,0.15),inset_0_-5px_15px_rgba(0,0,0,0.08),inset_0_5px_10px_rgba(255,255,255,0.06)]" style={{ animationDelay: '4s', animationDuration: '10s' }} />
-        <div className="absolute top-[35%] left-[30%] w-10 h-10 rounded-full bg-gradient-to-br from-primary/18 via-primary/5 to-transparent backdrop-blur-sm border border-primary/10 animate-float animate-bubble-glow shadow-[0_0_15px_rgba(34,197,94,0.15),inset_0_-2px_8px_rgba(0,0,0,0.06),inset_0_2px_5px_rgba(255,255,255,0.04)]" style={{ animationDelay: '0.8s', animationDuration: '9s' }} />
-        <div className="absolute bottom-[15%] left-[35%] w-[88px] h-[88px] rounded-full bg-gradient-to-br from-accent/15 via-accent/5 to-transparent backdrop-blur-sm border border-accent/10 animate-float animate-bubble-glow shadow-[0_0_28px_rgba(168,85,247,0.18),inset_0_-6px_18px_rgba(0,0,0,0.1),inset_0_6px_12px_rgba(255,255,255,0.08)]" style={{ animationDelay: '3.5s', animationDuration: '11s' }} />
+        {/* Branded floating bubbles with parallax and glow effects */}
+        <div 
+          className="absolute top-[15%] left-[8%] w-32 h-32 rounded-full bg-gradient-to-br from-primary/25 via-primary/10 to-transparent backdrop-blur-sm border border-primary/20 animate-float animate-bubble-glow shadow-[0_0_40px_rgba(34,197,94,0.25),inset_0_-10px_30px_rgba(0,0,0,0.1),inset_0_10px_20px_rgba(255,255,255,0.1)]" 
+          style={{ animationDuration: '8s', transform: `translateY(${scrollY * 0.15}px)` }} 
+        />
+        <div 
+          className="absolute top-[25%] right-[12%] w-24 h-24 rounded-full bg-gradient-to-br from-secondary/20 via-secondary/8 to-transparent backdrop-blur-sm border border-secondary/15 animate-float animate-bubble-glow shadow-[0_0_35px_rgba(239,68,68,0.2),inset_0_-8px_25px_rgba(0,0,0,0.1),inset_0_8px_15px_rgba(255,255,255,0.08)]" 
+          style={{ animationDelay: '1s', animationDuration: '10s', transform: `translateY(${scrollY * -0.1}px)` }} 
+        />
+        <div 
+          className="absolute bottom-[30%] left-[15%] w-20 h-20 rounded-full bg-gradient-to-br from-accent/20 via-accent/8 to-transparent backdrop-blur-sm border border-accent/15 animate-float animate-bubble-glow shadow-[0_0_30px_rgba(168,85,247,0.2),inset_0_-6px_20px_rgba(0,0,0,0.1),inset_0_6px_12px_rgba(255,255,255,0.08)]" 
+          style={{ animationDelay: '2s', animationDuration: '9s', transform: `translateY(${scrollY * 0.2}px)` }} 
+        />
+        <div 
+          className="absolute top-[45%] right-[25%] w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent backdrop-blur-sm border border-primary/12 animate-float animate-bubble-glow shadow-[0_0_25px_rgba(34,197,94,0.18),inset_0_-5px_15px_rgba(0,0,0,0.08),inset_0_5px_10px_rgba(255,255,255,0.06)]" 
+          style={{ animationDelay: '0.5s', animationDuration: '11s', transform: `translateY(${scrollY * -0.08}px)` }} 
+        />
+        <div 
+          className="absolute bottom-[20%] right-[8%] w-28 h-28 rounded-full bg-gradient-to-br from-secondary/18 via-secondary/6 to-transparent backdrop-blur-sm border border-secondary/12 animate-float animate-bubble-glow shadow-[0_0_45px_rgba(239,68,68,0.22),inset_0_-10px_30px_rgba(0,0,0,0.12),inset_0_10px_20px_rgba(255,255,255,0.1)]" 
+          style={{ animationDelay: '3s', animationDuration: '12s', transform: `translateY(${scrollY * 0.12}px)` }} 
+        />
+        <div 
+          className="absolute top-[60%] left-[5%] w-14 h-14 rounded-full bg-gradient-to-br from-primary/22 via-primary/8 to-transparent backdrop-blur-sm border border-primary/15 animate-float animate-bubble-glow shadow-[0_0_20px_rgba(34,197,94,0.2),inset_0_-4px_12px_rgba(0,0,0,0.08),inset_0_4px_8px_rgba(255,255,255,0.06)]" 
+          style={{ animationDelay: '1.5s', animationDuration: '7s', transform: `translateY(${scrollY * -0.18}px)` }} 
+        />
+        <div 
+          className="absolute top-[10%] left-[40%] w-12 h-12 rounded-full bg-gradient-to-br from-accent/18 via-accent/5 to-transparent backdrop-blur-sm border border-accent/10 animate-float animate-bubble-glow shadow-[0_0_18px_rgba(168,85,247,0.18),inset_0_-3px_10px_rgba(0,0,0,0.06),inset_0_3px_6px_rgba(255,255,255,0.05)]" 
+          style={{ animationDelay: '2.5s', animationDuration: '13s', transform: `translateY(${scrollY * 0.25}px)` }} 
+        />
+        <div 
+          className="absolute bottom-[40%] right-[18%] w-[72px] h-[72px] rounded-full bg-gradient-to-br from-secondary/15 via-secondary/4 to-transparent backdrop-blur-sm border border-secondary/10 animate-float animate-bubble-glow shadow-[0_0_22px_rgba(239,68,68,0.15),inset_0_-5px_15px_rgba(0,0,0,0.08),inset_0_5px_10px_rgba(255,255,255,0.06)]" 
+          style={{ animationDelay: '4s', animationDuration: '10s', transform: `translateY(${scrollY * -0.05}px)` }} 
+        />
+        <div 
+          className="absolute top-[35%] left-[30%] w-10 h-10 rounded-full bg-gradient-to-br from-primary/18 via-primary/5 to-transparent backdrop-blur-sm border border-primary/10 animate-float animate-bubble-glow shadow-[0_0_15px_rgba(34,197,94,0.15),inset_0_-2px_8px_rgba(0,0,0,0.06),inset_0_2px_5px_rgba(255,255,255,0.04)]" 
+          style={{ animationDelay: '0.8s', animationDuration: '9s', transform: `translateY(${scrollY * 0.22}px)` }} 
+        />
+        <div 
+          className="absolute bottom-[15%] left-[35%] w-[88px] h-[88px] rounded-full bg-gradient-to-br from-accent/15 via-accent/5 to-transparent backdrop-blur-sm border border-accent/10 animate-float animate-bubble-glow shadow-[0_0_28px_rgba(168,85,247,0.18),inset_0_-6px_18px_rgba(0,0,0,0.1),inset_0_6px_12px_rgba(255,255,255,0.08)]" 
+          style={{ animationDelay: '3.5s', animationDuration: '11s', transform: `translateY(${scrollY * -0.15}px)` }} 
+        />
       </div>
 
       {/* Content */}
