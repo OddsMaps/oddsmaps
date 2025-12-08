@@ -97,6 +97,12 @@ export interface Market {
   price_change_24h: number;
   created_at: string | null;
   last_updated: string;
+  clob_token_ids: string[] | null;
+}
+
+export interface PriceHistoryPoint {
+  timestamp: number;
+  price: number;
 }
 
 export interface Transaction {
@@ -294,6 +300,19 @@ export async function fetchMarkets(
         const volatility = Math.abs(yes_price - 0.5) * 100;
         const price_change_24h = toNumber((m as any).oneDayPriceChange, 0);
         const created_at = (m as any).createdAt || (m as any).startDate || null;
+        
+        // Parse clobTokenIds - it's a JSON string array like '["tokenId1", "tokenId2"]'
+        let clob_token_ids: string[] | null = null;
+        try {
+          const tokenIdsStr = (m as any).clobTokenIds;
+          if (tokenIdsStr && typeof tokenIdsStr === 'string') {
+            clob_token_ids = JSON.parse(tokenIdsStr);
+          } else if (Array.isArray(tokenIdsStr)) {
+            clob_token_ids = tokenIdsStr;
+          }
+        } catch {
+          clob_token_ids = null;
+        }
 
         return {
           id: `polymarket-${conditionId}`,
@@ -314,6 +333,7 @@ export async function fetchMarkets(
           volatility,
           price_change_24h,
           created_at,
+          clob_token_ids,
           last_updated: new Date().toISOString(),
         };
       });
@@ -322,6 +342,53 @@ export async function fetchMarkets(
   } catch (error) {
     console.error("Error fetching markets:", error);
     // Return empty array instead of throwing to prevent UI breakage
+    return [];
+  }
+}
+
+/**
+ * Fetch price history from Polymarket CLOB API
+ * @param tokenId - The CLOB token ID (from market.clob_token_ids[0] for Yes outcome)
+ * @param interval - Time interval: '1h', '6h', '1d', '1w', '1m', 'max'
+ */
+export async function fetchPriceHistory(
+  tokenId: string,
+  interval: '1h' | '6h' | '1d' | '1w' | '1m' | 'max' = '1d'
+): Promise<PriceHistoryPoint[]> {
+  try {
+    // Map our intervals to fidelity (resolution in minutes)
+    const fidelityMap: Record<string, number> = {
+      '1h': 1,      // 1 minute resolution for 1 hour
+      '6h': 5,      // 5 minute resolution for 6 hours
+      '1d': 15,     // 15 minute resolution for 1 day
+      '1w': 60,     // 1 hour resolution for 1 week
+      '1m': 240,    // 4 hour resolution for 1 month
+      'max': 1440,  // 1 day resolution for max
+    };
+    
+    const fidelity = fidelityMap[interval] || 15;
+    
+    const url = `https://clob.polymarket.com/prices-history?market=${tokenId}&interval=${interval}&fidelity=${fidelity}`;
+    const response = await fetchWithProxy(url);
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch price history: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.history || !Array.isArray(data.history)) {
+      return [];
+    }
+    
+    // Transform the response to our format
+    return data.history.map((point: { t: number; p: number }) => ({
+      timestamp: point.t,
+      price: point.p,
+    }));
+  } catch (error) {
+    console.error('Error fetching price history:', error);
     return [];
   }
 }

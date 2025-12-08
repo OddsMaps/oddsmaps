@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,8 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { fetchPriceHistory, type PriceHistoryPoint } from "@/lib/polymarket-api";
+
+type TimeInterval = '1h' | '6h' | '1d' | '1w' | '1m' | 'max';
 
 interface PriceChartModalProps {
   open: boolean;
@@ -18,44 +21,92 @@ interface PriceChartModalProps {
     price_change_24h: number;
     volume_24h: number;
     image_url?: string | null;
+    clob_token_ids?: string[] | null;
   } | null;
 }
 
 const PriceChartModal = ({ open, onOpenChange, market }: PriceChartModalProps) => {
-  // Generate synthetic price history data
+  const [selectedInterval, setSelectedInterval] = useState<TimeInterval>('1d');
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const intervals: { id: TimeInterval; label: string }[] = [
+    { id: '1h', label: '1H' },
+    { id: '1d', label: '24H' },
+    { id: '1w', label: '7D' },
+    { id: '1m', label: '1M' },
+  ];
+
+  // Fetch price history when modal opens or interval changes
+  useEffect(() => {
+    if (!open || !market?.clob_token_ids?.[0]) {
+      setPriceHistory([]);
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Use the first token ID (Yes outcome)
+        const tokenId = market.clob_token_ids![0];
+        const history = await fetchPriceHistory(tokenId, selectedInterval);
+        setPriceHistory(history);
+      } catch (error) {
+        console.error('Error fetching price history:', error);
+        setPriceHistory([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [open, market?.clob_token_ids, selectedInterval]);
+
+  // Format chart data
   const chartData = useMemo(() => {
-    if (!market) return [];
+    if (priceHistory.length === 0) return [];
     
-    const numPoints = 48; // 48 data points for 24 hours (every 30 min)
-    const data: { time: string; price: number; hour: number }[] = [];
-    
-    const startPrice = market.yes_price - market.price_change_24h;
-    const now = new Date();
-    
-    for (let i = 0; i < numPoints; i++) {
-      const progress = i / (numPoints - 1);
-      // Add realistic price movement with some volatility
-      const noise = (Math.sin(i * 2.5) * 0.03 + Math.cos(i * 1.7) * 0.02 + Math.sin(i * 0.8) * 0.015) * (1 - progress * 0.5);
-      const price = startPrice + (market.price_change_24h * progress) + noise;
+    return priceHistory.map((point) => {
+      const date = new Date(point.timestamp * 1000);
+      let timeLabel: string;
       
-      const pointTime = new Date(now.getTime() - (numPoints - 1 - i) * 30 * 60 * 1000);
-      const hour = pointTime.getHours();
-      const minutes = pointTime.getMinutes();
+      if (selectedInterval === '1h' || selectedInterval === '6h') {
+        timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      } else if (selectedInterval === '1d') {
+        timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      } else if (selectedInterval === '1w') {
+        timeLabel = date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' });
+      } else {
+        timeLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
       
-      data.push({
-        time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-        price: Math.max(0, Math.min(1, price)) * 100,
-        hour: i,
-      });
+      return {
+        time: timeLabel,
+        timestamp: point.timestamp,
+        price: point.price * 100, // Convert to percentage
+      };
+    });
+  }, [priceHistory, selectedInterval]);
+
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    if (chartData.length === 0) {
+      return { high: 0, low: 0, change: 0 };
     }
     
-    return data;
-  }, [market]);
+    const prices = chartData.map(d => d.price);
+    const high = Math.max(...prices);
+    const low = Math.min(...prices);
+    const firstPrice = chartData[0]?.price || 0;
+    const lastPrice = chartData[chartData.length - 1]?.price || 0;
+    const change = lastPrice - firstPrice;
+    
+    return { high, low, change };
+  }, [chartData]);
 
   if (!market) return null;
 
-  const isPositive = market.price_change_24h >= 0;
-  const priceChangePercent = ((market.price_change_24h / (market.yes_price - market.price_change_24h)) * 100) || 0;
+  const isPositive = stats.change >= 0 || market.price_change_24h >= 0;
 
   const formatVolume = (volume: number) => {
     if (volume >= 1000000) {
@@ -103,94 +154,108 @@ const PriceChartModal = ({ open, onOpenChange, market }: PriceChartModalProps) =
         
         <div className="mt-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-muted-foreground">Price History (24h)</span>
+            <span className="text-sm text-muted-foreground">
+              Price History {isLoading && <Loader2 className="w-3 h-3 inline ml-1 animate-spin" />}
+            </span>
             <div className="flex gap-2">
-              {['1H', '24H', '7D', '1M'].map((period) => (
+              {intervals.map((interval) => (
                 <button
-                  key={period}
+                  key={interval.id}
+                  onClick={() => setSelectedInterval(interval.id)}
                   className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                    period === '24H' 
+                    selectedInterval === interval.id 
                       ? 'bg-foreground text-background' 
                       : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {period}
+                  {interval.label}
                 </button>
               ))}
             </div>
           </div>
           
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop 
-                      offset="0%" 
-                      stopColor={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"} 
-                      stopOpacity={0.3} 
-                    />
-                    <stop 
-                      offset="100%" 
-                      stopColor={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"} 
-                      stopOpacity={0} 
-                    />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="time" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                  interval={11}
-                />
-                <YAxis 
-                  domain={['dataMin - 2', 'dataMax + 2']}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                  tickFormatter={(value) => `${value.toFixed(0)}%`}
-                  width={45}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Price']}
-                  labelFormatter={(label) => `Time: ${label}`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"}
-                  strokeWidth={2}
-                  fill="url(#priceGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                No price data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop 
+                        offset="0%" 
+                        stopColor={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"} 
+                        stopOpacity={0.3} 
+                      />
+                      <stop 
+                        offset="100%" 
+                        stopColor={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"} 
+                        stopOpacity={0} 
+                      />
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey="time" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    interval="preserveStartEnd"
+                    minTickGap={50}
+                  />
+                  <YAxis 
+                    domain={['dataMin - 2', 'dataMax + 2']}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    width={45}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number) => [`${value.toFixed(2)}%`, 'Price']}
+                    labelFormatter={(label) => `Time: ${label}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="price"
+                    stroke={isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))"}
+                    strokeWidth={2}
+                    fill="url(#priceGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
         
         <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
           <div>
-            <p className="text-xs text-muted-foreground">24h High</p>
+            <p className="text-xs text-muted-foreground">Period High</p>
             <p className="text-sm font-medium">
-              {(Math.max(...chartData.map(d => d.price))).toFixed(1)}%
+              {stats.high > 0 ? `${stats.high.toFixed(1)}%` : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">24h Low</p>
+            <p className="text-xs text-muted-foreground">Period Low</p>
             <p className="text-sm font-medium">
-              {(Math.min(...chartData.map(d => d.price))).toFixed(1)}%
+              {stats.low > 0 ? `${stats.low.toFixed(1)}%` : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">24h Change</p>
-            <p className={`text-sm font-medium ${isPositive ? 'text-primary' : 'text-secondary'}`}>
-              {isPositive ? '+' : ''}{(market.price_change_24h * 100).toFixed(2)}%
+            <p className="text-xs text-muted-foreground">Period Change</p>
+            <p className={`text-sm font-medium ${stats.change >= 0 ? 'text-primary' : 'text-secondary'}`}>
+              {stats.change !== 0 ? `${stats.change >= 0 ? '+' : ''}${stats.change.toFixed(2)}%` : '-'}
             </p>
           </div>
         </div>
