@@ -24,7 +24,7 @@ const Markets = () => {
     const combined = `${lower} ${titleLower}`;
     
     // Crypto keywords
-    if (/bitcoin|ethereum|crypto|blockchain|defi|token|solana|eth\b|btc\b|dogecoin|xrp|cardano|polygon|avalanche|chainlink|uniswap|binance|coinbase|nft|web3/.test(combined)) {
+    if (/bitcoin|ethereum|crypto|blockchain|defi|token|solana|eth\b|btc\b|dogecoin|doge\b|xrp|cardano|polygon|avalanche|chainlink|uniswap|binance|coinbase|nft|web3|marketcap|market cap|fdv\b|airdrop|staking|altcoin|memecoin|meme coin|shib|pepe\b|bonk|sui\b|apt\b|aptos|arb\b|arbitrum|op\b|optimism|matic|avax|atom|cosmos|polkadot|dot\b|near\b|ftx|luna|terra|usdt|usdc|stablecoin|tether|ledger|wallet|mining|halving|hodl|bull run|bear market|pump|dump|whale|liquidity|dex|cex|exchange|kraken|gemini|kucoin|okx|bybit|layer 2|l2\b|zk\b|rollup|bridge|swap|yield|apr\b|apy\b/.test(combined)) {
       return "Crypto";
     }
     
