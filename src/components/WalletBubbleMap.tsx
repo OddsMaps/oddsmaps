@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, TrendingDown, Users, DollarSign, Maximize2, GripHorizontal } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, ZoomIn, ZoomOut, Maximize2, Move, MousePointer } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { WalletProfileModal } from "./WalletProfileModal";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface WalletBubbleMapProps {
@@ -36,7 +37,16 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [error, setError] = useState<string | null>(null);
   const [draggedWallet, setDraggedWallet] = useState<string | null>(null);
   const [positions, setPositions] = useState<Map<string, BubblePosition>>(new Map());
+  
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [mode, setMode] = useState<'select' | 'pan'>('select');
+  
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Fetch real wallet data from Polymarket API
   useEffect(() => {
@@ -345,17 +355,64 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   }, [wallets]);
 
   const handleDrag = useCallback((walletId: string, x: number, y: number) => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || mode === 'pan') return;
     const rect = containerRef.current.getBoundingClientRect();
+    
+    // Adjust for zoom and pan
+    const adjustedX = (x - pan.x) / zoom;
+    const adjustedY = (y - pan.y) / zoom;
     
     setPositions(prev => {
       const newPositions = new Map(prev);
       newPositions.set(walletId, {
-        x: Math.max(20, Math.min(rect.width - 20, x)),
-        y: Math.max(20, Math.min(rect.height - 20, y))
+        x: Math.max(20, Math.min(rect.width / zoom - 20, adjustedX)),
+        y: Math.max(20, Math.min(rect.height / zoom - 20, adjustedY))
       });
       return newPositions;
     });
+  }, [zoom, pan, mode]);
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoom(prev => Math.min(prev + 0.25, 3));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(prev => Math.max(prev - 0.25, 0.5));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Wheel zoom handler
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (mode === 'pan' || e.button === 1) { // Middle mouse button or pan mode
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  }, [mode, pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning) {
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      });
+    }
+  }, [isPanning, panStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
   }, []);
 
   const formatAmount = (amount: number) => {
@@ -415,20 +472,95 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           </p>
         </div>
         
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <GripHorizontal className="w-4 h-4" />
-          <span>Drag to rearrange</span>
+        {/* Zoom & Pan Controls */}
+        <div className="flex items-center gap-2">
+          {/* Mode Toggle */}
+          <div className="flex items-center bg-muted/30 rounded-lg p-1 gap-1">
+            <Button
+              size="sm"
+              variant={mode === 'select' ? 'default' : 'ghost'}
+              onClick={() => setMode('select')}
+              className="h-8 px-3"
+              title="Select & Drag Wallets"
+            >
+              <MousePointer className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant={mode === 'pan' ? 'default' : 'ghost'}
+              onClick={() => setMode('pan')}
+              className="h-8 px-3"
+              title="Pan View"
+            >
+              <Move className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center bg-muted/30 rounded-lg p-1 gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleZoomOut}
+              disabled={zoom <= 0.5}
+              className="h-8 w-8 p-0"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground w-12 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleZoomIn}
+              disabled={zoom >= 3}
+              className="h-8 w-8 p-0"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Reset Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReset}
+            className="h-8 px-3"
+            title="Reset View"
+          >
+            <Maximize2 className="w-4 h-4 mr-1" />
+            <span className="text-xs">Reset</span>
+          </Button>
         </div>
       </div>
 
       {/* Main Bubble Map */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[700px] rounded-2xl overflow-hidden border border-border/20"
+        className={`relative w-full h-[700px] rounded-2xl overflow-hidden border border-border/20 ${
+          mode === 'pan' ? 'cursor-grab' : 'cursor-default'
+        } ${isPanning ? 'cursor-grabbing' : ''}`}
         style={{
           background: 'linear-gradient(135deg, hsl(224 71% 4%) 0%, hsl(224 71% 6%) 100%)'
         }}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
+        {/* Zoomable/Pannable Content Container */}
+        <div
+          ref={contentRef}
+          className="absolute inset-0 origin-center transition-transform duration-100"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'center center',
+          }}
+        >
         {/* Background with quadrant gradients */}
         <div className="absolute inset-0 pointer-events-none">
           {/* YES side (left) - Green gradient */}
@@ -618,8 +750,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             );
           })}
         </AnimatePresence>
+        </div>
+        {/* End of zoomable content container */}
 
-        {/* Hover Tooltip */}
+        {/* Hover Tooltip - outside zoom container so it stays fixed */}
         <AnimatePresence>
           {hoveredWallet && !draggedWallet && (
             <motion.div
@@ -628,8 +762,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               exit={{ opacity: 0, y: 10 }}
               className="fixed z-[200] pointer-events-none"
               style={{
-                left: (positions.get(hoveredWallet.id)?.x || 0) + (containerRef.current?.getBoundingClientRect().left || 0),
-                top: (positions.get(hoveredWallet.id)?.y || 0) + (containerRef.current?.getBoundingClientRect().top || 0) - hoveredWallet.size / 2 - 80,
+                left: ((positions.get(hoveredWallet.id)?.x || 0) * zoom + pan.x) + (containerRef.current?.getBoundingClientRect().left || 0),
+                top: ((positions.get(hoveredWallet.id)?.y || 0) * zoom + pan.y) + (containerRef.current?.getBoundingClientRect().top || 0) - (hoveredWallet.size * zoom) / 2 - 80,
               }}
             >
               <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl p-3 shadow-2xl min-w-[180px] transform -translate-x-1/2">
@@ -660,6 +794,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Zoom level indicator */}
+        {zoom !== 1 && (
+          <div className="absolute bottom-4 left-4 z-30 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border/30 text-xs font-medium text-muted-foreground">
+            {Math.round(zoom * 100)}% zoom
+          </div>
+        )}
       </div>
 
       {/* Stats Row */}
