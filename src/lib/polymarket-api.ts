@@ -10,6 +10,8 @@ interface PolymarketMarket {
   description?: string;
   category?: string;
   tags?: string[];
+  image?: string;
+  icon?: string;
   active?: boolean;
   closed?: boolean;
   end_date_iso?: string;
@@ -82,6 +84,7 @@ export interface Market {
   title: string;
   description: string | null;
   category: string | null;
+  image_url: string | null;
   end_date: string | null;
   status: string;
   yes_price: number;
@@ -295,6 +298,7 @@ export async function fetchMarkets(
           title,
           description,
           category: marketCategory,
+          image_url: m.image || m.icon || null,
           end_date: endDate,
           status: "active",
           yes_price,
