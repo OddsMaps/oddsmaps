@@ -175,7 +175,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return { yesWhales, yesSmall, noWhales, noSmall };
   }, [wallets]);
 
-  // Honeycomb-style organized packing algorithm
+  // Grid-based organized positioning algorithm - no overlaps
   const calculateOrganizedPositions = useCallback((
     bubbles: WalletData[],
     containerWidth: number,
@@ -187,110 +187,58 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     if (bubbles.length === 0) return newPositions;
 
     const sorted = [...bubbles].sort((a, b) => b.size - a.size);
-    const padding = 8;
-    const placed: { id: string; x: number; y: number; r: number }[] = [];
-
-    // Place first (largest) bubble in center-left area
-    const firstBubble = sorted[0];
-    const firstR = firstBubble.size / 2;
-    const startX = containerWidth * 0.35;
-    const startY = containerHeight * 0.4;
+    const minPadding = 12; // Minimum space between bubbles
     
-    placed.push({ id: firstBubble.id, x: startX, y: startY, r: firstR });
-    newPositions.set(firstBubble.id, { x: startX + offsetX, y: startY + offsetY });
-
-    // Place remaining bubbles using organized tangent packing
-    for (let i = 1; i < sorted.length; i++) {
-      const bubble = sorted[i];
-      const r = bubble.size / 2;
+    // Calculate total area needed and determine grid layout
+    const totalBubbles = sorted.length;
+    
+    // Use a force-directed layout with strong separation
+    const placed: { id: string; x: number; y: number; r: number; size: number }[] = [];
+    
+    // Calculate rows based on container aspect ratio
+    const aspectRatio = containerWidth / containerHeight;
+    const cols = Math.ceil(Math.sqrt(totalBubbles * aspectRatio));
+    const rows = Math.ceil(totalBubbles / cols);
+    
+    // Calculate cell sizes with generous padding
+    const cellWidth = containerWidth / cols;
+    const cellHeight = containerHeight / rows;
+    
+    // Place bubbles in a grid pattern, largest first
+    sorted.forEach((bubble, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
       
-      let bestPosition = { x: containerWidth / 2, y: containerHeight / 2 };
-      let bestScore = Infinity;
-
-      // Try placing tangent to each existing bubble
-      for (const existing of placed) {
-        // Try 12 angles around each existing bubble (30 degree increments)
-        for (let angle = 0; angle < 360; angle += 30) {
-          const rad = (angle * Math.PI) / 180;
-          const dist = existing.r + r + padding;
-          
-          const candidate = {
-            x: existing.x + Math.cos(rad) * dist,
-            y: existing.y + Math.sin(rad) * dist
-          };
-
-          // Check bounds
-          if (candidate.x - r < padding || candidate.x + r > containerWidth - padding ||
-              candidate.y - r < padding || candidate.y + r > containerHeight - padding) {
-            continue;
-          }
-
-          // Check overlap with all placed bubbles
-          let hasOverlap = false;
-          for (const p of placed) {
-            const dx = candidate.x - p.x;
-            const dy = candidate.y - p.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < r + p.r + padding * 0.5) {
-              hasOverlap = true;
-              break;
-            }
-          }
-
-          if (hasOverlap) continue;
-
-          // Score based on: closeness to center, organization
-          const centerDist = Math.sqrt(
-            Math.pow(candidate.x - containerWidth * 0.5, 2) + 
-            Math.pow(candidate.y - containerHeight * 0.5, 2)
-          );
-          
-          // Prefer positions that create organized rows
-          const rowAlignment = Math.abs(candidate.y % (r * 2.5));
-          
-          // Prefer positions closer to existing bubbles (tighter packing)
-          let minNeighborDist = Infinity;
-          for (const p of placed) {
-            const dx = candidate.x - p.x;
-            const dy = candidate.y - p.y;
-            const d = Math.sqrt(dx * dx + dy * dy);
-            minNeighborDist = Math.min(minNeighborDist, d);
-          }
-
-          const score = centerDist * 0.3 + rowAlignment * 2 + minNeighborDist * 0.5;
-
-          if (score < bestScore) {
-            bestScore = score;
-            bestPosition = candidate;
-          }
-        }
-      }
-
-      // If no valid position found, try grid fallback
-      if (bestScore === Infinity) {
-        const cols = Math.ceil(Math.sqrt(sorted.length));
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const cellW = containerWidth / (cols + 1);
-        const cellH = containerHeight / (Math.ceil(sorted.length / cols) + 1);
-        
-        bestPosition = {
-          x: cellW * (col + 1),
-          y: cellH * (row + 1)
-        };
-      }
-
-      placed.push({ id: bubble.id, x: bestPosition.x, y: bestPosition.y, r });
-      newPositions.set(bubble.id, { x: bestPosition.x + offsetX, y: bestPosition.y + offsetY });
-    }
-
-    // Final pass: collision resolution with gentle forces
-    for (let iteration = 0; iteration < 30; iteration++) {
-      let moved = false;
+      // Center each bubble in its cell
+      const cellCenterX = cellWidth * (col + 0.5);
+      const cellCenterY = cellHeight * (row + 0.5);
+      
+      // Add slight offset for visual interest (honeycomb effect)
+      const honeycombOffset = row % 2 === 0 ? 0 : cellWidth * 0.15;
+      
+      const x = Math.max(bubble.size / 2 + minPadding, 
+                Math.min(containerWidth - bubble.size / 2 - minPadding, 
+                cellCenterX + honeycombOffset));
+      const y = Math.max(bubble.size / 2 + minPadding,
+                Math.min(containerHeight - bubble.size / 2 - minPadding,
+                cellCenterY));
+      
+      placed.push({ 
+        id: bubble.id, 
+        x, 
+        y, 
+        r: bubble.size / 2,
+        size: bubble.size
+      });
+    });
+    
+    // Force-directed separation to ensure no overlaps
+    for (let iteration = 0; iteration < 100; iteration++) {
+      let maxOverlap = 0;
       
       for (let i = 0; i < placed.length; i++) {
-        let fx = 0, fy = 0;
         const p1 = placed[i];
+        let fx = 0, fy = 0;
         
         for (let j = 0; j < placed.length; j++) {
           if (i === j) continue;
@@ -299,13 +247,23 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDist = p1.r + p2.r + padding;
+          const minDist = p1.r + p2.r + minPadding;
           
-          if (distance < minDist && distance > 0) {
-            const force = (minDist - distance) * 0.15;
-            fx += (dx / distance) * force;
-            fy += (dy / distance) * force;
-            moved = true;
+          if (distance < minDist) {
+            const overlap = minDist - distance;
+            maxOverlap = Math.max(maxOverlap, overlap);
+            
+            if (distance > 0.1) {
+              // Push bubbles apart proportionally
+              const force = overlap * 0.5;
+              fx += (dx / distance) * force;
+              fy += (dy / distance) * force;
+            } else {
+              // If bubbles are at same position, push in random direction
+              const angle = Math.random() * Math.PI * 2;
+              fx += Math.cos(angle) * minDist * 0.5;
+              fy += Math.sin(angle) * minDist * 0.5;
+            }
           }
         }
         
@@ -313,16 +271,19 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         p1.x += fx;
         p1.y += fy;
         
-        // Keep in bounds
-        p1.x = Math.max(p1.r + padding, Math.min(containerWidth - p1.r - padding, p1.x));
-        p1.y = Math.max(p1.r + padding, Math.min(containerHeight - p1.r - padding, p1.y));
-        
-        // Update position map
-        newPositions.set(p1.id, { x: p1.x + offsetX, y: p1.y + offsetY });
+        // Keep strictly in bounds
+        p1.x = Math.max(p1.r + minPadding, Math.min(containerWidth - p1.r - minPadding, p1.x));
+        p1.y = Math.max(p1.r + minPadding, Math.min(containerHeight - p1.r - minPadding, p1.y));
       }
       
-      if (!moved) break;
+      // Stop if no significant overlaps remain
+      if (maxOverlap < 1) break;
     }
+    
+    // Set final positions
+    placed.forEach(p => {
+      newPositions.set(p.id, { x: p.x + offsetX, y: p.y + offsetY });
+    });
 
     return newPositions;
   }, []);
