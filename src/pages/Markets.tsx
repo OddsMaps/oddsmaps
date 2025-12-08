@@ -101,7 +101,32 @@ const Markets = () => {
 
   const filteredMarkets = useMemo(() => {
     if (!markets) return [];
-    return markets.filter(market => {
+    
+    let result = [...markets];
+    
+    // Filter by tab first
+    if (selectedTab === "trending") {
+      // Trending: Sort by 24h volume (highest first)
+      result = result.sort((a, b) => b.volume_24h - a.volume_24h);
+    } else if (selectedTab === "breaking") {
+      // Breaking: High activity markets - high trades + high volume in 24h
+      // These are markets with sudden spikes in activity
+      result = result
+        .filter(m => m.trades_24h > 50 || m.volume_24h > 10000)
+        .sort((a, b) => (b.trades_24h * b.volume_24h) - (a.trades_24h * a.volume_24h));
+    } else if (selectedTab === "new") {
+      // New: Recently created markets (by end_date being furthest in future or by recent creation)
+      result = result
+        .filter(m => m.end_date)
+        .sort((a, b) => {
+          const dateA = new Date(a.end_date || 0).getTime();
+          const dateB = new Date(b.end_date || 0).getTime();
+          return dateB - dateA; // Most recent end dates first (newer markets)
+        });
+    }
+    
+    // Then filter by search
+    result = result.filter(market => {
       const matchesSearch = searchQuery === "" || 
         market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         market.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -111,7 +136,9 @@ const Markets = () => {
       const normalizedMarketCategory = normalizeCategory(market.category, market.title);
       return matchesSearch && normalizedMarketCategory === selectedCategory;
     });
-  }, [markets, searchQuery, selectedCategory]);
+    
+    return result;
+  }, [markets, searchQuery, selectedCategory, selectedTab]);
 
   // Get top 6 trending markets by 24h volume
   const trendingMarkets = useMemo(() => {
