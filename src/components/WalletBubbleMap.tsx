@@ -176,16 +176,16 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   // Organize wallets into quadrants
   const organizedWallets = useMemo(() => {
-    const yesWhales = wallets.filter(w => w.side === 'yes' && (w.tier === 'whale' || w.tier === 'large'));
-    const yesSmall = wallets.filter(w => w.side === 'yes' && (w.tier === 'medium' || w.tier === 'small'));
-    const noWhales = wallets.filter(w => w.side === 'no' && (w.tier === 'whale' || w.tier === 'large'));
-    const noSmall = wallets.filter(w => w.side === 'no' && (w.tier === 'medium' || w.tier === 'small'));
+    const yesWhales = wallets.filter(w => w.side === 'yes' && (w.tier === 'whale' || w.tier === 'large')).sort((a, b) => b.amount - a.amount);
+    const yesSmall = wallets.filter(w => w.side === 'yes' && (w.tier === 'medium' || w.tier === 'small')).sort((a, b) => b.amount - a.amount);
+    const noWhales = wallets.filter(w => w.side === 'no' && (w.tier === 'whale' || w.tier === 'large')).sort((a, b) => b.amount - a.amount);
+    const noSmall = wallets.filter(w => w.side === 'no' && (w.tier === 'medium' || w.tier === 'small')).sort((a, b) => b.amount - a.amount);
 
     return { yesWhales, yesSmall, noWhales, noSmall };
   }, [wallets]);
 
-  // Calculate bubble positions with circle packing algorithm
-  const calculatePackedPositions = useCallback((
+  // Honeycomb-style organized packing algorithm
+  const calculateOrganizedPositions = useCallback((
     bubbles: WalletData[],
     containerWidth: number,
     containerHeight: number,
@@ -195,98 +195,143 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const newPositions = new Map<string, BubblePosition>();
     if (bubbles.length === 0) return newPositions;
 
-    // Sort by size descending for better packing
     const sorted = [...bubbles].sort((a, b) => b.size - a.size);
-    const padding = 6;
-    
+    const padding = 8;
     const placed: { id: string; x: number; y: number; r: number }[] = [];
 
-    sorted.forEach((bubble) => {
-      const r = bubble.size / 2 + padding;
-      let bestPosition = { x: containerWidth / 2, y: containerHeight / 2 };
-      let minDistance = Infinity;
+    // Place first (largest) bubble in center-left area
+    const firstBubble = sorted[0];
+    const firstR = firstBubble.size / 2;
+    const startX = containerWidth * 0.35;
+    const startY = containerHeight * 0.4;
+    
+    placed.push({ id: firstBubble.id, x: startX, y: startY, r: firstR });
+    newPositions.set(firstBubble.id, { x: startX + offsetX, y: startY + offsetY });
 
-      if (placed.length === 0) {
-        // First bubble goes near center
-        bestPosition = { x: containerWidth / 2, y: containerHeight / 2 };
-      } else {
-        // Try positions around existing bubbles
-        const attempts = 100;
-        
-        for (let i = 0; i < attempts; i++) {
-          // Generate candidate position using spiral pattern
-          const angle = (i / attempts) * Math.PI * 6;
-          const dist = (i / attempts) * Math.min(containerWidth, containerHeight) * 0.45;
+    // Place remaining bubbles using organized tangent packing
+    for (let i = 1; i < sorted.length; i++) {
+      const bubble = sorted[i];
+      const r = bubble.size / 2;
+      
+      let bestPosition = { x: containerWidth / 2, y: containerHeight / 2 };
+      let bestScore = Infinity;
+
+      // Try placing tangent to each existing bubble
+      for (const existing of placed) {
+        // Try 12 angles around each existing bubble (30 degree increments)
+        for (let angle = 0; angle < 360; angle += 30) {
+          const rad = (angle * Math.PI) / 180;
+          const dist = existing.r + r + padding;
           
           const candidate = {
-            x: containerWidth / 2 + Math.cos(angle) * dist,
-            y: containerHeight / 2 + Math.sin(angle) * dist
+            x: existing.x + Math.cos(rad) * dist,
+            y: existing.y + Math.sin(rad) * dist
           };
-
-          // Check if position is valid (no overlap)
-          let valid = true;
-          let totalOverlap = 0;
-
-          for (const p of placed) {
-            const dx = candidate.x - p.x;
-            const dy = candidate.y - p.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const minDist = r + p.r;
-
-            if (distance < minDist) {
-              valid = false;
-              totalOverlap += minDist - distance;
-            }
-          }
 
           // Check bounds
           if (candidate.x - r < padding || candidate.x + r > containerWidth - padding ||
               candidate.y - r < padding || candidate.y + r > containerHeight - padding) {
-            valid = false;
-            totalOverlap += 100;
+            continue;
           }
 
-          if (valid || totalOverlap < minDistance) {
-            minDistance = valid ? 0 : totalOverlap;
-            bestPosition = candidate;
-            if (valid) break;
-          }
-        }
-
-        // If couldn't find valid position, use force-based adjustment
-        if (minDistance > 0) {
-          for (let iteration = 0; iteration < 20; iteration++) {
-            let fx = 0, fy = 0;
-            
-            for (const p of placed) {
-              const dx = bestPosition.x - p.x;
-              const dy = bestPosition.y - p.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              const minDist = r + p.r;
-
-              if (distance < minDist && distance > 0) {
-                const force = (minDist - distance) / distance;
-                fx += dx * force * 0.5;
-                fy += dy * force * 0.5;
-              }
+          // Check overlap with all placed bubbles
+          let hasOverlap = false;
+          for (const p of placed) {
+            const dx = candidate.x - p.x;
+            const dy = candidate.y - p.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < r + p.r + padding * 0.5) {
+              hasOverlap = true;
+              break;
             }
+          }
 
-            bestPosition.x += fx;
-            bestPosition.y += fy;
+          if (hasOverlap) continue;
 
-            // Keep in bounds
-            bestPosition.x = Math.max(r, Math.min(containerWidth - r, bestPosition.x));
-            bestPosition.y = Math.max(r, Math.min(containerHeight - r, bestPosition.y));
+          // Score based on: closeness to center, organization
+          const centerDist = Math.sqrt(
+            Math.pow(candidate.x - containerWidth * 0.5, 2) + 
+            Math.pow(candidate.y - containerHeight * 0.5, 2)
+          );
+          
+          // Prefer positions that create organized rows
+          const rowAlignment = Math.abs(candidate.y % (r * 2.5));
+          
+          // Prefer positions closer to existing bubbles (tighter packing)
+          let minNeighborDist = Infinity;
+          for (const p of placed) {
+            const dx = candidate.x - p.x;
+            const dy = candidate.y - p.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            minNeighborDist = Math.min(minNeighborDist, d);
+          }
+
+          const score = centerDist * 0.3 + rowAlignment * 2 + minNeighborDist * 0.5;
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestPosition = candidate;
           }
         }
       }
 
+      // If no valid position found, try grid fallback
+      if (bestScore === Infinity) {
+        const cols = Math.ceil(Math.sqrt(sorted.length));
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const cellW = containerWidth / (cols + 1);
+        const cellH = containerHeight / (Math.ceil(sorted.length / cols) + 1);
+        
+        bestPosition = {
+          x: cellW * (col + 1),
+          y: cellH * (row + 1)
+        };
+      }
+
       placed.push({ id: bubble.id, x: bestPosition.x, y: bestPosition.y, r });
-      newPositions.set(bubble.id, { 
-        x: bestPosition.x + offsetX, 
-        y: bestPosition.y + offsetY 
-      });
-    });
+      newPositions.set(bubble.id, { x: bestPosition.x + offsetX, y: bestPosition.y + offsetY });
+    }
+
+    // Final pass: collision resolution with gentle forces
+    for (let iteration = 0; iteration < 30; iteration++) {
+      let moved = false;
+      
+      for (let i = 0; i < placed.length; i++) {
+        let fx = 0, fy = 0;
+        const p1 = placed[i];
+        
+        for (let j = 0; j < placed.length; j++) {
+          if (i === j) continue;
+          const p2 = placed[j];
+          
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDist = p1.r + p2.r + padding;
+          
+          if (distance < minDist && distance > 0) {
+            const force = (minDist - distance) * 0.15;
+            fx += (dx / distance) * force;
+            fy += (dy / distance) * force;
+            moved = true;
+          }
+        }
+        
+        // Apply forces
+        p1.x += fx;
+        p1.y += fy;
+        
+        // Keep in bounds
+        p1.x = Math.max(p1.r + padding, Math.min(containerWidth - p1.r - padding, p1.x));
+        p1.y = Math.max(p1.r + padding, Math.min(containerHeight - p1.r - padding, p1.y));
+        
+        // Update position map
+        newPositions.set(p1.id, { x: p1.x + offsetX, y: p1.y + offsetY });
+      }
+      
+      if (!moved) break;
+    }
 
     return newPositions;
   }, []);
@@ -302,7 +347,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const allPositions = new Map<string, BubblePosition>();
 
     // YES Whales - Top Left
-    const yesWhalePos = calculatePackedPositions(
+    const yesWhalePos = calculateOrganizedPositions(
       organizedWallets.yesWhales,
       halfWidth - 20,
       halfHeight - 20,
@@ -312,7 +357,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     yesWhalePos.forEach((v, k) => allPositions.set(k, v));
 
     // NO Whales - Top Right
-    const noWhalePos = calculatePackedPositions(
+    const noWhalePos = calculateOrganizedPositions(
       organizedWallets.noWhales,
       halfWidth - 20,
       halfHeight - 20,
@@ -322,7 +367,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     noWhalePos.forEach((v, k) => allPositions.set(k, v));
 
     // YES Small - Bottom Left
-    const yesSmallPos = calculatePackedPositions(
+    const yesSmallPos = calculateOrganizedPositions(
       organizedWallets.yesSmall.slice(0, 30),
       halfWidth - 20,
       halfHeight - 20,
@@ -332,7 +377,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     yesSmallPos.forEach((v, k) => allPositions.set(k, v));
 
     // NO Small - Bottom Right
-    const noSmallPos = calculatePackedPositions(
+    const noSmallPos = calculateOrganizedPositions(
       organizedWallets.noSmall.slice(0, 30),
       halfWidth - 20,
       halfHeight - 20,
@@ -342,7 +387,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     noSmallPos.forEach((v, k) => allPositions.set(k, v));
 
     setPositions(allPositions);
-  }, [wallets, organizedWallets, calculatePackedPositions]);
+  }, [wallets, organizedWallets, calculateOrganizedPositions]);
 
   const stats = useMemo(() => {
     const yesVolume = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
