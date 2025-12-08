@@ -241,16 +241,11 @@ export async function fetchWalletTransactionsFromTheGraph(
 }
 
 /**
- * Fetch wallet profile data from The Graph Subgraph
- * Falls back to direct Polymarket API if The Graph fails
- * Returns data in the same format as the direct API for compatibility
- */
-/**
- * Hybrid approach: Combine PolygonScan (fast) + Polymarket API (detailed market data)
- * 1. Use PolygonScan to quickly identify wallet activity
- * 2. Fetch market details from Polymarket API for markets the wallet interacted with
- * 3. Fetch wallet-specific trades from Polymarket API for those markets only
- * This gives us both speed and detailed market information
+ * Fetch wallet profile data using PolygonScan + Polymarket API
+ * Optimized approach: Only 2 requests total
+ * 1. PolygonScan: Get wallet transactions (no CORS issues)
+ * 2. Polymarket API: Get all markets for details (one request)
+ * This gives us wallet activity + detailed market information efficiently
  */
 export async function fetchWalletProfileFromTheGraph(
   walletAddress: string
@@ -485,63 +480,27 @@ export async function fetchWalletProfileFromTheGraph(
       },
     };
   } catch (error: any) {
-    console.warn("The Graph query failed, using PolygonScan + Markets fallback:", error.message);
-    
-    // Fallback: Use PolygonScan + Markets API (still only 2 requests)
-    // This gives us wallet transactions + market details
-    try {
-      const { fetchWalletTransactionsFromPolygon, fetchTokenTransfersFromPolygon } = await import("./polygon-api");
-      const { fetchMarkets } = await import("./polymarket-api");
-      
-      // Request 1: Get wallet transactions from PolygonScan
-      const [polygonTxs, tokenTransfers] = await Promise.all([
-        fetchWalletTransactionsFromPolygon(walletAddress).catch(() => []),
-        fetchTokenTransfersFromPolygon(walletAddress).catch(() => []),
-      ]);
-      
-      // Request 2: Get all markets for details
-      const allMarkets = await fetchMarkets('polymarket');
-      const marketMap = new Map<string, any>();
-      allMarkets.forEach(m => {
-        const conditionId = m.market_id.replace('polymarket-', '');
-        marketMap.set(conditionId, m);
-      });
-      
-      // Combine transactions
-      const allTxs = [...polygonTxs, ...tokenTransfers];
-      
-      if (allTxs.length === 0) {
-        const { fetchWalletProfileFromPolygon } = await import("./polygon-api");
-        return await fetchWalletProfileFromPolygon(walletAddress);
-      }
-      
-      // Process transactions (simplified - PolygonScan doesn't have condition IDs)
-      // So we'll use PolygonScan's existing function which handles this
-      const { fetchWalletProfileFromPolygon } = await import("./polygon-api");
-      return await fetchWalletProfileFromPolygon(walletAddress);
-    } catch (fallbackError) {
-      console.error("Fallback also failed:", fallbackError);
-      // Last resort: return empty profile
-      return {
-        profile: {
-          wallet_address: walletAddress,
-          total_volume: 0,
-          total_trades: 0,
-          total_markets: 0,
-          total_pnl: 0,
-          win_rate: 0,
-          first_seen: new Date().toISOString(),
-          last_seen: new Date().toISOString(),
-        },
-        positions: [],
-        transactions: [],
-        stats: {
-          totalPnL: 0,
-          winRate: 0,
-          winningTrades: 0,
-          losingTrades: 0,
-        },
-      };
-    }
+    console.error("Error fetching wallet profile:", error);
+    // Return empty profile on error
+    return {
+      profile: {
+        wallet_address: walletAddress,
+        total_volume: 0,
+        total_trades: 0,
+        total_markets: 0,
+        total_pnl: 0,
+        win_rate: 0,
+        first_seen: new Date().toISOString(),
+        last_seen: new Date().toISOString(),
+      },
+      positions: [],
+      transactions: [],
+      stats: {
+        totalPnL: 0,
+        winRate: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+      },
+    };
   }
 }
