@@ -1,75 +1,51 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMarkets } from "@/hooks/useMarkets";
-import { usePriceChanges } from "@/hooks/usePriceChanges";
-import { usePriceHistory, generateSparklinePath } from "@/hooks/usePriceHistory";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown, TrendingUp, TrendingDown, Activity, Search } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const Markets = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("breaking");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
-  const { priceChanges } = usePriceChanges(markets || []);
 
-  // Main navigation tabs
-  const mainTabs = [
-    { id: "trending", label: "Trending" },
-    { id: "breaking", label: "Breaking" },
-    { id: "new", label: "New" },
-  ];
+  const filteredMarkets = useMemo(() => {
+    if (!markets) return [];
+    return markets.filter(market =>
+      (searchQuery === "" || 
+       market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       market.description?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (selectedCategory === "All" || market.category === selectedCategory)
+    );
+  }, [markets, searchQuery, selectedCategory]);
 
-  // Category tabs in the nav - match actual Polymarket categories
-  const navCategories = ["Politics", "World", "Science & Tech", "Climate"];
+  // Get top 6 trending markets by 24h volume
+  const trendingMarkets = useMemo(() => {
+    if (!markets) return [];
+    return [...markets]
+      .sort((a, b) => b.volume_24h - a.volume_24h)
+      .slice(0, 6);
+  }, [markets]);
 
-  // Filter category pills - match actual Polymarket categories from database
-  const filterCategories = ["All", "Politics", "World", "Science & Tech", "Climate", "General"];
-
-  // Map filter labels to actual database category values
-  const categoryMap: Record<string, string[]> = {
-    "All": [],
-    "Politics": ["Politics"],
-    "World": ["World"],
-    "Science & Tech": ["Science and Technology"],
-    "Climate": ["Climate and Weather"],
-    "General": ["General"],
+  // Helper function to determine price change trend
+  const getPriceChange = (market: any) => {
+    // Simple heuristic: if yes_price > 0.5, it's bullish
+    return (market.yes_price || 0) > 0.5 ? "bullish" : "bearish";
   };
 
-  const filteredMarkets = markets?.filter(market => {
-    if (selectedCategory === "All") return true;
-    const allowedCategories = categoryMap[selectedCategory] || [];
-    // Match if market category is in the allowed list (case-insensitive)
-    return allowedCategories.some(cat => 
-      market.category?.toLowerCase() === cat.toLowerCase()
-    );
-  })?.sort((a, b) => {
-    // Sort by price change for "breaking" tab
-    if (selectedTab === "breaking") {
-      const changeA = Math.abs(priceChanges[a.id]?.change || 0);
-      const changeB = Math.abs(priceChanges[b.id]?.change || 0);
-      return changeB - changeA;
+  const formatVolume = (volume: number) => {
+    if (volume >= 1000000) {
+      return `$${(volume / 1000000).toFixed(1)}M`;
     }
-    return b.volume_24h - a.volume_24h;
-  });
-
-  // Get market IDs for price history
-  const marketIds = useMemo(() => 
-    filteredMarkets?.slice(0, 20).map(m => m.id) || [], 
-    [filteredMarkets]
-  );
-
-  // Fetch real price history for sparklines
-  const { data: priceHistory } = usePriceHistory(marketIds);
-
-  // Get market image
-  const getMarketImage = (market: any) => {
-    if (market.image_url) return market.image_url;
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
+    return `$${(volume / 1000).toFixed(0)}K`;
   };
 
   // Mock news items for sidebar
@@ -80,6 +56,19 @@ const Markets = () => {
   ];
 
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Navigation tabs
+  const mainTabs = [
+    { id: "breaking", label: "Breaking" },
+    { id: "trending", label: "Trending" },
+    { id: "all", label: "All Markets" },
+  ];
+
+  // Navigation categories
+  const navCategories = ["Politics", "Crypto", "Sports", "Entertainment"];
+
+  // Filter categories
+  const filterCategories = ["All", "Politics", "Crypto", "Sports", "Entertainment", "Technology", "Economics"];
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,91 +160,135 @@ const Markets = () => {
                 ))}
               </div>
 
-              {/* Markets List */}
+              {/* Search */}
+              <div className="relative max-w-2xl mx-auto mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search markets..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-12 glass"
+                />
+              </div>
+
+              {/* Stats */}
+              {markets && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-6">
+                  <Card className="glass">
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total Markets</CardDescription>
+                      <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card className="glass">
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total Volume</CardDescription>
+                      <CardTitle className="text-3xl gradient-text">
+                        {formatVolume(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0))}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                  <Card className="glass">
+                    <CardHeader className="pb-2">
+                      <CardDescription>Active Now</CardDescription>
+                      <CardTitle className="text-3xl gradient-text">
+                        {markets.filter(m => m.status === 'active').length}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                </div>
+              )}
+
+              {/* Markets Grid */}
               {isLoading ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-20 rounded-lg" />
+                    <Skeleton key={i} className="h-64 rounded-2xl" />
                   ))}
                 </div>
               ) : (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={selectedCategory + selectedTab}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-2"
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMarkets?.map((market) => {
+                const priceChange = getPriceChange(market);
+                const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
+                const noPrice = ((market.no_price || 0) * 100).toFixed(1);
+                const yesPercentage = (market.yes_price || 0) * 100;
+                
+                return (
+                  <Card
+                    key={market.id}
+                    className="glass hover:glass-strong transition-all duration-300 cursor-pointer hover:scale-[1.02] group relative"
+                    onClick={() => navigate(`/market/${market.market_id}`)}
                   >
-                    {filteredMarkets?.slice(0, 20).map((market, index) => {
-                      const yesPrice = Math.round((market.yes_price || 0) * 100);
-                      const history = priceHistory?.[market.id];
-                      const { path: sparklinePath, isPositive: sparklinePositive } = generateSparklinePath(history);
-                      
-                      // Calculate price change from history
-                      let priceChange = 0;
-                      if (history && history.length >= 2) {
-                        const oldPrice = history[0].yes_price;
-                        const newPrice = history[history.length - 1].yes_price;
-                        priceChange = Math.round((newPrice - oldPrice) * 100);
-                      }
-
-                      return (
-                        <motion.div
-                          key={market.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.03 }}
-                          onClick={() => navigate(`/market/${market.market_id}`)}
-                          className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer group"
-                        >
-                          {/* Rank */}
-                          <span className="text-muted-foreground text-sm w-4 shrink-0">{index + 1}</span>
-                          
-                          {/* Image */}
-                          <img
-                            src={getMarketImage(market)}
-                            alt=""
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
-                            }}
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <Badge variant={priceChange === "bullish" ? "default" : "secondary"} className="shrink-0">
+                          {priceChange === "bullish" ? (
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3 mr-1" />
+                          )}
+                          {yesPrice}%
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {market.category || "Other"}
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                        {market.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {market.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Yes/No Distribution Bar */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1 text-green-500 font-medium">
+                            <Activity className="w-3 h-3" />
+                            YES {yesPrice}%
+                          </span>
+                          <span className="flex items-center gap-1 text-red-500 font-medium">
+                            NO {noPrice}%
+                            <Activity className="w-3 h-3" />
+                          </span>
+                        </div>
+                        <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
+                            style={{ width: `${yesPercentage}%` }}
                           />
+                          <div 
+                            className="absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 to-red-400 transition-all duration-500"
+                            style={{ width: `${100 - yesPercentage}%` }}
+                          />
+                        </div>
+                      </div>
 
-                          {/* Title & Price */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                              {market.title}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-lg font-bold">{yesPrice}%</span>
-                              <span className={`text-sm flex items-center gap-0.5 ${priceChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {priceChange >= 0 ? '↗' : '↘'} {Math.abs(priceChange)}%
-                              </span>
-                            </div>
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-border/50">
+                        <div>
+                          <div className="text-muted-foreground text-xs">Total Volume</div>
+                          <div className="font-semibold">
+                            {formatVolume(market.total_volume || 0)}
                           </div>
-
-                          {/* Sparkline */}
-                          <div className="hidden sm:block shrink-0">
-                            <svg width="60" height="30" className="overflow-visible">
-                              <path
-                                d={sparklinePath}
-                                fill="none"
-                                stroke={sparklinePositive ? "#34d399" : "#f87171"}
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              />
-                            </svg>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground text-xs">24h Volume</div>
+                          <div className="font-semibold">
+                            {formatVolume(market.volume_24h || 0)}
                           </div>
-
-                          {/* Arrow */}
-                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                </AnimatePresence>
-              )}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors absolute top-4 right-4" />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
               {filteredMarkets?.length === 0 && !isLoading && (
                 <div className="text-center py-12">

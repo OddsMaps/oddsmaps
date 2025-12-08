@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { TrendingUp, TrendingDown, Filter, Search } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { WalletProfileModal } from "./WalletProfileModal";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -38,13 +38,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [tierFilter, setTierFilter] = useState<"all" | "small" | "medium" | "large" | "whale">("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch real wallet data from database
+  // Fetch real wallet data from Polymarket API
   useEffect(() => {
     const fetchWalletData = async () => {
-      // If no market is provided, fetch across all Polymarket markets
-      const isPolymarket = !market || market.source.toLowerCase() === 'polymarket';
+      // If no market is provided, we can't fetch (need market_id)
+      const isPolymarket = market && market.source.toLowerCase() === 'polymarket';
       
-      if (!isPolymarket) {
+      if (!isPolymarket || !market) {
         setLoading(false);
         return;
       }
@@ -53,19 +53,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         setLoading(true);
         setError(null);
         
-        let query = supabase
-          .from('wallet_transactions')
-          .select('*')
-          .order('timestamp', { ascending: false });
-        
-        // If market is provided, filter by market_id
-        if (market) {
-          query = query.eq('market_id', market.id);
-        }
-
-        const { data: transactions, error: txError } = await query;
-
-        if (txError) throw txError;
+        // Fetch transactions directly from Polymarket API
+        const transactions = await fetchMarketTransactions(market.market_id, 1000);
 
         if (transactions && transactions.length > 0) {
           const walletMap = new Map<string, {
@@ -78,8 +67,9 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             firstEntry: Date;
           }>();
 
-          transactions.forEach(tx => {
-            const existing = walletMap.get(tx.wallet_address);
+          transactions.forEach((tx) => {
+            const walletAddress = tx.address || tx.wallet_address || '';
+            const existing = walletMap.get(walletAddress);
             const txDate = new Date(tx.timestamp);
             
             if (existing) {
@@ -90,8 +80,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 existing.firstEntry = txDate;
               }
             } else {
-              walletMap.set(tx.wallet_address, {
-                address: tx.wallet_address,
+              walletMap.set(walletAddress, {
+                address: walletAddress,
                 volume: Number(tx.amount),
                 trades: 1,
                 side: tx.side as 'yes' | 'no',
@@ -121,24 +111,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
     fetchWalletData();
 
-    const channelConfig = {
-      event: '*' as const,
-      schema: 'public',
-      table: 'wallet_transactions',
-      ...(market && { filter: `market_id=eq.${market.id}` })
-    };
-
-    const channel = supabase
-      .channel('wallet-transactions-changes')
-      .on('postgres_changes', channelConfig, () => {
-        fetchWalletData();
-      })
-      .subscribe();
+    // Refetch every 1 minute for updated data
+    const interval = setInterval(fetchWalletData, 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [market?.id]);
+  }, [market?.market_id]);
 
   const getTier = (volume: number): WalletData['tier'] => {
     if (volume >= 5000) return 'whale';

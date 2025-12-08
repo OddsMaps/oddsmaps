@@ -1,7 +1,7 @@
 import { AlertTriangle, Shield, TrendingUp, Clock, DollarSign, Activity, ExternalLink } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { useMemo, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { useNavigate } from "react-router-dom";
 
 interface InsiderAnalysisProps {
@@ -35,12 +35,40 @@ const InsiderAnalysis = ({ market }: InsiderAnalysisProps) => {
       }
 
       try {
-        const { data } = await supabase.functions.invoke('fetch-wallet-data', {
-          body: { marketId: market.market_id }
-        });
-
-        if (data?.wallets) {
-          setRealWallets(data.wallets);
+        // Fetch transactions directly from Polymarket API
+        const transactions = await fetchMarketTransactions(market.market_id, 1000);
+        
+        if (transactions && transactions.length > 0) {
+          // Group by wallet address
+          const walletMap = new Map<string, any>();
+          
+          transactions.forEach(tx => {
+            const walletAddress = tx.address || tx.wallet_address || '';
+            if (!walletAddress) return;
+            
+            if (!walletMap.has(walletAddress)) {
+              walletMap.set(walletAddress, {
+                address: walletAddress,
+                volume: 0,
+                trades: 0,
+                side: tx.side,
+                avgPrice: 0,
+                totalCost: 0,
+              });
+            }
+            
+            const wallet = walletMap.get(walletAddress);
+            wallet.volume += Number(tx.amount);
+            wallet.trades += 1;
+            wallet.totalCost += Number(tx.amount) * Number(tx.price);
+          });
+          
+          const wallets = Array.from(walletMap.values()).map(w => ({
+            ...w,
+            avgPrice: w.volume > 0 ? w.totalCost / w.volume : 0,
+          }));
+          
+          setRealWallets(wallets);
         }
       } catch (err) {
         console.error('Error fetching wallet data for analysis:', err);

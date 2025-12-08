@@ -4,10 +4,10 @@ import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Activity, DollarSign
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
+import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
 
 interface BetDetails {
@@ -50,43 +50,92 @@ const BetDetail = () => {
   const { data: markets } = useMarkets();
 
   useEffect(() => {
-    if (!txId) return;
+    if (!txId || !markets || markets.length === 0) return;
 
     const fetchBetDetails = async () => {
       try {
         setLoading(true);
         
-        // Fetch bet details
-        const { data: betData, error: betError } = await supabase
-          .from('wallet_transactions')
-          .select(`
-            *,
-            market:markets!inner(*)
-          `)
-          .eq('id', txId)
-          .single();
+        // Try to find transaction by searching through markets
+        // txId could be a transaction hash (starts with 0x) or Supabase ID
+        let foundBet: any = null;
+        let foundMarket: any = null;
 
-        if (betError) throw betError;
-        
-        setBet(betData as any);
+        // Search through markets to find the transaction
+        for (const market of markets.slice(0, 20)) { // Limit to top 20 markets for performance
+          try {
+            const transactions = await fetchMarketTransactions(market.market_id, 1000);
+
+            // Check if txId matches transaction hash or ID
+            const transaction = transactions.find((tx) => 
+              tx.hash === txId || 
+              tx.transaction_hash === txId || 
+              tx.id === txId
+            );
+
+            if (transaction) {
+              foundBet = {
+                ...transaction,
+                wallet_address: transaction.address || transaction.wallet_address || '',
+                amount: Number(transaction.amount),
+                price: Number(transaction.price),
+                transaction_type: transaction.type || 'market',
+                block_number: transaction.blockNumber || null,
+                market: {
+                  id: market.id,
+                  market_id: market.market_id,
+                  title: market.title,
+                  description: market.description,
+                  category: market.category,
+                  status: market.status,
+                  source: market.source,
+                }
+              };
+              foundMarket = market;
+              break;
+            }
+          } catch (error) {
+            console.error(`Error searching market ${market.market_id}:`, error);
+            continue;
+          }
+        }
+
+        if (!foundBet) {
+          throw new Error('Transaction not found');
+        }
+
+        setBet(foundBet);
 
         // Fetch similar bets on the same market
-        if (betData) {
-          const { data: similarData } = await supabase
-            .from('wallet_transactions')
-            .select('*')
-            .eq('market_id', betData.market_id)
-            .neq('id', txId)
-            .order('timestamp', { ascending: false })
-            .limit(10);
-          
-          setSimilarBets(similarData || []);
+        if (foundMarket) {
+          try {
+            const transactions = await fetchMarketTransactions(foundMarket.market_id, 100);
+
+            const similar = transactions
+              .filter((tx) => 
+                (tx.hash !== txId && tx.transaction_hash !== txId && tx.id !== txId) &&
+                (tx.address || tx.wallet_address) === foundBet.wallet_address
+              )
+              .slice(0, 10)
+              .map((tx) => ({
+                id: tx.id,
+                wallet_address: tx.address || tx.wallet_address || '',
+                amount: Number(tx.amount),
+                price: Number(tx.price),
+                side: tx.side,
+                timestamp: tx.timestamp,
+              }));
+            
+            setSimilarBets(similar);
+          } catch (error) {
+            console.error('Error fetching similar bets:', error);
+          }
         }
       } catch (error) {
         console.error('Error fetching bet details:', error);
         toast({
           title: "Error",
-          description: "Failed to load bet details",
+          description: "Failed to load bet details. Transaction may not be available.",
           variant: "destructive",
         });
       } finally {
@@ -96,26 +145,13 @@ const BetDetail = () => {
 
     fetchBetDetails();
 
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('bet-details-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wallet_transactions'
-        },
-        () => {
-          fetchBetDetails();
-        }
-      )
-      .subscribe();
+    // Refetch every 1 minute for updated data
+    const interval = setInterval(fetchBetDetails, 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [txId, toast]);
+  }, [txId, markets, toast]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);

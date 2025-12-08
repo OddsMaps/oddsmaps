@@ -25,7 +25,18 @@ import CommunityPage from "./pages/Community";
 import Partners from "./pages/Partners";
 import Status from "./pages/Status";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 10 * 1000, // 10 seconds - data is fresh for 10s (prevents unnecessary refetches)
+      gcTime: 10 * 60 * 1000, // 10 minutes - cache garbage collection
+      refetchOnWindowFocus: true, // Refetch when user returns to tab (but respects staleTime)
+      refetchOnReconnect: true, // Refetch on reconnect
+      refetchOnMount: false, // Don't refetch on mount if data is fresh (uses cache)
+      retry: 1, // Only retry once on failure
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

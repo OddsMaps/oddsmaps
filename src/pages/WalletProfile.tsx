@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Activity, DollarSign, Target, Award, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWalletProfileFromTheGraph } from "@/lib/polymarket-api-thegraph";
 
 interface WalletProfile {
   wallet_address: string;
@@ -57,43 +58,37 @@ const WalletProfile = () => {
   const { address } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<WalletProfile | null>(null);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<any>(null);
 
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["wallet-profile", address],
+    queryFn: async () => {
+      if (!address) return null;
+      
+      // Use The Graph Subgraph for wallet profile data (no CORS issues)
+      return await fetchWalletProfileFromTheGraph(address);
+    },
+    enabled: !!address,
+    staleTime: 30 * 1000, // Cache for 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every 1 minute
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+  });
+
+  const profile = data?.profile || null;
+  const positions = data?.positions || [];
+  const transactions = data?.transactions || [];
+  const stats = data?.stats || null;
+  const loading = isLoading;
+
+  // Show error toast only when error changes (not on every render)
   useEffect(() => {
-    if (!address) return;
-
-    const fetchWalletProfile = async () => {
-      try {
-        setLoading(true);
-        
-        const { data, error } = await supabase.functions.invoke('get-wallet-profile', {
-          body: { walletAddress: address }
-        });
-
-        if (error) throw error;
-
-        setProfile(data.profile);
-        setPositions(data.positions || []);
-        setTransactions(data.transactions || []);
-        setStats(data.stats);
-      } catch (error) {
-        console.error('Error fetching wallet profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load wallet profile",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWalletProfile();
-  }, [address, toast]);
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load wallet profile",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
