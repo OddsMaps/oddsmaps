@@ -121,21 +121,20 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   };
 
   const getSize = (amount: number, tier: string): number => {
-    // More dramatic size differences
+    // Smaller, cleaner bubble sizes
     if (tier === 'whale') {
-      // Scale whales between 80-140px based on amount
       const normalized = Math.min(amount / 50000, 1);
-      return 80 + normalized * 60;
+      return 45 + normalized * 35; // 45-80px
     }
     if (tier === 'large') {
       const normalized = Math.min((amount - 1000) / 9000, 1);
-      return 50 + normalized * 30;
+      return 32 + normalized * 18; // 32-50px
     }
     if (tier === 'medium') {
       const normalized = Math.min((amount - 100) / 900, 1);
-      return 32 + normalized * 18;
+      return 22 + normalized * 12; // 22-34px
     }
-    return 20 + Math.min(amount / 100, 1) * 12;
+    return 14 + Math.min(amount / 100, 1) * 8; // 14-22px
   };
 
   const wallets = useMemo<WalletData[]>(() => {
