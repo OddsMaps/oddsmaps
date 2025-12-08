@@ -81,6 +81,24 @@ const Markets = () => {
     return "World"; // Default fallback
   };
 
+  // Helper to get category badge color
+  const getCategoryColor = (category: string): string => {
+    const colors: Record<string, string> = {
+      "Crypto": "bg-orange-500/20 text-orange-400 border-orange-500/30",
+      "Politics": "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      "Sports": "bg-green-500/20 text-green-400 border-green-500/30",
+      "Tech": "bg-purple-500/20 text-purple-400 border-purple-500/30",
+      "Finance": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      "Earnings": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+      "Geopolitics": "bg-red-500/20 text-red-400 border-red-500/30",
+      "Culture": "bg-pink-500/20 text-pink-400 border-pink-500/30",
+      "Economy": "bg-teal-500/20 text-teal-400 border-teal-500/30",
+      "Elections": "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+      "World": "bg-slate-500/20 text-slate-400 border-slate-500/30",
+    };
+    return colors[category] || colors["World"];
+  };
+
   const filteredMarkets = useMemo(() => {
     if (!markets) return [];
     return markets.filter(market => {
@@ -277,7 +295,7 @@ const Markets = () => {
                             <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                               {market.title}
                             </h3>
-                            <Badge variant="secondary" className="shrink-0 text-xs px-2 py-0.5 bg-muted/60 text-muted-foreground border-0">
+                            <Badge variant="outline" className={`shrink-0 text-xs px-2 py-0.5 border ${getCategoryColor(normalizeCategory(market.category, market.title))}`}>
                               {normalizeCategory(market.category, market.title)}
                             </Badge>
                           </div>
