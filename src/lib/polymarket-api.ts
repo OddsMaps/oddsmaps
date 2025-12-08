@@ -94,6 +94,8 @@ export interface Market {
   liquidity: number;
   trades_24h: number;
   volatility: number;
+  price_change_24h: number;
+  created_at: string | null;
   last_updated: string;
 }
 
@@ -290,6 +292,8 @@ export async function fetchMarkets(
         );
         const trades_24h = toNumber(m.trades24hr, 0);
         const volatility = Math.abs(yes_price - 0.5) * 100;
+        const price_change_24h = toNumber((m as any).oneDayPriceChange, 0);
+        const created_at = (m as any).createdAt || (m as any).startDate || null;
 
         return {
           id: `polymarket-${conditionId}`,
@@ -308,6 +312,8 @@ export async function fetchMarkets(
           liquidity,
           trades_24h,
           volatility,
+          price_change_24h,
+          created_at,
           last_updated: new Date().toISOString(),
         };
       });

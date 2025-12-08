@@ -109,19 +109,17 @@ const Markets = () => {
       // Trending: Sort by 24h volume (highest first)
       result = result.sort((a, b) => b.volume_24h - a.volume_24h);
     } else if (selectedTab === "breaking") {
-      // Breaking: High activity markets - high trades + high volume in 24h
-      // These are markets with sudden spikes in activity
+      // Breaking: Most volatile markets - highest absolute price change in 24h
       result = result
-        .filter(m => m.trades_24h > 10 || m.volume_24h > 5000)
-        .sort((a, b) => (b.trades_24h + b.volume_24h / 1000) - (a.trades_24h + a.volume_24h / 1000));
+        .sort((a, b) => Math.abs(b.price_change_24h || 0) - Math.abs(a.price_change_24h || 0));
     } else if (selectedTab === "new") {
-      // New: Recently created markets (by end_date being furthest in future or by recent creation)
+      // New: Most recently created markets
       result = result
-        .filter(m => m.end_date)
+        .filter(m => m.created_at)
         .sort((a, b) => {
-          const dateA = new Date(a.end_date || 0).getTime();
-          const dateB = new Date(b.end_date || 0).getTime();
-          return dateB - dateA; // Most recent end dates first (newer markets)
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA; // Most recent first
         });
     }
     
