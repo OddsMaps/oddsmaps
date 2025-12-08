@@ -17,58 +17,47 @@ const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
-  // Category mapping for filtering (normalize API categories to match our filter categories)
-  const categoryMapping: Record<string, string> = {
-    "politics": "Politics",
-    "political": "Politics",
-    "sports": "Sports",
-    "sport": "Sports",
-    "nfl": "Sports",
-    "nba": "Sports",
-    "mlb": "Sports",
-    "nhl": "Sports",
-    "soccer": "Sports",
-    "football": "Sports",
-    "basketball": "Sports",
-    "finance": "Finance",
-    "financial": "Finance",
-    "stocks": "Finance",
-    "markets": "Finance",
-    "crypto": "Crypto",
-    "cryptocurrency": "Crypto",
-    "bitcoin": "Crypto",
-    "ethereum": "Crypto",
-    "geopolitics": "Geopolitics",
-    "global": "Geopolitics",
-    "international": "Geopolitics",
-    "earnings": "Earnings",
-    "revenue": "Earnings",
-    "tech": "Tech",
-    "technology": "Tech",
-    "ai": "Tech",
-    "science": "Tech",
-    "culture": "Culture",
-    "entertainment": "Culture",
-    "celebrity": "Culture",
-    "movies": "Culture",
-    "music": "Culture",
-    "world": "World",
-    "news": "World",
-    "economy": "Economy",
-    "economic": "Economy",
-    "fed": "Economy",
-    "inflation": "Economy",
-    "elections": "Elections",
-    "election": "Elections",
-    "vote": "Elections",
-    "voting": "Elections",
-  };
-
-  // Helper to normalize category
+  // Helper to normalize category - uses keyword matching for flexibility
   const normalizeCategory = (category: string | undefined): string => {
     if (!category) return "World";
     const lower = category.toLowerCase();
-    return categoryMapping[lower] || "World";
+    
+    // Keywords to match for each category
+    if (lower.includes("politic") || lower.includes("election") || lower.includes("vote") || lower.includes("government") || lower.includes("congress") || lower.includes("president")) {
+      return "Politics";
+    }
+    if (lower.includes("sport") || lower.includes("nfl") || lower.includes("nba") || lower.includes("mlb") || lower.includes("nhl") || lower.includes("soccer") || lower.includes("football") || lower.includes("basketball") || lower.includes("baseball")) {
+      return "Sports";
+    }
+    if (lower.includes("crypto") || lower.includes("bitcoin") || lower.includes("ethereum") || lower.includes("blockchain") || lower.includes("defi") || lower.includes("token")) {
+      return "Crypto";
+    }
+    if (lower.includes("tech") || lower.includes("science") || lower.includes("ai") || lower.includes("artificial intelligence") || lower.includes("software") || lower.includes("computing")) {
+      return "Tech";
+    }
+    if (lower.includes("finance") || lower.includes("stock") || lower.includes("market") || lower.includes("trading") || lower.includes("invest")) {
+      return "Finance";
+    }
+    if (lower.includes("earning") || lower.includes("revenue") || lower.includes("profit") || lower.includes("quarterly")) {
+      return "Earnings";
+    }
+    if (lower.includes("geopolitic") || lower.includes("international") || lower.includes("foreign") || lower.includes("diplomacy") || lower.includes("war") || lower.includes("conflict")) {
+      return "Geopolitics";
+    }
+    if (lower.includes("culture") || lower.includes("entertainment") || lower.includes("celebrity") || lower.includes("movie") || lower.includes("music") || lower.includes("tv") || lower.includes("award")) {
+      return "Culture";
+    }
+    if (lower.includes("economy") || lower.includes("economic") || lower.includes("fed") || lower.includes("inflation") || lower.includes("interest rate") || lower.includes("gdp") || lower.includes("recession")) {
+      return "Economy";
+    }
+    if (lower.includes("climate") || lower.includes("weather") || lower.includes("environment")) {
+      return "World";
+    }
+    if (lower === "general" || lower === "world" || lower === "news") {
+      return "World";
+    }
+    
+    return "World"; // Default fallback
   };
 
   const filteredMarkets = useMemo(() => {
