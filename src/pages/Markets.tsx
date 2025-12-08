@@ -12,19 +12,77 @@ import { Progress } from "@/components/ui/progress";
 
 const Markets = () => {
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState("breaking");
+  const [selectedTab, setSelectedTab] = useState("trending");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
+  // Category mapping for filtering (normalize API categories to match our filter categories)
+  const categoryMapping: Record<string, string> = {
+    "politics": "Politics",
+    "political": "Politics",
+    "sports": "Sports",
+    "sport": "Sports",
+    "nfl": "Sports",
+    "nba": "Sports",
+    "mlb": "Sports",
+    "nhl": "Sports",
+    "soccer": "Sports",
+    "football": "Sports",
+    "basketball": "Sports",
+    "finance": "Finance",
+    "financial": "Finance",
+    "stocks": "Finance",
+    "markets": "Finance",
+    "crypto": "Crypto",
+    "cryptocurrency": "Crypto",
+    "bitcoin": "Crypto",
+    "ethereum": "Crypto",
+    "geopolitics": "Geopolitics",
+    "global": "Geopolitics",
+    "international": "Geopolitics",
+    "earnings": "Earnings",
+    "revenue": "Earnings",
+    "tech": "Tech",
+    "technology": "Tech",
+    "ai": "Tech",
+    "science": "Tech",
+    "culture": "Culture",
+    "entertainment": "Culture",
+    "celebrity": "Culture",
+    "movies": "Culture",
+    "music": "Culture",
+    "world": "World",
+    "news": "World",
+    "economy": "Economy",
+    "economic": "Economy",
+    "fed": "Economy",
+    "inflation": "Economy",
+    "elections": "Elections",
+    "election": "Elections",
+    "vote": "Elections",
+    "voting": "Elections",
+  };
+
+  // Helper to normalize category
+  const normalizeCategory = (category: string | undefined): string => {
+    if (!category) return "World";
+    const lower = category.toLowerCase();
+    return categoryMapping[lower] || "World";
+  };
+
   const filteredMarkets = useMemo(() => {
     if (!markets) return [];
-    return markets.filter(market =>
-      (searchQuery === "" || 
-       market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       market.description?.toLowerCase().includes(searchQuery.toLowerCase())) &&
-      (selectedCategory === "All" || market.category === selectedCategory)
-    );
+    return markets.filter(market => {
+      const matchesSearch = searchQuery === "" || 
+        market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        market.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (selectedCategory === "All") return matchesSearch;
+      
+      const normalizedMarketCategory = normalizeCategory(market.category);
+      return matchesSearch && normalizedMarketCategory === selectedCategory;
+    });
   }, [markets, searchQuery, selectedCategory]);
 
   // Get top 6 trending markets by 24h volume
@@ -57,18 +115,18 @@ const Markets = () => {
 
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Navigation tabs
+  // Navigation tabs - matching Polymarket
   const mainTabs = [
-    { id: "breaking", label: "Breaking" },
     { id: "trending", label: "Trending" },
-    { id: "all", label: "All Markets" },
+    { id: "breaking", label: "Breaking" },
+    { id: "new", label: "New" },
   ];
 
-  // Navigation categories
-  const navCategories = ["Politics", "Crypto", "Sports", "Entertainment"];
+  // Navigation categories - matching Polymarket exactly
+  const navCategories = ["Politics", "Sports", "Finance", "Crypto", "Geopolitics", "Earnings", "Tech", "Culture", "World", "Economy", "Elections"];
 
-  // Filter categories
-  const filterCategories = ["All", "Politics", "Crypto", "Sports", "Entertainment", "Technology", "Economics"];
+  // Filter categories for pills
+  const filterCategories = ["All", ...navCategories];
 
   return (
     <div className="min-h-screen bg-background">
