@@ -17,25 +17,26 @@ const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
-  // Helper to normalize category - uses keyword matching for flexibility
-  const normalizeCategory = (category: string | undefined): string => {
-    if (!category) return "World";
-    const lower = category.toLowerCase();
+  // Helper to normalize category - uses keyword matching on both category and title
+  const normalizeCategory = (category: string | undefined, title?: string): string => {
+    const lower = (category || "").toLowerCase();
+    const titleLower = (title || "").toLowerCase();
+    const combined = `${lower} ${titleLower}`;
     
-    // Keywords to match for each category
+    // Keywords to match for each category - check both category and title
+    if (combined.includes("bitcoin") || combined.includes("ethereum") || combined.includes("crypto") || combined.includes("blockchain") || combined.includes("defi") || combined.includes("token") || combined.includes("solana") || combined.includes("eth") || combined.includes("btc")) {
+      return "Crypto";
+    }
     if (lower.includes("politic") || lower.includes("election") || lower.includes("vote") || lower.includes("government") || lower.includes("congress") || lower.includes("president")) {
       return "Politics";
     }
     if (lower.includes("sport") || lower.includes("nfl") || lower.includes("nba") || lower.includes("mlb") || lower.includes("nhl") || lower.includes("soccer") || lower.includes("football") || lower.includes("basketball") || lower.includes("baseball")) {
       return "Sports";
     }
-    if (lower.includes("crypto") || lower.includes("bitcoin") || lower.includes("ethereum") || lower.includes("blockchain") || lower.includes("defi") || lower.includes("token")) {
-      return "Crypto";
-    }
     if (lower.includes("tech") || lower.includes("science") || lower.includes("ai") || lower.includes("artificial intelligence") || lower.includes("software") || lower.includes("computing")) {
       return "Tech";
     }
-    if (lower.includes("finance") || lower.includes("stock") || lower.includes("market") || lower.includes("trading") || lower.includes("invest")) {
+    if (lower.includes("finance") || lower.includes("stock") || lower.includes("trading") || lower.includes("invest")) {
       return "Finance";
     }
     if (lower.includes("earning") || lower.includes("revenue") || lower.includes("profit") || lower.includes("quarterly")) {
@@ -69,7 +70,7 @@ const Markets = () => {
       
       if (selectedCategory === "All") return matchesSearch;
       
-      const normalizedMarketCategory = normalizeCategory(market.category);
+      const normalizedMarketCategory = normalizeCategory(market.category, market.title);
       return matchesSearch && normalizedMarketCategory === selectedCategory;
     });
   }, [markets, searchQuery, selectedCategory]);
@@ -257,7 +258,7 @@ const Markets = () => {
                               {market.title}
                             </h3>
                             <Badge variant="secondary" className="shrink-0 text-xs px-2 py-0.5 bg-muted/60 text-muted-foreground border-0">
-                              {normalizeCategory(market.category)}
+                              {normalizeCategory(market.category, market.title)}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2">
