@@ -101,7 +101,7 @@ const Hero = () => {
             }}
           >
             <Activity className="relative z-10 mr-2 w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="relative z-10">Whale Activity</span>
+            <span className="relative z-10">Whale Watcher</span>
           </Button>
         </div>
       </div>
