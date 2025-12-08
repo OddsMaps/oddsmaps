@@ -24,31 +24,28 @@ const Markets = () => {
     { id: "new", label: "New" },
   ];
 
-  // Category tabs in the nav
-  const navCategories = ["Politics", "Sports", "Finance", "Crypto", "Geopolitics", "Earnings", "Tech", "Culture", "World", "Economy", "Elections", "Mentions"];
+  // Category tabs in the nav - match actual Polymarket categories
+  const navCategories = ["Politics", "World", "Science & Tech", "Climate"];
 
-  // Filter category pills
-  const filterCategories = ["All", "Politics", "World", "Sports", "Crypto", "Finance", "Tech", "Culture"];
+  // Filter category pills - match actual Polymarket categories from database
+  const filterCategories = ["All", "Politics", "World", "Science & Tech", "Climate"];
 
-  const categoryMap: Record<string, string | null> = {
-    "All": null,
-    "Politics": "Politics",
-    "World": "World",
-    "Sports": "Sports",
-    "Crypto": "Crypto",
-    "Finance": "Finance",
-    "Tech": "Science and Technology",
-    "Culture": "Culture",
-    "Geopolitics": "World",
-    "Earnings": "Finance",
-    "Economy": "Finance",
-    "Elections": "Politics",
+  // Map filter labels to actual database category values
+  const categoryMap: Record<string, string[]> = {
+    "All": [],
+    "Politics": ["Politics"],
+    "World": ["World", "General"],
+    "Science & Tech": ["Science and Technology"],
+    "Climate": ["Climate and Weather"],
   };
 
   const filteredMarkets = markets?.filter(market => {
     if (selectedCategory === "All") return true;
-    const dbCategory = categoryMap[selectedCategory];
-    return market.category === dbCategory;
+    const allowedCategories = categoryMap[selectedCategory] || [];
+    // Match if market category is in the allowed list (case-insensitive)
+    return allowedCategories.some(cat => 
+      market.category?.toLowerCase() === cat.toLowerCase()
+    );
   })?.sort((a, b) => {
     // Sort by price change for "breaking" tab
     if (selectedTab === "breaking") {
@@ -109,12 +106,12 @@ const Markets = () => {
               {navCategories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => {
-                    if (categoryMap[cat]) {
-                      setSelectedCategory(cat);
-                    }
-                  }}
-                  className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap border-b-2 border-transparent"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2 ${
+                    selectedCategory === cat
+                      ? "text-foreground border-primary"
+                      : "text-muted-foreground hover:text-foreground border-transparent"
+                  }`}
                 >
                   {cat}
                 </button>
