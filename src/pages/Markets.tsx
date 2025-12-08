@@ -9,12 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown, TrendingUp, TrendingDown, Activity, Search } from "lucide-react";
 import MiniSparkline from "@/components/MiniSparkline";
+import PriceChartModal from "@/components/PriceChartModal";
+import type { Market } from "@/lib/polymarket-api";
 
 const Markets = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("trending");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [chartModalOpen, setChartModalOpen] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
   const { data: markets, isLoading } = useMarkets("polymarket");
 
   // Helper to normalize category - uses keyword matching on both category and title
@@ -339,8 +343,15 @@ const Markets = () => {
                           </div>
                         </div>
                         
-                        {/* Price Sparkline */}
-                        <div className="hidden md:flex items-center w-24">
+                        {/* Price Sparkline - Clickable */}
+                        <div 
+                          className="hidden md:flex items-center w-24 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMarket(market);
+                            setChartModalOpen(true);
+                          }}
+                        >
                           <MiniSparkline 
                             currentPrice={market.yes_price || 0.5}
                             priceChange={market.price_change_24h || 0}
@@ -418,6 +429,13 @@ const Markets = () => {
       </main>
 
       <Footer />
+      
+      {/* Price Chart Modal */}
+      <PriceChartModal 
+        open={chartModalOpen}
+        onOpenChange={setChartModalOpen}
+        market={selectedMarket}
+      />
     </div>
   );
 };
