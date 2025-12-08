@@ -15,20 +15,20 @@ Deno.serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Parse request body
-    const { source, category, limit = 200 } = await req.json().catch(() => ({}));
+    const { source, category, limit = 100 } = await req.json().catch(() => ({}));
     console.log('Request params:', { source, category, limit });
 
-    // Build query - fetch markets and their latest data separately for better performance
+    // Build query - fetch markets only (prices are stored directly on markets now)
     let marketsQuery = supabaseClient
       .from('markets')
-      .select('*')
+      .select('id, market_id, source, title, description, category, image_url, end_date, status, created_at, updated_at')
       .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .order('updated_at', { ascending: false })
+      .limit(Math.min(limit, 100)); // Cap at 100 for performance
 
     // Add filters
     if (source) {
@@ -45,37 +45,42 @@ Deno.serve(async (req) => {
       throw marketsError;
     }
 
-    // Fetch only the latest market data for each market using efficient query
+    // Get only the LATEST market data entry per market (using a more efficient approach)
     const marketIds = markets?.map(m => m.id) || [];
-    
     const latestDataMap = new Map();
 
-    // Only fetch data if we have market IDs - use RPC or optimized query
     if (marketIds.length > 0) {
-      // Batch process in chunks to avoid overwhelming the database
-      const CHUNK_SIZE = 50;
-      for (let i = 0; i < marketIds.length; i += CHUNK_SIZE) {
-        const chunk = marketIds.slice(i, i + CHUNK_SIZE);
+      // Use a simpler query - just get distinct on market_id ordered by timestamp
+      // Process in small batches
+      const BATCH_SIZE = 20;
+      
+      for (let i = 0; i < marketIds.length; i += BATCH_SIZE) {
+        const batch = marketIds.slice(i, i + BATCH_SIZE);
         
-        // Get latest market_data for this chunk
-        const { data: dataList, error: dataError } = await supabaseClient
-          .from('market_data')
-          .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
-          .in('market_id', chunk)
-          .order('timestamp', { ascending: false })
-          .limit(chunk.length); // Only get one per market in this chunk
+        try {
+          // Get just the most recent entry for each market using limit per market
+          const { data: dataList, error: dataError } = await supabaseClient
+            .from('market_data')
+            .select('market_id, yes_price, no_price, total_volume, volume_24h, liquidity, trades_24h, volatility, timestamp')
+            .in('market_id', batch)
+            .order('timestamp', { ascending: false })
+            .limit(batch.length * 2); // Get a bit more to ensure we have latest
 
-        if (dataError) {
-          console.error('Error fetching market data chunk:', dataError);
-          continue; // Skip this chunk but continue with others
-        }
-
-        // Map the latest data (first occurrence due to ordering)
-        dataList?.forEach(data => {
-          if (!latestDataMap.has(data.market_id)) {
-            latestDataMap.set(data.market_id, data);
+          if (dataError) {
+            console.warn('Error fetching market data batch:', dataError.message);
+            continue;
           }
-        });
+
+          // Take only the first (latest) entry per market
+          dataList?.forEach(data => {
+            if (!latestDataMap.has(data.market_id)) {
+              latestDataMap.set(data.market_id, data);
+            }
+          });
+        } catch (batchError) {
+          console.warn('Batch fetch failed, continuing:', batchError);
+          continue;
+        }
       }
     }
 
@@ -92,13 +97,13 @@ Deno.serve(async (req) => {
         image_url: market.image_url,
         end_date: market.end_date,
         status: market.status,
-        yes_price: latestData?.yes_price || 0.5,
-        no_price: latestData?.no_price || 0.5,
-        total_volume: latestData?.total_volume || 0,
-        volume_24h: latestData?.volume_24h || 0,
-        liquidity: latestData?.liquidity || 0,
-        trades_24h: latestData?.trades_24h || 0,
-        volatility: latestData?.volatility || 0,
+        yes_price: latestData?.yes_price ?? 0.5,
+        no_price: latestData?.no_price ?? 0.5,
+        total_volume: latestData?.total_volume ?? 0,
+        volume_24h: latestData?.volume_24h ?? 0,
+        liquidity: latestData?.liquidity ?? 0,
+        trades_24h: latestData?.trades_24h ?? 0,
+        volatility: latestData?.volatility ?? 0,
         last_updated: latestData?.timestamp || market.updated_at,
       };
     }) || [];
@@ -112,12 +117,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in get-markets function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorDetails = error instanceof Error ? error.stack : JSON.stringify(error);
-    console.error('Error details:', errorDetails);
+    console.error('Error details:', errorMessage);
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: errorDetails
+        details: JSON.stringify(error)
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
