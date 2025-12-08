@@ -49,7 +49,7 @@ const Markets = () => {
     }
     
     // Earnings keywords
-    if (/earning|revenue|profit|quarterly|q1|q2|q3|q4|fiscal|guidance|eps\b|beat estimates|miss estimates/.test(combined)) {
+    if (/earning|revenue|profit|quarterly|q1|q2|q3|q4|fiscal|guidance|eps\b|beat estimates|miss estimates|will .* beat|beat .* earnings|miss .* earnings|report .* earnings|earnings .* report/.test(combined)) {
       return "Earnings";
     }
     
