@@ -23,38 +23,58 @@ const Markets = () => {
     const titleLower = (title || "").toLowerCase();
     const combined = `${lower} ${titleLower}`;
     
-    // Keywords to match for each category - check both category and title
-    if (combined.includes("bitcoin") || combined.includes("ethereum") || combined.includes("crypto") || combined.includes("blockchain") || combined.includes("defi") || combined.includes("token") || combined.includes("solana") || combined.includes("eth") || combined.includes("btc")) {
+    // Crypto keywords
+    if (/bitcoin|ethereum|crypto|blockchain|defi|token|solana|eth\b|btc\b|dogecoin|xrp|cardano|polygon|avalanche|chainlink|uniswap|binance|coinbase|nft|web3/.test(combined)) {
       return "Crypto";
     }
-    if (lower.includes("politic") || lower.includes("election") || lower.includes("vote") || lower.includes("government") || lower.includes("congress") || lower.includes("president")) {
+    
+    // Politics keywords - politicians, parties, government
+    if (/trump|biden|obama|harris|desantis|pence|pelosi|mcconnell|aoc|sanders|warren|newsom|republican|democrat|gop|dnc|rnc|congress|senate|house of rep|white house|supreme court|scotus|governor|mayor|primary|midterm|impeach|pardon|indictment|cabinet|secretary of/.test(combined)) {
       return "Politics";
     }
-    if (lower.includes("sport") || lower.includes("nfl") || lower.includes("nba") || lower.includes("mlb") || lower.includes("nhl") || lower.includes("soccer") || lower.includes("football") || lower.includes("basketball") || lower.includes("baseball")) {
+    
+    // Sports keywords - leagues, teams, events
+    if (/nfl|nba|mlb|nhl|mls|ufc|wwe|pga|nascar|f1|formula 1|super bowl|world series|stanley cup|playoffs|championship|mvp|patriots|chiefs|eagles|cowboys|49ers|packers|bills|ravens|dolphins|jets|giants|bears|lions|vikings|commanders|saints|buccaneers|falcons|panthers|seahawks|rams|cardinals|broncos|raiders|chargers|bengals|browns|steelers|texans|colts|titans|jaguars|lakers|celtics|warriors|nets|knicks|heat|bucks|76ers|suns|mavericks|clippers|nuggets|grizzlies|yankees|dodgers|mets|red sox|cubs|braves|phillies|astros|rangers|padres|mariners|orioles|twins|guardians|royals|tigers|white sox|athletics|angels|diamondbacks|rockies|marlins|nationals|reds|brewers|pirates|cardinals|tennis|golf|soccer|football|basketball|baseball|hockey|boxing|mma|olympic|world cup|premier league|la liga|bundesliga|serie a|champions league|uefa|fifa|espn/.test(combined)) {
       return "Sports";
     }
-    if (lower.includes("tech") || lower.includes("science") || lower.includes("ai") || lower.includes("artificial intelligence") || lower.includes("software") || lower.includes("computing")) {
+    
+    // Tech keywords
+    if (/tech|science|ai\b|artificial intelligence|openai|chatgpt|gpt-|claude|gemini|llm|machine learning|neural|software|apple|google|microsoft|amazon|meta|nvidia|tesla|spacex|starlink|robot|quantum|semiconductor|chip|iphone|android|startup|silicon valley|vc\b|venture capital/.test(combined)) {
       return "Tech";
     }
-    if (lower.includes("finance") || lower.includes("stock") || lower.includes("trading") || lower.includes("invest")) {
+    
+    // Finance keywords
+    if (/stock|nasdaq|dow jones|s&p 500|nyse|ipo|merger|acquisition|hedge fund|wall street|fed rate|treasury|bond|forex|commodit|gold price|oil price|earnings call/.test(combined)) {
       return "Finance";
     }
-    if (lower.includes("earning") || lower.includes("revenue") || lower.includes("profit") || lower.includes("quarterly")) {
+    
+    // Earnings keywords
+    if (/earning|revenue|profit|quarterly|q1|q2|q3|q4|fiscal|guidance|eps\b|beat estimates|miss estimates/.test(combined)) {
       return "Earnings";
     }
-    if (lower.includes("geopolitic") || lower.includes("international") || lower.includes("foreign") || lower.includes("diplomacy") || lower.includes("war") || lower.includes("conflict")) {
+    
+    // Geopolitics keywords
+    if (/geopolitic|international|foreign policy|diplomacy|war\b|conflict|nato|united nations|sanction|treaty|alliance|military|invasion|ukraine|russia|china|taiwan|israel|gaza|iran|north korea|syria|middle east|eu\b|european union|brexit/.test(combined)) {
       return "Geopolitics";
     }
-    if (lower.includes("culture") || lower.includes("entertainment") || lower.includes("celebrity") || lower.includes("movie") || lower.includes("music") || lower.includes("tv") || lower.includes("award")) {
+    
+    // Culture keywords
+    if (/culture|entertainment|celebrity|movie|film|music|tv\b|television|award|grammy|oscar|emmy|golden globe|billboard|netflix|disney|hbo|streaming|concert|tour|album|box office|hollywood|viral|tiktok|instagram|youtube|influencer|kardashian|swift|beyonce|drake|kanye|rihanna/.test(combined)) {
       return "Culture";
     }
-    if (lower.includes("economy") || lower.includes("economic") || lower.includes("fed") || lower.includes("inflation") || lower.includes("interest rate") || lower.includes("gdp") || lower.includes("recession")) {
+    
+    // Economy keywords
+    if (/economy|economic|fed\b|federal reserve|inflation|interest rate|gdp\b|recession|unemployment|jobs report|cpi\b|ppi\b|monetary policy|fiscal policy|stimulus|debt ceiling|deficit/.test(combined)) {
       return "Economy";
     }
-    if (lower.includes("climate") || lower.includes("weather") || lower.includes("environment")) {
-      return "World";
+    
+    // Elections keywords (more specific than general politics)
+    if (/election|electoral|vote|voting|ballot|poll\b|polling|swing state|battleground|2024 election|2025 election|2026 election|primary election|general election|runoff/.test(combined)) {
+      return "Elections";
     }
-    if (lower === "general" || lower === "world" || lower === "news") {
+    
+    // World/General
+    if (/climate|weather|environment|hurricane|earthquake|wildfire|flood|drought|pandemic|covid|virus|outbreak|health|who\b|cdc\b/.test(combined)) {
       return "World";
     }
     
