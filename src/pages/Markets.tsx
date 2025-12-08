@@ -234,9 +234,15 @@ const Markets = () => {
               <div className="relative rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-muted/80 via-card to-muted/60 border border-border/50">
                 <div className="p-6 md:p-8 relative z-10">
                   <p className="text-sm text-muted-foreground mb-1">{currentDate}</p>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Breaking News</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                    {selectedTab === "trending" && "Trending Markets"}
+                    {selectedTab === "breaking" && "Breaking News"}
+                    {selectedTab === "new" && "New Markets"}
+                  </h1>
                   <p className="text-muted-foreground text-sm md:text-base">
-                    See the markets that moved the most in the last 24 hours
+                    {selectedTab === "trending" && "See the markets with the highest volume in the last 24 hours"}
+                    {selectedTab === "breaking" && "See the markets that moved the most in the last 24 hours"}
+                    {selectedTab === "new" && "Discover the latest prediction markets"}
                   </p>
                 </div>
                 {/* Decorative arrows */}
