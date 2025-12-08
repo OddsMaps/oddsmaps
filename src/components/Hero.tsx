@@ -17,22 +17,17 @@ const Hero = () => {
         {/* Grid overlay for depth */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
         
-        {/* Animated particles */}
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full glass-premium animate-morph hidden lg:block"
-            style={{
-              width: `${Math.random() * 120 + 40}px`,
-              height: `${Math.random() * 120 + 40}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${i * 0.7}s`,
-              animationDuration: `${10 + i * 1.5}s`,
-              opacity: 0.4,
-            }}
-          />
-        ))}
+        {/* Branded floating bubbles */}
+        <div className="absolute top-[15%] left-[8%] w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm border border-primary/10 animate-float" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[25%] right-[12%] w-24 h-24 rounded-full bg-gradient-to-br from-secondary/15 to-secondary/5 backdrop-blur-sm border border-secondary/10 animate-float" style={{ animationDelay: '1s', animationDuration: '10s' }} />
+        <div className="absolute bottom-[30%] left-[15%] w-20 h-20 rounded-full bg-gradient-to-br from-accent/15 to-accent/5 backdrop-blur-sm border border-accent/10 animate-float" style={{ animationDelay: '2s', animationDuration: '9s' }} />
+        <div className="absolute top-[45%] right-[25%] w-16 h-16 rounded-full bg-gradient-to-br from-primary/15 to-transparent backdrop-blur-sm border border-primary/8 animate-float" style={{ animationDelay: '0.5s', animationDuration: '11s' }} />
+        <div className="absolute bottom-[20%] right-[8%] w-28 h-28 rounded-full bg-gradient-to-br from-secondary/12 to-secondary/3 backdrop-blur-sm border border-secondary/8 animate-float" style={{ animationDelay: '3s', animationDuration: '12s' }} />
+        <div className="absolute top-[60%] left-[5%] w-14 h-14 rounded-full bg-gradient-to-br from-primary/18 to-primary/5 backdrop-blur-sm border border-primary/10 animate-float" style={{ animationDelay: '1.5s', animationDuration: '7s' }} />
+        <div className="absolute top-[10%] left-[40%] w-12 h-12 rounded-full bg-gradient-to-br from-accent/12 to-transparent backdrop-blur-sm border border-accent/8 animate-float" style={{ animationDelay: '2.5s', animationDuration: '13s' }} />
+        <div className="absolute bottom-[40%] right-[18%] w-18 h-18 rounded-full bg-gradient-to-br from-secondary/10 to-transparent backdrop-blur-sm border border-secondary/6 animate-float" style={{ animationDelay: '4s', animationDuration: '10s' }} />
+        <div className="absolute top-[35%] left-[30%] w-10 h-10 rounded-full bg-gradient-to-br from-primary/12 to-transparent backdrop-blur-sm border border-primary/6 animate-float" style={{ animationDelay: '0.8s', animationDuration: '9s' }} />
+        <div className="absolute bottom-[15%] left-[35%] w-22 h-22 rounded-full bg-gradient-to-br from-accent/10 to-accent/3 backdrop-blur-sm border border-accent/6 animate-float" style={{ animationDelay: '3.5s', animationDuration: '11s' }} />
       </div>
 
       {/* Content */}
