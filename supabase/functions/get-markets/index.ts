@@ -5,6 +5,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Retry helper with exponential backoff
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 500
+): Promise<T> {
+  let lastError: Error | null = null;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`Attempt ${i + 1} failed, retrying in ${baseDelay * Math.pow(2, i)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, i)));
+    }
+  }
+  throw lastError;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,33 +38,31 @@ Deno.serve(async (req) => {
     );
 
     // Parse request body
-    const { source, category, limit = 50 } = await req.json().catch(() => ({}));
+    const { source, category, limit = 30 } = await req.json().catch(() => ({}));
     console.log('Request params:', { source, category, limit });
 
-    // Simple query - just fetch markets without joining market_data to avoid timeout
-    let marketsQuery = supabaseClient
-      .from('markets')
-      .select('id, market_id, source, title, description, category, image_url, end_date, status, created_at, updated_at')
-      .eq('status', 'active')
-      .order('updated_at', { ascending: false })
-      .limit(Math.min(limit, 50)); // Lower limit for faster response
+    // Fetch markets with retry logic
+    const markets = await withRetry(async () => {
+      let query = supabaseClient
+        .from('markets')
+        .select('id, market_id, source, title, description, category, image_url, end_date, status, updated_at')
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false })
+        .limit(Math.min(limit, 30)); // Reduced limit for stability
 
-    // Add filters
-    if (source) {
-      marketsQuery = marketsQuery.eq('source', source);
-    }
-    if (category) {
-      marketsQuery = marketsQuery.eq('category', category);
-    }
+      if (source) {
+        query = query.eq('source', source);
+      }
+      if (category) {
+        query = query.eq('category', category);
+      }
 
-    const { data: markets, error: marketsError } = await marketsQuery;
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    });
 
-    if (marketsError) {
-      console.error('Error fetching markets:', marketsError);
-      throw marketsError;
-    }
-
-    // Return markets with default pricing - skip market_data query for now to avoid timeout
+    // Return markets with default pricing
     const enhancedMarkets = markets?.map(market => ({
       id: market.id,
       market_id: market.market_id,
@@ -76,7 +93,7 @@ Deno.serve(async (req) => {
     console.error('Error in get-markets function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, markets: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
