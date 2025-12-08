@@ -252,10 +252,15 @@ const Markets = () => {
                         
                         {/* Market Info */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                            {market.title}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                              {market.title}
+                            </h3>
+                            <Badge variant="secondary" className="shrink-0 text-xs px-2 py-0.5 bg-muted/60 text-muted-foreground border-0">
+                              {normalizeCategory(market.category)}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <span className="text-lg font-semibold text-foreground">{yesPrice}%</span>
                             <span className="text-sm text-primary flex items-center gap-0.5">
                               <TrendingUp className="w-3 h-3" />
