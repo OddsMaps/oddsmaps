@@ -112,8 +112,8 @@ const Markets = () => {
       // Breaking: High activity markets - high trades + high volume in 24h
       // These are markets with sudden spikes in activity
       result = result
-        .filter(m => m.trades_24h > 50 || m.volume_24h > 10000)
-        .sort((a, b) => (b.trades_24h * b.volume_24h) - (a.trades_24h * a.volume_24h));
+        .filter(m => m.trades_24h > 10 || m.volume_24h > 5000)
+        .sort((a, b) => (b.trades_24h + b.volume_24h / 1000) - (a.trades_24h + a.volume_24h / 1000));
     } else if (selectedTab === "new") {
       // New: Recently created markets (by end_date being furthest in future or by recent creation)
       result = result
