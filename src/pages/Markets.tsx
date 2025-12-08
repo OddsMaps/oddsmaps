@@ -28,15 +28,16 @@ const Markets = () => {
   const navCategories = ["Politics", "World", "Science & Tech", "Climate"];
 
   // Filter category pills - match actual Polymarket categories from database
-  const filterCategories = ["All", "Politics", "World", "Science & Tech", "Climate"];
+  const filterCategories = ["All", "Politics", "World", "Science & Tech", "Climate", "General"];
 
   // Map filter labels to actual database category values
   const categoryMap: Record<string, string[]> = {
     "All": [],
     "Politics": ["Politics"],
-    "World": ["World", "General"],
+    "World": ["World"],
     "Science & Tech": ["Science and Technology"],
     "Climate": ["Climate and Weather"],
+    "General": ["General"],
   };
 
   const filteredMarkets = markets?.filter(market => {
