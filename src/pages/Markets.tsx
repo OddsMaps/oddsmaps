@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown, TrendingUp, TrendingDown, Activity, Search } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import MiniSparkline from "@/components/MiniSparkline";
 
 const Markets = () => {
   const navigate = useNavigate();
@@ -339,14 +339,14 @@ const Markets = () => {
                           </div>
                         </div>
                         
-                        {/* Progress Bar */}
-                        <div className="hidden md:flex items-center gap-3 w-32">
-                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary rounded-full transition-all duration-500"
-                              style={{ width: `${yesPercentage}%` }}
-                            />
-                          </div>
+                        {/* Price Sparkline */}
+                        <div className="hidden md:flex items-center w-24">
+                          <MiniSparkline 
+                            currentPrice={market.yes_price || 0.5}
+                            priceChange={market.price_change_24h || 0}
+                            width={80}
+                            height={32}
+                          />
                         </div>
                         
                         {/* Arrow */}
