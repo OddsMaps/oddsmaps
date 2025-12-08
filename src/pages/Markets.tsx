@@ -357,6 +357,7 @@ const Markets = () => {
                             <MiniSparkline 
                               currentPrice={market.yes_price || 0.5}
                               priceChange={market.price_change_24h || 0}
+                              tokenId={market.clob_token_ids?.[0]}
                               width={72}
                               height={28}
                             />

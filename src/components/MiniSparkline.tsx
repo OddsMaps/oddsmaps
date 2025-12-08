@@ -1,39 +1,93 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { fetchPriceHistory, type PriceHistoryPoint } from "@/lib/polymarket-api";
 
 interface MiniSparklineProps {
   currentPrice: number;
   priceChange: number;
+  tokenId?: string | null;
   width?: number;
   height?: number;
   className?: string;
 }
 
+// Simple in-memory cache for sparkline data
+const sparklineCache = new Map<string, { data: number[]; timestamp: number }>();
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+
 const MiniSparkline = ({ 
   currentPrice, 
-  priceChange, 
+  priceChange,
+  tokenId,
   width = 80, 
   height = 32,
   className = "" 
 }: MiniSparklineProps) => {
-  // Generate a synthetic price history based on current price and 24h change
+  const [realPrices, setRealPrices] = useState<number[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch real price data if tokenId is provided
+  useEffect(() => {
+    if (!tokenId) {
+      setRealPrices(null);
+      return;
+    }
+
+    const cacheKey = tokenId;
+    const cached = sparklineCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      setRealPrices(cached.data);
+      return;
+    }
+
+    // Debounce to avoid too many requests
+    const timeoutId = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        // Use 1 week interval for sparklines to show more history
+        const history = await fetchPriceHistory(tokenId, '1w');
+        
+        if (history.length > 0) {
+          // Sample down to ~20 points for smooth sparkline
+          const step = Math.max(1, Math.floor(history.length / 20));
+          const sampled = history
+            .filter((_, i) => i % step === 0 || i === history.length - 1)
+            .map(p => p.price);
+          
+          setRealPrices(sampled);
+          sparklineCache.set(cacheKey, { data: sampled, timestamp: Date.now() });
+        }
+      } catch (error) {
+        console.warn('Failed to fetch sparkline data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }, Math.random() * 500); // Stagger requests
+
+    return () => clearTimeout(timeoutId);
+  }, [tokenId]);
+
+  // Use real prices if available, otherwise generate synthetic
   const points = useMemo(() => {
+    if (realPrices && realPrices.length > 2) {
+      return realPrices;
+    }
+
+    // Fallback: Generate synthetic price history
     const numPoints = 20;
     const data: number[] = [];
     
-    // Start price (24h ago)
     const startPrice = currentPrice - priceChange;
     
-    // Generate realistic-looking price movement
     for (let i = 0; i < numPoints; i++) {
       const progress = i / (numPoints - 1);
-      // Add some randomness but trend towards current price
       const noise = (Math.sin(i * 2.5) * 0.02 + Math.cos(i * 1.7) * 0.015) * (1 - progress);
       const price = startPrice + (priceChange * progress) + noise;
       data.push(Math.max(0, Math.min(1, price)));
     }
     
     return data;
-  }, [currentPrice, priceChange]);
+  }, [currentPrice, priceChange, realPrices]);
 
   // Calculate SVG path
   const path = useMemo(() => {
@@ -56,16 +110,16 @@ const MiniSparkline = ({
     return pathData;
   }, [points, width, height]);
 
-  // Determine color based on price change
-  const isPositive = priceChange >= 0;
+  // Determine color based on price trend (first vs last point)
+  const isPositive = points.length >= 2 ? points[points.length - 1] >= points[0] : priceChange >= 0;
   const strokeColor = isPositive ? "hsl(var(--primary))" : "hsl(var(--secondary))";
-  const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+  const gradientId = `gradient-${tokenId || Math.random().toString(36).substr(2, 9)}`;
 
   return (
     <svg 
       width={width} 
       height={height} 
-      className={className}
+      className={`${className} ${isLoading ? 'opacity-50' : ''}`}
       viewBox={`0 0 ${width} ${height}`}
     >
       <defs>
