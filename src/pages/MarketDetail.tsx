@@ -7,7 +7,7 @@ import { useMarkets } from "@/hooks/useMarkets";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
 import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { Button } from "@/components/ui/button";
 
 const MarketHeader = memo(({ market, isPositive, change, onBack }: any) => (
@@ -116,39 +116,34 @@ const MarketWhaleTransactions = ({ marketId }: { marketId: string }) => {
   useEffect(() => {
     fetchTransactions();
 
-    const channel = supabase
-      .channel(`whale-transactions-${marketId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wallet_transactions',
-          filter: `market_id=eq.${marketId}`
-        },
-        () => {
-          fetchTransactions();
-        }
-      )
-      .subscribe();
+    // Refetch every 1 minute for updated data
+    const interval = setInterval(fetchTransactions, 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [marketId]);
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('wallet_transactions')
-        .select('*')
-        .eq('market_id', marketId)
-        .gte('amount', 10000)
-        .order('timestamp', { ascending: false })
-        .limit(20);
+      // Fetch transactions directly from Polymarket API
+      const allTransactions = await fetchMarketTransactions(marketId, 1000);
 
-      if (error) throw error;
-      setTransactions(data || []);
+      // Filter for whale transactions (>= $10,000) and transform format
+      const whaleTxs = allTransactions
+        .filter((tx) => Number(tx.amount) >= 10000)
+        .slice(0, 20)
+        .map((tx) => ({
+          id: tx.id,
+          wallet_address: tx.address || tx.wallet_address || '',
+          amount: Number(tx.amount),
+          price: Number(tx.price),
+          side: tx.side,
+          timestamp: tx.timestamp,
+          transaction_hash: tx.hash || tx.transaction_hash || '',
+        }));
+
+      setTransactions(whaleTxs);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
@@ -245,29 +240,6 @@ const MarketDetail = () => {
   
   const market = markets?.find(m => m.market_id === marketId);
 
-  // Auto-sync this market's transactions every 2 minutes
-  useEffect(() => {
-    if (!market) return;
-
-    const syncMarket = async () => {
-      try {
-        await supabase.functions.invoke('sync-market-transactions', {
-          body: { marketId: market.market_id }
-        });
-      } catch (error) {
-        console.error('Auto-sync error:', error);
-      }
-    };
-
-    // Initial sync
-    syncMarket();
-
-    // Sync every 2 minutes
-    const interval = setInterval(syncMarket, 2 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [market]);
-
   if (!market) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -303,7 +275,7 @@ const MarketDetail = () => {
             <WalletBubbleMap market={market} />
           </div>
 
-          <MarketWhaleTransactions marketId={market.id} />
+          <MarketWhaleTransactions marketId={market.market_id} />
 
           <div className="space-y-8">
             <TransactionTimeline market={market} />

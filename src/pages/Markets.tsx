@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMarkets } from "@/hooks/useMarkets";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,9 +21,10 @@ const Markets = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: markets, isLoading } = useMarkets("polymarket");
 
-  const filteredMarkets = markets?.filter(market =>
-    market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    market.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMarkets = markets?.filter(
+    (market) =>
+      market.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      market.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Get top 6 trending markets by 24h volume
@@ -40,7 +47,7 @@ const Markets = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-20 sm:py-24">
         <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
           {/* Header */}
@@ -51,11 +58,14 @@ const Markets = () => {
               </h1>
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium text-green-500">LIVE</span>
+                <span className="text-xs sm:text-sm font-medium text-green-500">
+                  LIVE
+                </span>
               </div>
             </div>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-              Real-time data from Polymarket. All prices and volumes update automatically.
+              Real-time data from Polymarket. All prices and volumes update
+              automatically.
             </p>
           </div>
 
@@ -64,7 +74,9 @@ const Markets = () => {
             <div id="trending" className="space-y-6 scroll-mt-20">
               <div className="flex items-center gap-3 px-2">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                <h2 className="text-xl sm:text-2xl font-bold gradient-text">Trending Now on Polymarket</h2>
+                <h2 className="text-xl sm:text-2xl font-bold gradient-text">
+                  Trending Now on Polymarket
+                </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {trendingMarkets.map((market) => (
@@ -78,7 +90,10 @@ const Markets = () => {
                         <CardTitle className="text-base sm:text-lg line-clamp-2 flex-1">
                           {market.title}
                         </CardTitle>
-                        <Badge variant="secondary" className="shrink-0 bg-primary/20 text-primary border-primary/30 text-xs">
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 bg-primary/20 text-primary border-primary/30 text-xs"
+                        >
                           <TrendingUp className="w-3 h-3 mr-1" />
                           HOT
                         </Badge>
@@ -99,17 +114,24 @@ const Markets = () => {
                             NO {(market.no_price * 100).toFixed(1)}%
                           </span>
                         </div>
-                        <Progress value={market.yes_price * 100} className="h-2.5" />
+                        <Progress
+                          value={market.yes_price * 100}
+                          className="h-2.5"
+                        />
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-border/50">
                         <div>
-                          <p className="text-xs text-muted-foreground">24h Volume</p>
+                          <p className="text-xs text-muted-foreground">
+                            24h Volume
+                          </p>
                           <p className="font-bold text-foreground">
                             {formatVolume(market.volume_24h)}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Total Volume</p>
+                          <p className="text-xs text-muted-foreground">
+                            Total Volume
+                          </p>
                           <p className="font-bold text-foreground">
                             {formatVolume(market.total_volume)}
                           </p>
@@ -140,14 +162,18 @@ const Markets = () => {
               <Card className="glass">
                 <CardHeader className="pb-2">
                   <CardDescription>Total Markets</CardDescription>
-                  <CardTitle className="text-3xl gradient-text">{markets.length}</CardTitle>
+                  <CardTitle className="text-3xl gradient-text">
+                    {markets.length}
+                  </CardTitle>
                 </CardHeader>
               </Card>
               <Card className="glass">
                 <CardHeader className="pb-2">
                   <CardDescription>Total Volume</CardDescription>
                   <CardTitle className="text-3xl gradient-text">
-                    {formatVolume(markets.reduce((sum, m) => sum + (m.total_volume || 0), 0))}
+                    {formatVolume(
+                      markets.reduce((sum, m) => sum + (m.total_volume || 0), 0)
+                    )}
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -155,7 +181,7 @@ const Markets = () => {
                 <CardHeader className="pb-2">
                   <CardDescription>Active Now</CardDescription>
                   <CardTitle className="text-3xl gradient-text">
-                    {markets.filter(m => m.status === 'active').length}
+                    {markets.filter((m) => m.status === "active").length}
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -176,7 +202,7 @@ const Markets = () => {
                 const yesPrice = ((market.yes_price || 0) * 100).toFixed(1);
                 const noPrice = ((market.no_price || 0) * 100).toFixed(1);
                 const yesPercentage = (market.yes_price || 0) * 100;
-                
+
                 return (
                   <Card
                     key={market.id}
@@ -185,7 +211,12 @@ const Markets = () => {
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <Badge variant={priceChange === "bullish" ? "default" : "secondary"} className="shrink-0">
+                        <Badge
+                          variant={
+                            priceChange === "bullish" ? "default" : "secondary"
+                          }
+                          className="shrink-0"
+                        >
                           {priceChange === "bullish" ? (
                             <TrendingUp className="w-3 h-3 mr-1" />
                           ) : (
@@ -218,11 +249,11 @@ const Markets = () => {
                           </span>
                         </div>
                         <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
                             style={{ width: `${yesPercentage}%` }}
                           />
-                          <div 
+                          <div
                             className="absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 to-red-400 transition-all duration-500"
                             style={{ width: `${100 - yesPercentage}%` }}
                           />
@@ -232,13 +263,17 @@ const Markets = () => {
                       {/* Stats */}
                       <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-border/50">
                         <div>
-                          <div className="text-muted-foreground text-xs">Total Volume</div>
+                          <div className="text-muted-foreground text-xs">
+                            Total Volume
+                          </div>
                           <div className="font-semibold">
                             {formatVolume(market.total_volume || 0)}
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground text-xs">24h Volume</div>
+                          <div className="text-muted-foreground text-xs">
+                            24h Volume
+                          </div>
                           <div className="font-semibold">
                             {formatVolume(market.volume_24h || 0)}
                           </div>
@@ -253,7 +288,9 @@ const Markets = () => {
 
           {filteredMarkets?.length === 0 && !isLoading && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No markets found matching your search.</p>
+              <p className="text-muted-foreground">
+                No markets found matching your search.
+              </p>
             </div>
           )}
         </div>

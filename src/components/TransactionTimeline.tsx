@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, ExternalLink } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { useNavigate } from "react-router-dom";
 
 interface TransactionTimelineProps {
@@ -38,25 +38,19 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
         setLoading(true);
         setError(null);
         
-        // Fetch transactions directly from database
-        const { data, error: txError } = await supabase
-          .from('wallet_transactions')
-          .select('*')
-          .eq('market_id', market.id)
-          .order('timestamp', { ascending: false });
+        // Fetch transactions directly from Polymarket API
+        const transactions = await fetchMarketTransactions(market.market_id, 1000);
 
-        if (txError) throw txError;
-
-        if (data && data.length > 0) {
-          const formattedTxs = data.map(tx => ({
+        if (transactions && transactions.length > 0) {
+          const formattedTxs = transactions.map((tx) => ({
             id: tx.id,
-            hash: tx.transaction_hash || '',
-            address: tx.wallet_address,
+            hash: tx.hash || tx.transaction_hash || '',
+            address: tx.address || tx.wallet_address || '',
             amount: Number(tx.amount),
             timestamp: tx.timestamp,
-            blockNumber: Number(tx.block_number) || 0,
+            blockNumber: Number(tx.blockNumber) || 0,
             side: tx.side as 'buy' | 'sell' | 'yes' | 'no',
-            type: tx.transaction_type as 'market' | 'limit',
+            type: (tx.type || tx.transaction_type || 'market') as 'market' | 'limit',
           }));
           setTransactions(formattedTxs);
         } else {
@@ -73,27 +67,13 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
 
     fetchTransactions();
 
-    // Set up realtime subscription
-    const channel = supabase
-      .channel(`transactions-${market.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'wallet_transactions',
-          filter: `market_id=eq.${market.id}`,
-        },
-        () => {
-          fetchTransactions();
-        }
-      )
-      .subscribe();
+    // Refetch every 1 minute for updated data
+    const interval = setInterval(fetchTransactions, 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [market.id, market.source]);
+  }, [market.market_id, market.source]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
