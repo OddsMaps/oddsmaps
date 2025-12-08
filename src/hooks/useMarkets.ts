@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export interface Market {
   id: string;
@@ -28,43 +26,6 @@ interface GetMarketsResponse {
 }
 
 export const useMarkets = (source?: string, category?: string) => {
-  const queryClient = useQueryClient();
-
-  // Set up realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('markets-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'markets'
-        },
-        () => {
-          // Invalidate and refetch when markets change
-          queryClient.invalidateQueries({ queryKey: ["markets"] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'market_data'
-        },
-        () => {
-          // Invalidate and refetch when market data changes
-          queryClient.invalidateQueries({ queryKey: ["markets"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
   return useQuery({
     queryKey: ["markets", source, category],
     queryFn: async () => {
@@ -75,9 +36,10 @@ export const useMarkets = (source?: string, category?: string) => {
       if (error) throw error;
       return data?.markets || [];
     },
-    refetchInterval: 10000, // Refetch every 10 seconds to reduce database load
-    staleTime: 5000, // Cache for 5 seconds
-    retry: 2, // Only retry twice on failure
+    refetchInterval: 60000, // Refetch every 60 seconds to reduce database load
+    staleTime: 30000, // Cache for 30 seconds
+    retry: 1, // Only retry once on failure
+    retryDelay: 3000, // Wait 3 seconds before retry
   });
 };
 
