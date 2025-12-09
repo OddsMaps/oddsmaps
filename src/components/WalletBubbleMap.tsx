@@ -45,6 +45,12 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   
+  // Momentum/inertia tracking
+  const [velocity, setVelocity] = useState({ x: 0, y: 0 });
+  const lastPositionRef = useRef({ x: 0, y: 0 });
+  const lastTimeRef = useRef(Date.now());
+  const animationFrameRef = useRef<number | null>(null);
+  
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch real wallet data from Polymarket API
@@ -417,15 +423,42 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     setTransform({ scale: newScale, x: newX, y: newY });
   }, [transform]);
 
-  // Pan handlers - works at any zoom level like Bubblemaps
+  // Pan handlers with momentum - works at any zoom level like Bubblemaps
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left click
+    
+    // Cancel any ongoing momentum animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     setIsDragging(true);
     setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+    lastPositionRef.current = { x: e.clientX, y: e.clientY };
+    lastTimeRef.current = Date.now();
+    setVelocity({ x: 0, y: 0 });
   }, [transform]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
+    
+    const now = Date.now();
+    const dt = Math.max(1, now - lastTimeRef.current);
+    
+    // Calculate velocity
+    const vx = (e.clientX - lastPositionRef.current.x) / dt * 16; // Normalize to ~60fps
+    const vy = (e.clientY - lastPositionRef.current.y) / dt * 16;
+    
+    // Smooth velocity with exponential moving average
+    setVelocity(prev => ({
+      x: prev.x * 0.5 + vx * 0.5,
+      y: prev.y * 0.5 + vy * 0.5
+    }));
+    
+    lastPositionRef.current = { x: e.clientX, y: e.clientY };
+    lastTimeRef.current = now;
+    
     setTransform(prev => ({
       ...prev,
       x: e.clientX - dragStart.x,
@@ -433,9 +466,42 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     }));
   }, [isDragging, dragStart]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
+  // Momentum animation
+  const applyMomentum = useCallback((vx: number, vy: number) => {
+    const friction = 0.95; // Friction coefficient (0.95 = smooth deceleration)
+    const minVelocity = 0.5; // Stop when velocity is very small
+    
+    const animate = () => {
+      vx *= friction;
+      vy *= friction;
+      
+      if (Math.abs(vx) < minVelocity && Math.abs(vy) < minVelocity) {
+        animationFrameRef.current = null;
+        return;
+      }
+      
+      setTransform(prev => ({
+        ...prev,
+        x: prev.x + vx,
+        y: prev.y + vy
+      }));
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
   }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      
+      // Apply momentum if velocity is significant
+      if (Math.abs(velocity.x) > 1 || Math.abs(velocity.y) > 1) {
+        applyMomentum(velocity.x, velocity.y);
+      }
+    }
+  }, [isDragging, velocity, applyMomentum]);
 
   // Touch handlers for pinch-to-zoom
   const getTouchDistance = (touches: React.TouchList) => {
@@ -456,11 +522,20 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   };
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Cancel any ongoing momentum animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     if (e.touches.length === 2) {
       setLastTouchDistance(getTouchDistance(e.touches));
     } else if (e.touches.length === 1) {
       setIsDragging(true);
       setDragStart({ x: e.touches[0].clientX - transform.x, y: e.touches[0].clientY - transform.y });
+      lastPositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastTimeRef.current = Date.now();
+      setVelocity({ x: 0, y: 0 });
     }
   }, [transform]);
 
@@ -484,6 +559,21 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         setLastTouchDistance(newDistance);
       }
     } else if (e.touches.length === 1 && isDragging) {
+      const now = Date.now();
+      const dt = Math.max(1, now - lastTimeRef.current);
+      
+      // Calculate velocity for touch
+      const vx = (e.touches[0].clientX - lastPositionRef.current.x) / dt * 16;
+      const vy = (e.touches[0].clientY - lastPositionRef.current.y) / dt * 16;
+      
+      setVelocity(prev => ({
+        x: prev.x * 0.5 + vx * 0.5,
+        y: prev.y * 0.5 + vy * 0.5
+      }));
+      
+      lastPositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastTimeRef.current = now;
+      
       setTransform(prev => ({
         ...prev,
         x: e.touches[0].clientX - dragStart.x,
@@ -493,13 +583,34 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   }, [lastTouchDistance, isDragging, dragStart, transform]);
 
   const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
+    if (isDragging) {
+      setIsDragging(false);
+      
+      // Apply momentum if velocity is significant
+      if (Math.abs(velocity.x) > 1 || Math.abs(velocity.y) > 1) {
+        applyMomentum(velocity.x, velocity.y);
+      }
+    }
     setLastTouchDistance(null);
+  }, [isDragging, velocity, applyMomentum]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   // Reset transform
   const handleReset = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     setTransform({ scale: 1, x: 0, y: 0 });
+    setVelocity({ x: 0, y: 0 });
   }, []);
 
   if (market && market.source.toLowerCase() !== 'polymarket') {
