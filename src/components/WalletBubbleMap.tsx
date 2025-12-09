@@ -876,28 +876,50 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                   zIndex: isHovered ? 100 : isWhale ? 30 : isLarge ? 20 : 10,
                 }}
               >
-                {/* Outer glow ring */}
+                {/* Subtle outer glow ring - enhanced on hover */}
                 <motion.div
-                  className="absolute inset-0 rounded-full"
+                  className="absolute inset-0 rounded-full pointer-events-none"
                   animate={{
-                    scale: isHovered ? 1.6 : 1.3,
-                    opacity: isHovered ? 0.8 : (isWhale ? 0.5 : isLarge ? 0.3 : 0.15)
+                    scale: isHovered ? 1.8 : 1.2,
+                    opacity: isHovered ? 0.9 : 0.2
                   }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                   style={{
-                    background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
+                    background: `radial-gradient(circle, ${glowColor} 0%, transparent 60%)`,
+                    filter: isHovered ? 'blur(8px)' : 'blur(4px)',
                   }}
                 />
+                
+                {/* Secondary pulsing glow on hover */}
+                {isHovered && (
+                  <motion.div
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    initial={{ scale: 1, opacity: 0.6 }}
+                    animate={{ 
+                      scale: [1.3, 1.8, 1.3],
+                      opacity: [0.4, 0.1, 0.4]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    style={{
+                      background: `radial-gradient(circle, ${glowColor} 0%, transparent 50%)`,
+                      filter: 'blur(6px)',
+                    }}
+                  />
+                )}
 
                 {/* Main bubble with 3D effect */}
                 <motion.div
                   className="absolute inset-0 rounded-full overflow-hidden"
                   animate={{
                     boxShadow: isHovered 
-                      ? `0 0 ${wallet.size}px ${glowColor}, inset 0 -4px 20px rgba(0,0,0,0.4), inset 0 4px 15px ${lightColor}`
-                      : `0 0 ${isWhale ? 30 : isLarge ? 20 : 10}px ${glowColor}, inset 0 -2px 10px rgba(0,0,0,0.3), inset 0 2px 10px ${lightColor}`
+                      ? `0 0 ${wallet.size * 0.8}px ${glowColor}, 0 0 ${wallet.size * 1.5}px ${isYes ? 'hsla(142, 76%, 42%, 0.3)' : 'hsla(0, 72%, 51%, 0.3)'}, inset 0 -4px 20px rgba(0,0,0,0.4), inset 0 4px 15px ${lightColor}`
+                      : `0 0 ${isWhale ? 20 : isLarge ? 12 : 6}px ${glowColor}, inset 0 -2px 10px rgba(0,0,0,0.3), inset 0 2px 10px ${lightColor}`
                   }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
                   style={{
                     background: `radial-gradient(circle at 35% 30%, ${lightColor} 0%, ${baseColor} 40%, ${darkColor} 100%)`,
                     border: `${isWhale ? 2 : 1}px solid ${isYes ? 'rgba(134, 239, 172, 0.4)' : 'rgba(252, 165, 165, 0.4)'}`,
