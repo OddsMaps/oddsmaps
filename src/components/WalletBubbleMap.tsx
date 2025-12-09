@@ -551,6 +551,41 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           <text x="50%" y="18%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="10" fontWeight="600">🐋 WHALES</text>
         </svg>
 
+        {/* Zone Legend */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+          <div 
+            className="flex items-center gap-1 sm:gap-3 px-3 sm:px-4 py-2 rounded-full backdrop-blur-md border border-border/30"
+            style={{ background: 'rgba(10, 10, 15, 0.8)' }}
+          >
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-muted-foreground/40 to-muted-foreground/20 border border-muted-foreground/30" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">$0-100</span>
+            </div>
+            <div className="w-px h-3 bg-border/50 hidden sm:block" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-muted-foreground/50 to-muted-foreground/30 border border-muted-foreground/40" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">$100-1k</span>
+            </div>
+            <div className="w-px h-3 bg-border/50 hidden sm:block" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-muted-foreground/60 to-muted-foreground/40 border border-muted-foreground/50" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">$1k-10k</span>
+            </div>
+            <div className="w-px h-3 bg-border/50 hidden sm:block" />
+            <div className="flex items-center gap-1.5">
+              <div 
+                className="w-6 h-6 rounded-full border-2 animate-pulse"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))',
+                  borderColor: 'rgba(255,255,255,0.4)',
+                  boxShadow: '0 0 10px rgba(255,255,255,0.2)'
+                }}
+              />
+              <span className="text-[10px] sm:text-xs text-foreground font-medium">$10k+ 🐋</span>
+            </div>
+          </div>
+        </div>
+
         {/* Center divider */}
         <div className="absolute left-1/2 top-8 bottom-8 w-px transform -translate-x-1/2 z-10"
           style={{
