@@ -1007,55 +1007,107 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               : bubbleX - bubbleSize / 2 - tooltipWidth - gap;
             const tooltipY = bubbleY - 60;
             
+            // Calculate actual tooltip position after clamping
+            const actualTooltipX = Math.max(10, Math.min(tooltipX, window.innerWidth - tooltipWidth - 10));
+            const actualTooltipY = Math.max(10, Math.min(tooltipY, window.innerHeight - 200));
+            
+            // Line connection points
+            const lineStartX = isLeftSide ? bubbleX + bubbleSize / 2 : bubbleX - bubbleSize / 2;
+            const lineStartY = bubbleY;
+            const lineEndX = isLeftSide ? actualTooltipX : actualTooltipX + tooltipWidth;
+            const lineEndY = actualTooltipY + 50; // Middle of tooltip
+            
+            const lineColor = hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+            
             return (
-              <motion.div
-                initial={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
-                className="fixed z-[200] pointer-events-none"
-                style={{
-                  left: Math.max(10, Math.min(tooltipX, window.innerWidth - tooltipWidth - 10)),
-                  top: Math.max(10, Math.min(tooltipY, window.innerHeight - 200)),
-                }}
-              >
-                <div 
-                  className="backdrop-blur-xl border rounded-xl p-3.5 shadow-2xl"
+              <>
+                {/* Connecting line */}
+                <motion.svg
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[199] pointer-events-none"
+                  style={{ width: '100vw', height: '100vh' }}
+                >
+                  <motion.line
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    exit={{ pathLength: 0 }}
+                    transition={{ duration: 0.2 }}
+                    x1={lineStartX}
+                    y1={lineStartY}
+                    x2={lineEndX}
+                    y2={lineEndY}
+                    stroke={lineColor}
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                  />
+                  {/* Dot at bubble edge */}
+                  <circle
+                    cx={lineStartX}
+                    cy={lineStartY}
+                    r="3"
+                    fill={lineColor}
+                  />
+                  {/* Dot at tooltip */}
+                  <circle
+                    cx={lineEndX}
+                    cy={lineEndY}
+                    r="3"
+                    fill={lineColor}
+                  />
+                </motion.svg>
+                
+                {/* Tooltip */}
+                <motion.div
+                  initial={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
+                  className="fixed z-[200] pointer-events-none"
                   style={{
-                    width: tooltipWidth,
-                    background: 'rgba(15, 15, 20, 0.95)',
-                    borderColor: hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                    left: actualTooltipX,
+                    top: actualTooltipY,
                   }}
                 >
-                  <div className="text-xs space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-mono text-foreground/80">
-                        {hoveredWallet.address.slice(0, 6)}...{hoveredWallet.address.slice(-4)}
-                      </span>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-[10px] px-2 ${hoveredWallet.side === 'yes' ? 'border-primary/50 text-primary bg-primary/10' : 'border-secondary/50 text-secondary bg-secondary/10'}`}
-                      >
-                        {hoveredWallet.side.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-border/30">
-                      <div className="text-muted-foreground">Position</div>
-                      <div className="text-right font-semibold text-foreground">${hoveredWallet.amount.toLocaleString()}</div>
-                      <div className="text-muted-foreground">Trades</div>
-                      <div className="text-right font-medium text-foreground">{hoveredWallet.trades}</div>
-                      <div className="text-muted-foreground">Avg Entry</div>
-                      <div className="text-right font-medium text-foreground">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
-                      <div className="text-muted-foreground">P&L</div>
-                      <div className={`text-right font-semibold ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                        {hoveredWallet.profit >= 0 ? '+' : ''}{hoveredWallet.profit.toFixed(2)}
+                  <div 
+                    className="backdrop-blur-xl border rounded-xl p-3.5 shadow-2xl"
+                    style={{
+                      width: tooltipWidth,
+                      background: 'rgba(15, 15, 20, 0.95)',
+                      borderColor: hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                    }}
+                  >
+                    <div className="text-xs space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-foreground/80">
+                          {hoveredWallet.address.slice(0, 6)}...{hoveredWallet.address.slice(-4)}
+                        </span>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-[10px] px-2 ${hoveredWallet.side === 'yes' ? 'border-primary/50 text-primary bg-primary/10' : 'border-secondary/50 text-secondary bg-secondary/10'}`}
+                        >
+                          {hoveredWallet.side.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-border/30">
+                        <div className="text-muted-foreground">Position</div>
+                        <div className="text-right font-semibold text-foreground">${hoveredWallet.amount.toLocaleString()}</div>
+                        <div className="text-muted-foreground">Trades</div>
+                        <div className="text-right font-medium text-foreground">{hoveredWallet.trades}</div>
+                        <div className="text-muted-foreground">Avg Entry</div>
+                        <div className="text-right font-medium text-foreground">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
+                        <div className="text-muted-foreground">P&L</div>
+                        <div className={`text-right font-semibold ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                          {hoveredWallet.profit >= 0 ? '+' : ''}{hoveredWallet.profit.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-border/30 text-center text-muted-foreground text-[10px]">
+                        Click to view full profile
                       </div>
                     </div>
-                    <div className="pt-2 border-t border-border/30 text-center text-muted-foreground text-[10px]">
-                      Click to view full profile
-                    </div>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </>
             );
           })()}
         </AnimatePresence>
