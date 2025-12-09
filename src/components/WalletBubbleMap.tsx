@@ -733,7 +733,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             strokeWidth="1"
             strokeDasharray="4 6"
           />
-          <text x="50%" y="52%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="9" fontWeight="600">$0-1k</text>
+          
           
           {/* Zone 2: $1k-10k (middle) */}
           <circle
@@ -745,7 +745,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             strokeWidth="1"
             strokeDasharray="4 6"
           />
-          <text x="50%" y="35%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.45)" fontSize="9" fontWeight="600">$1k-10k</text>
+          
           
           {/* Zone 3: $10k+ outer pulsing ring */}
           <circle
@@ -788,7 +788,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             strokeWidth="1"
             strokeDasharray="4 6"
           />
-          <text x="50%" y="52%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="9" fontWeight="600">$0-1k</text>
+          
           
           {/* Zone 2: $1k-10k (middle) */}
           <circle
@@ -800,7 +800,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             strokeWidth="1"
             strokeDasharray="4 6"
           />
-          <text x="50%" y="35%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.45)" fontSize="9" fontWeight="600">$1k-10k</text>
+          
           
           {/* Zone 3: $10k+ outer pulsing ring */}
           <circle
