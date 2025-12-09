@@ -174,7 +174,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return { yesWallets: yes, noWallets: no };
   }, [wallets]);
 
-  // Radial positioning: smallest in center, largest on outside
+  // Perfect radial positioning: smallest in center, largest on outside
   const calculateRadialPositions = useCallback((
     bubbles: WalletData[],
     centerX: number,
@@ -188,32 +188,41 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     // Sort by amount ASCENDING - smallest first (center), largest last (outside)
     const sorted = [...bubbles].sort((a, b) => a.amount - b.amount);
     
-    const placed: { id: string; x: number; y: number; r: number }[] = [];
-    const padding = 4;
+    const placed: { id: string; x: number; y: number; r: number; targetRadius: number }[] = [];
+    const padding = 6;
 
+    // Place bubbles in concentric rings from center outward
     sorted.forEach((bubble, index) => {
       const r = bubble.size / 2;
       
-      // Calculate target distance from center based on position in sorted array
-      // Smallest (index 0) -> center, largest (last) -> edge
+      // Calculate target radius - exponential distribution pushes larger bubbles further out
       const normalizedIndex = index / Math.max(sorted.length - 1, 1);
-      const targetRadius = normalizedIndex * (maxRadius - r - 20);
+      // Use exponential curve for more dramatic center-to-edge distribution
+      const radiusFactor = Math.pow(normalizedIndex, 0.7);
+      const targetRadius = radiusFactor * (maxRadius - r - 10);
       
-      // Spread angle based on side
-      const angleRange = side === 'left' ? { min: Math.PI * 0.6, max: Math.PI * 1.4 } : { min: -Math.PI * 0.4, max: Math.PI * 0.4 };
+      // Full circle for each side
+      const angleRange = side === 'left' 
+        ? { min: Math.PI * 0.55, max: Math.PI * 1.45 }  // Left semicircle
+        : { min: -Math.PI * 0.45, max: Math.PI * 0.45 }; // Right semicircle
       
-      // Try to find a position
+      // Find best position on the target ring
       let bestPos = { x: centerX, y: centerY };
       let minOverlap = Infinity;
       
-      // Try multiple angles at the target radius
-      for (let attempt = 0; attempt < 60; attempt++) {
-        const angleSpread = angleRange.max - angleRange.min;
-        const angle = angleRange.min + (attempt / 60) * angleSpread + (Math.random() - 0.5) * 0.2;
-        const radiusVariation = targetRadius + (Math.random() - 0.5) * 40;
+      // Try many angles at the target radius
+      const attempts = 120;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        // Distribute angles evenly with some randomness
+        const baseAngle = angleRange.min + (attempt / attempts) * (angleRange.max - angleRange.min);
+        const angle = baseAngle + (Math.random() - 0.5) * 0.15;
         
-        const testX = centerX + Math.cos(angle) * radiusVariation;
-        const testY = centerY + Math.sin(angle) * radiusVariation;
+        // Keep close to target radius
+        const radiusJitter = (Math.random() - 0.5) * 15;
+        const actualRadius = Math.max(0, targetRadius + radiusJitter);
+        
+        const testX = centerX + Math.cos(angle) * actualRadius;
+        const testY = centerY + Math.sin(angle) * actualRadius;
         
         // Check overlap with all placed bubbles
         let totalOverlap = 0;
@@ -223,28 +232,33 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           const dist = Math.sqrt(dx * dx + dy * dy);
           const minDist = r + p.r + padding;
           if (dist < minDist) {
-            totalOverlap += minDist - dist;
+            totalOverlap += (minDist - dist) * 2;
           }
         }
+        
+        // Penalize deviation from target radius to maintain radial structure
+        const radiusDeviation = Math.abs(actualRadius - targetRadius) * 0.1;
+        totalOverlap += radiusDeviation;
         
         if (totalOverlap < minOverlap) {
           minOverlap = totalOverlap;
           bestPos = { x: testX, y: testY };
-          if (totalOverlap === 0) break;
+          if (totalOverlap < 0.5) break;
         }
       }
       
-      placed.push({ id: bubble.id, x: bestPos.x, y: bestPos.y, r });
+      placed.push({ id: bubble.id, x: bestPos.x, y: bestPos.y, r, targetRadius });
     });
 
-    // Force-directed refinement to eliminate overlaps
-    for (let iteration = 0; iteration < 150; iteration++) {
+    // Force-directed refinement - preserve radial structure
+    for (let iteration = 0; iteration < 100; iteration++) {
       let maxOverlap = 0;
       
       for (let i = 0; i < placed.length; i++) {
         const p1 = placed[i];
         let fx = 0, fy = 0;
         
+        // Separation from other bubbles
         for (let j = 0; j < placed.length; j++) {
           if (i === j) continue;
           const p2 = placed[j];
@@ -257,27 +271,39 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           if (distance < minDist && distance > 0.1) {
             const overlap = minDist - distance;
             maxOverlap = Math.max(maxOverlap, overlap);
-            const force = overlap * 0.4;
+            // Push apart along connection line
+            const force = overlap * 0.35;
             fx += (dx / distance) * force;
             fy += (dy / distance) * force;
           }
         }
         
-        // Apply forces with boundary constraints
+        // Gentle pull toward target radius to maintain radial structure
+        const currentRadius = Math.sqrt(Math.pow(p1.x - centerX, 2) + Math.pow(p1.y - centerY, 2));
+        if (currentRadius > 0.1) {
+          const radiusDiff = p1.targetRadius - currentRadius;
+          const pullStrength = radiusDiff * 0.05;
+          fx += ((p1.x - centerX) / currentRadius) * pullStrength;
+          fy += ((p1.y - centerY) / currentRadius) * pullStrength;
+        }
+        
+        // Apply forces
         p1.x += fx;
         p1.y += fy;
         
-        // Keep within the side's bounds
-        const minX = side === 'left' ? p1.r + 10 : centerX - maxRadius + p1.r;
-        const maxX = side === 'left' ? centerX + maxRadius - p1.r : containerRef.current?.getBoundingClientRect().width || 800 - p1.r - 10;
-        const minY = p1.r + 50;
-        const maxY = (containerRef.current?.getBoundingClientRect().height || 600) - p1.r - 10;
+        // Keep within bounds
+        const containerWidth = containerRef.current?.getBoundingClientRect().width || 800;
+        const containerHeight = containerRef.current?.getBoundingClientRect().height || 600;
+        const minX = p1.r + 15;
+        const maxX = containerWidth - p1.r - 15;
+        const minY = p1.r + 55;
+        const maxY = containerHeight - p1.r - 15;
         
         p1.x = Math.max(minX, Math.min(maxX, p1.x));
         p1.y = Math.max(minY, Math.min(maxY, p1.y));
       }
       
-      if (maxOverlap < 0.5) break;
+      if (maxOverlap < 0.3) break;
     }
 
     placed.forEach(p => {
