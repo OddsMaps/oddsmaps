@@ -28,6 +28,8 @@ interface BubblePosition {
   y: number;
 }
 
+type TierFilter = 'all' | 'whale' | 'large' | 'medium' | 'small';
+
 const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [hoveredWallet, setHoveredWallet] = useState<WalletData | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<WalletData | null>(null);
@@ -35,6 +37,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [positions, setPositions] = useState<Map<string, BubblePosition>>(new Map());
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -167,12 +170,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     }).sort((a, b) => b.amount - a.amount);
   }, [realWallets, market]);
 
-  // Separate YES and NO wallets - take top 100 each
+  // Separate YES and NO wallets - take top 100 each, apply tier filter
   const { yesWallets, noWallets } = useMemo(() => {
-    const yes = wallets.filter(w => w.side === 'yes').slice(0, 100);
-    const no = wallets.filter(w => w.side === 'no').slice(0, 100);
+    const filterByTier = (w: WalletData) => tierFilter === 'all' || w.tier === tierFilter;
+    const yes = wallets.filter(w => w.side === 'yes' && filterByTier(w)).slice(0, 100);
+    const no = wallets.filter(w => w.side === 'no' && filterByTier(w)).slice(0, 100);
     return { yesWallets: yes, noWallets: no };
-  }, [wallets]);
+  }, [wallets, tierFilter]);
 
   // Perfect radial positioning: smallest in center, largest on outside
   const calculateRadialPositions = useCallback((
@@ -467,17 +471,34 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(142, 76%, 42%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[0.2, 0.4, 0.6, 0.8].map((scale, i) => (
-            <circle
-              key={`yes-ring-${i}`}
-              cx="50%"
-              cy="50%"
-              r={`${scale * 40}%`}
-              fill="none"
-              stroke="hsla(142, 76%, 42%, 0.12)"
-              strokeWidth="1"
-              strokeDasharray="4 8"
-            />
+          {[
+            { scale: 0.15, label: '$100' },
+            { scale: 0.3, label: '$500' },
+            { scale: 0.5, label: '$1,000' },
+            { scale: 0.7, label: '$5,000' },
+            { scale: 0.85, label: '$10,000' },
+          ].map((ring, i) => (
+            <g key={`yes-ring-${i}`}>
+              <circle
+                cx="50%"
+                cy="50%"
+                r={`${ring.scale * 40}%`}
+                fill="none"
+                stroke="hsla(142, 76%, 42%, 0.15)"
+                strokeWidth="1"
+                strokeDasharray="4 8"
+              />
+              <text 
+                x="50%" 
+                y={`${50 - ring.scale * 38}%`} 
+                textAnchor="middle" 
+                fill="hsla(142, 76%, 50%, 0.35)" 
+                fontSize="8" 
+                fontWeight="500"
+              >
+                {ring.label}
+              </text>
+            </g>
           ))}
           {/* Outer pulsing ring for whales */}
           <circle
@@ -499,10 +520,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          {/* Zone labels */}
-          <text x="50%" y="52%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
-          <text x="50%" y="35%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
-          <text x="50%" y="18%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="10" fontWeight="600">🐋 WHALES</text>
+          <text x="50%" y="8%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="10" fontWeight="600">$10k+ 🐋</text>
         </svg>
 
         {/* Concentric ring guides - NO side */}
@@ -513,17 +531,34 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[0.2, 0.4, 0.6, 0.8].map((scale, i) => (
-            <circle
-              key={`no-ring-${i}`}
-              cx="50%"
-              cy="50%"
-              r={`${scale * 40}%`}
-              fill="none"
-              stroke="hsla(0, 72%, 51%, 0.12)"
-              strokeWidth="1"
-              strokeDasharray="4 8"
-            />
+          {[
+            { scale: 0.15, label: '$100' },
+            { scale: 0.3, label: '$500' },
+            { scale: 0.5, label: '$1,000' },
+            { scale: 0.7, label: '$5,000' },
+            { scale: 0.85, label: '$10,000' },
+          ].map((ring, i) => (
+            <g key={`no-ring-${i}`}>
+              <circle
+                cx="50%"
+                cy="50%"
+                r={`${ring.scale * 40}%`}
+                fill="none"
+                stroke="hsla(0, 72%, 51%, 0.15)"
+                strokeWidth="1"
+                strokeDasharray="4 8"
+              />
+              <text 
+                x="50%" 
+                y={`${50 - ring.scale * 38}%`} 
+                textAnchor="middle" 
+                fill="hsla(0, 72%, 60%, 0.35)" 
+                fontSize="8" 
+                fontWeight="500"
+              >
+                {ring.label}
+              </text>
+            </g>
           ))}
           {/* Outer pulsing ring for whales */}
           <circle
@@ -545,44 +580,77 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          {/* Zone labels */}
-          <text x="50%" y="52%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
-          <text x="50%" y="35%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
-          <text x="50%" y="18%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="10" fontWeight="600">🐋 WHALES</text>
+          <text x="50%" y="8%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="10" fontWeight="600">$10k+ 🐋</text>
         </svg>
 
-        {/* Zone Legend */}
+        {/* Tier Filter & Legend */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
           <div 
-            className="flex items-center gap-1 sm:gap-3 px-3 sm:px-4 py-2 rounded-full backdrop-blur-md border border-border/30"
-            style={{ background: 'rgba(10, 10, 15, 0.8)' }}
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full backdrop-blur-md border border-border/30"
+            style={{ background: 'rgba(10, 10, 15, 0.9)' }}
           >
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-muted-foreground/40 to-muted-foreground/20 border border-muted-foreground/30" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">$0-100</span>
-            </div>
-            <div className="w-px h-3 bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-muted-foreground/50 to-muted-foreground/30 border border-muted-foreground/40" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">$100-1k</span>
-            </div>
-            <div className="w-px h-3 bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-muted-foreground/60 to-muted-foreground/40 border border-muted-foreground/50" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">$1k-10k</span>
-            </div>
-            <div className="w-px h-3 bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setTierFilter('all')}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-all ${
+                tierFilter === 'all' 
+                  ? 'bg-foreground/20 text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
+              }`}
+            >
+              <span className="text-[10px] sm:text-xs font-medium">All</span>
+            </button>
+            <div className="w-px h-4 bg-border/30" />
+            <button
+              onClick={() => setTierFilter('small')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+                tierFilter === 'small' 
+                  ? 'bg-foreground/20 text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
+              }`}
+            >
+              <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-muted-foreground/50 to-muted-foreground/30 border border-muted-foreground/40" />
+              <span className="text-[10px] sm:text-xs">$0-100</span>
+            </button>
+            <button
+              onClick={() => setTierFilter('medium')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+                tierFilter === 'medium' 
+                  ? 'bg-foreground/20 text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
+              }`}
+            >
+              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-muted-foreground/60 to-muted-foreground/40 border border-muted-foreground/50" />
+              <span className="text-[10px] sm:text-xs">$100-1k</span>
+            </button>
+            <button
+              onClick={() => setTierFilter('large')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+                tierFilter === 'large' 
+                  ? 'bg-foreground/20 text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
+              }`}
+            >
+              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-muted-foreground/70 to-muted-foreground/50 border border-muted-foreground/60" />
+              <span className="text-[10px] sm:text-xs">$1k-10k</span>
+            </button>
+            <button
+              onClick={() => setTierFilter('whale')}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+                tierFilter === 'whale' 
+                  ? 'bg-foreground/20 text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
+              }`}
+            >
               <div 
-                className="w-6 h-6 rounded-full border-2 animate-pulse"
+                className="w-4 h-4 rounded-full border animate-pulse"
                 style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))',
-                  borderColor: 'rgba(255,255,255,0.4)',
-                  boxShadow: '0 0 10px rgba(255,255,255,0.2)'
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.15))',
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  boxShadow: '0 0 8px rgba(255,255,255,0.25)'
                 }}
               />
-              <span className="text-[10px] sm:text-xs text-foreground font-medium">$10k+ 🐋</span>
-            </div>
+              <span className="text-[10px] sm:text-xs font-medium">$10k+ 🐋</span>
+            </button>
           </div>
         </div>
 
