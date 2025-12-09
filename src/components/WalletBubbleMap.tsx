@@ -661,13 +661,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         </div>
       </div>
 
-      {/* Main Bubble Map - Bubblemaps style */}
+      {/* Main Bubble Map - Bubblemaps style endless canvas */}
       <div 
         ref={containerRef}
         className={`relative w-full h-[350px] sm:h-[450px] md:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden border border-border/20 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
-          background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)',
-          touchAction: 'none' // Prevent default touch behaviors for custom gestures
+          background: 'hsl(224 71% 4%)',
+          touchAction: 'none'
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -679,6 +679,18 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Fixed infinite grid background - doesn't move with zoom/pan */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(255,255,255,0.3) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: '50px 50px'
+          }}
+        />
+
         {/* Minimal zoom indicator - bottom right like Bubblemaps */}
         {transform.scale !== 1 && (
           <div className="absolute bottom-3 right-3 z-30">
@@ -693,7 +705,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           </div>
         )}
         
-        {/* Zoomable Content Container */}
+        {/* Zoomable Content Container - only bubbles move */}
         <div 
           className="absolute inset-0"
           style={{
@@ -702,51 +714,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             transition: isDragging ? 'none' : 'transform 0.1s ease-out',
           }}
         >
-          {/* Background gradients */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* YES side glow - green */}
-          <div 
-            className="absolute left-0 top-0 bottom-0 w-1/2"
-            style={{
-              background: 'radial-gradient(ellipse 100% 100% at 30% 50%, hsla(142, 76%, 36%, 0.2) 0%, hsla(142, 76%, 36%, 0.05) 40%, transparent 70%)'
-            }}
-          />
-          
-          {/* NO side glow - red */}
-          <div 
-            className="absolute right-0 top-0 bottom-0 w-1/2"
-            style={{
-              background: 'radial-gradient(ellipse 100% 100% at 70% 50%, hsla(0, 72%, 45%, 0.2) 0%, hsla(0, 72%, 45%, 0.05) 40%, transparent 70%)'
-            }}
-          />
-
-          {/* Stars/particles for depth */}
-          {[...Array(40)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: Math.random() * 2 + 0.5,
-                height: Math.random() * 2 + 0.5,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                background: `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`,
-              }}
-            />
-          ))}
-          
-          {/* Subtle grid lines */}
-          <div 
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px'
-            }}
-          />
-        </div>
 
         {/* Concentric ring guides - YES side - 3 zones */}
         <svg className="absolute left-0 top-0 w-1/2 h-full pointer-events-none" style={{ overflow: 'visible' }}>
