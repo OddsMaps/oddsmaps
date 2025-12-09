@@ -459,6 +459,58 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           />
         </div>
 
+        {/* Concentric ring guides - YES side */}
+        <svg className="absolute left-0 top-0 w-1/2 h-full pointer-events-none" style={{ overflow: 'visible' }}>
+          <defs>
+            <radialGradient id="yesRingGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(142, 76%, 42%)" stopOpacity="0" />
+              <stop offset="100%" stopColor="hsl(142, 76%, 42%)" stopOpacity="0.15" />
+            </radialGradient>
+          </defs>
+          {[0.2, 0.4, 0.6, 0.8, 1].map((scale, i) => (
+            <circle
+              key={`yes-ring-${i}`}
+              cx="50%"
+              cy="50%"
+              r={`${scale * 40}%`}
+              fill="none"
+              stroke="hsla(142, 76%, 42%, 0.12)"
+              strokeWidth="1"
+              strokeDasharray={i === 4 ? "none" : "4 8"}
+            />
+          ))}
+          {/* Zone labels */}
+          <text x="50%" y="52%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
+          <text x="50%" y="35%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
+          <text x="50%" y="20%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.3)" fontSize="9" fontWeight="500">LARGE</text>
+        </svg>
+
+        {/* Concentric ring guides - NO side */}
+        <svg className="absolute right-0 top-0 w-1/2 h-full pointer-events-none" style={{ overflow: 'visible' }}>
+          <defs>
+            <radialGradient id="noRingGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(0, 72%, 51%)" stopOpacity="0" />
+              <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity="0.15" />
+            </radialGradient>
+          </defs>
+          {[0.2, 0.4, 0.6, 0.8, 1].map((scale, i) => (
+            <circle
+              key={`no-ring-${i}`}
+              cx="50%"
+              cy="50%"
+              r={`${scale * 40}%`}
+              fill="none"
+              stroke="hsla(0, 72%, 51%, 0.12)"
+              strokeWidth="1"
+              strokeDasharray={i === 4 ? "none" : "4 8"}
+            />
+          ))}
+          {/* Zone labels */}
+          <text x="50%" y="52%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
+          <text x="50%" y="35%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
+          <text x="50%" y="20%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.3)" fontSize="9" fontWeight="500">LARGE</text>
+        </svg>
+
         {/* Center divider */}
         <div className="absolute left-1/2 top-8 bottom-8 w-px transform -translate-x-1/2 z-10"
           style={{
