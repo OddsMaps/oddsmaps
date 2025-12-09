@@ -984,60 +984,80 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         </div>
         {/* End of Zoomable Content Container */}
 
-        {/* Hover Tooltip */}
+        {/* Hover Tooltip - positioned to the side */}
         <AnimatePresence>
-          {hoveredWallet && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              className="fixed z-[200] pointer-events-none"
-              style={{
-                left: Math.min(
-                  Math.max((positions.get(hoveredWallet.id)?.x || 0) + (containerRef.current?.getBoundingClientRect().left || 0), 100),
-                  window.innerWidth - 220
-                ),
-                top: (positions.get(hoveredWallet.id)?.y || 0) + (containerRef.current?.getBoundingClientRect().top || 0) - hoveredWallet.size / 2 - 90,
-              }}
-            >
-              <div 
-                className="backdrop-blur-xl border rounded-xl p-3.5 shadow-2xl min-w-[200px] transform -translate-x-1/2"
+          {hoveredWallet && (() => {
+            const pos = positions.get(hoveredWallet.id);
+            const containerRect = containerRef.current?.getBoundingClientRect();
+            if (!pos || !containerRect) return null;
+            
+            // Calculate bubble position in viewport
+            const bubbleX = pos.x * transform.scale + transform.x + containerRect.left;
+            const bubbleY = pos.y * transform.scale + transform.y + containerRect.top;
+            const bubbleSize = hoveredWallet.size * transform.scale;
+            
+            // Determine if tooltip should be on left or right
+            const isLeftSide = bubbleX < containerRect.left + containerRect.width / 2;
+            const tooltipWidth = 200;
+            const gap = 12;
+            
+            // Position tooltip to the side
+            const tooltipX = isLeftSide 
+              ? bubbleX + bubbleSize / 2 + gap
+              : bubbleX - bubbleSize / 2 - tooltipWidth - gap;
+            const tooltipY = bubbleY - 60;
+            
+            return (
+              <motion.div
+                initial={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: isLeftSide ? -10 : 10, scale: 0.95 }}
+                className="fixed z-[200] pointer-events-none"
                 style={{
-                  background: 'rgba(15, 15, 20, 0.95)',
-                  borderColor: hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                  left: Math.max(10, Math.min(tooltipX, window.innerWidth - tooltipWidth - 10)),
+                  top: Math.max(10, Math.min(tooltipY, window.innerHeight - 200)),
                 }}
               >
-                <div className="text-xs space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono text-foreground/80">
-                      {hoveredWallet.address.slice(0, 6)}...{hoveredWallet.address.slice(-4)}
-                    </span>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[10px] px-2 ${hoveredWallet.side === 'yes' ? 'border-primary/50 text-primary bg-primary/10' : 'border-secondary/50 text-secondary bg-secondary/10'}`}
-                    >
-                      {hoveredWallet.side.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-border/30">
-                    <div className="text-muted-foreground">Position</div>
-                    <div className="text-right font-semibold text-foreground">${hoveredWallet.amount.toLocaleString()}</div>
-                    <div className="text-muted-foreground">Trades</div>
-                    <div className="text-right font-medium text-foreground">{hoveredWallet.trades}</div>
-                    <div className="text-muted-foreground">Avg Entry</div>
-                    <div className="text-right font-medium text-foreground">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
-                    <div className="text-muted-foreground">P&L</div>
-                    <div className={`text-right font-semibold ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                      {hoveredWallet.profit >= 0 ? '+' : ''}{hoveredWallet.profit.toFixed(2)}
+                <div 
+                  className="backdrop-blur-xl border rounded-xl p-3.5 shadow-2xl"
+                  style={{
+                    width: tooltipWidth,
+                    background: 'rgba(15, 15, 20, 0.95)',
+                    borderColor: hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                  }}
+                >
+                  <div className="text-xs space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-mono text-foreground/80">
+                        {hoveredWallet.address.slice(0, 6)}...{hoveredWallet.address.slice(-4)}
+                      </span>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-[10px] px-2 ${hoveredWallet.side === 'yes' ? 'border-primary/50 text-primary bg-primary/10' : 'border-secondary/50 text-secondary bg-secondary/10'}`}
+                      >
+                        {hoveredWallet.side.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-border/30">
+                      <div className="text-muted-foreground">Position</div>
+                      <div className="text-right font-semibold text-foreground">${hoveredWallet.amount.toLocaleString()}</div>
+                      <div className="text-muted-foreground">Trades</div>
+                      <div className="text-right font-medium text-foreground">{hoveredWallet.trades}</div>
+                      <div className="text-muted-foreground">Avg Entry</div>
+                      <div className="text-right font-medium text-foreground">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
+                      <div className="text-muted-foreground">P&L</div>
+                      <div className={`text-right font-semibold ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                        {hoveredWallet.profit >= 0 ? '+' : ''}{hoveredWallet.profit.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-border/30 text-center text-muted-foreground text-[10px]">
+                      Click to view full profile
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-border/30 text-center text-muted-foreground text-[10px]">
-                    Click to view full profile
-                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </div>
 
