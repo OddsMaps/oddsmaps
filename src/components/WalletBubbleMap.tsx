@@ -137,7 +137,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const normalized = amount / 1000;
     return 16 + normalized * 14; // 16-30px
   };
-  };
 
   const wallets = useMemo<WalletData[]>(() => {
     if (realWallets.length === 0) return [];
