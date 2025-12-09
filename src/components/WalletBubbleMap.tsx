@@ -467,7 +467,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(142, 76%, 42%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[0.2, 0.4, 0.6, 0.8, 1].map((scale, i) => (
+          {[0.2, 0.4, 0.6, 0.8].map((scale, i) => (
             <circle
               key={`yes-ring-${i}`}
               cx="50%"
@@ -476,13 +476,33 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               fill="none"
               stroke="hsla(142, 76%, 42%, 0.12)"
               strokeWidth="1"
-              strokeDasharray={i === 4 ? "none" : "4 8"}
+              strokeDasharray="4 8"
             />
           ))}
+          {/* Outer pulsing ring for whales */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="40%"
+            fill="none"
+            stroke="hsla(142, 76%, 42%, 0.25)"
+            strokeWidth="2"
+            className="animate-[pulse_2s_ease-in-out_infinite]"
+          />
+          <circle
+            cx="50%"
+            cy="50%"
+            r="40%"
+            fill="none"
+            stroke="hsla(142, 76%, 50%, 0.15)"
+            strokeWidth="6"
+            className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
+            style={{ filter: 'blur(4px)' }}
+          />
           {/* Zone labels */}
           <text x="50%" y="52%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
           <text x="50%" y="35%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
-          <text x="50%" y="20%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.3)" fontSize="9" fontWeight="500">LARGE</text>
+          <text x="50%" y="18%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="10" fontWeight="600">🐋 WHALES</text>
         </svg>
 
         {/* Concentric ring guides - NO side */}
@@ -493,7 +513,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[0.2, 0.4, 0.6, 0.8, 1].map((scale, i) => (
+          {[0.2, 0.4, 0.6, 0.8].map((scale, i) => (
             <circle
               key={`no-ring-${i}`}
               cx="50%"
@@ -502,13 +522,33 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               fill="none"
               stroke="hsla(0, 72%, 51%, 0.12)"
               strokeWidth="1"
-              strokeDasharray={i === 4 ? "none" : "4 8"}
+              strokeDasharray="4 8"
             />
           ))}
+          {/* Outer pulsing ring for whales */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="40%"
+            fill="none"
+            stroke="hsla(0, 72%, 51%, 0.25)"
+            strokeWidth="2"
+            className="animate-[pulse_2s_ease-in-out_infinite]"
+          />
+          <circle
+            cx="50%"
+            cy="50%"
+            r="40%"
+            fill="none"
+            stroke="hsla(0, 72%, 60%, 0.15)"
+            strokeWidth="6"
+            className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
+            style={{ filter: 'blur(4px)' }}
+          />
           {/* Zone labels */}
           <text x="50%" y="52%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.4)" fontSize="9" fontWeight="500">SMALL</text>
           <text x="50%" y="35%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.35)" fontSize="9" fontWeight="500">MEDIUM</text>
-          <text x="50%" y="20%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.3)" fontSize="9" fontWeight="500">LARGE</text>
+          <text x="50%" y="18%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="10" fontWeight="600">🐋 WHALES</text>
         </svg>
 
         {/* Center divider */}
