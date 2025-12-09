@@ -767,7 +767,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          <text x="50%" y="8%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.6)" fontSize="10" fontWeight="700">$10k+ 🐋</text>
+          
         </svg>
 
         {/* Concentric ring guides - NO side - 3 zones */}
@@ -822,7 +822,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          <text x="50%" y="8%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.6)" fontSize="10" fontWeight="700">$10k+ 🐋</text>
+          
         </svg>
 
 
@@ -833,31 +833,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           }}
         />
 
-        {/* YES Label */}
-        <div className="absolute top-4 left-6 z-20">
-          <span 
-            className="text-3xl sm:text-4xl font-black tracking-tight"
-            style={{ 
-              color: 'hsl(142, 76%, 42%)',
-              textShadow: '0 0 40px hsla(142, 76%, 42%, 0.6), 0 0 80px hsla(142, 76%, 42%, 0.3)'
-            }}
-          >
-            YES
-          </span>
-        </div>
-        
-        {/* NO Label */}
-        <div className="absolute top-4 right-6 z-20">
-          <span 
-            className="text-3xl sm:text-4xl font-black tracking-tight"
-            style={{ 
-              color: 'hsl(0, 72%, 51%)',
-              textShadow: '0 0 40px hsla(0, 72%, 51%, 0.6), 0 0 80px hsla(0, 72%, 51%, 0.3)'
-            }}
-          >
-            NO
-          </span>
-        </div>
 
         {/* Wallet Bubbles */}
         <AnimatePresence>
