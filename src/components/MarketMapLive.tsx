@@ -116,30 +116,30 @@ const MarketMapLive = memo(() => {
   }
 
   return (
-    <section className="relative py-24 px-6">
+    <section className="relative py-12 sm:py-24 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12 space-y-4 animate-fade-in">
-          <h2 className="text-5xl font-bold">
+        <div className="text-center mb-8 sm:mb-12 space-y-3 sm:space-y-4 animate-fade-in">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">
             <span className="gradient-text">Live Polymarket Feed</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Real-time data from Polymarket. Click any market to see detailed wallet analytics.
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
+            Real-time data from Polymarket. Tap any market to see detailed wallet analytics.
           </p>
         </div>
 
         {/* Interactive Map Container */}
-        <div className="relative glass-strong rounded-2xl overflow-hidden border border-border/50">
-          <div className="bg-gradient-to-r from-background/80 to-background/40 p-4 border-b border-border/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="relative glass-strong rounded-xl sm:rounded-2xl overflow-hidden border border-border/50">
+          <div className="bg-gradient-to-r from-background/80 to-background/40 p-3 sm:p-4 border-b border-border/50 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-semibold text-green-400">LIVE</span>
-              <span className="text-sm text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">{bubbles.length} Markets</span>
+              <span className="text-xs sm:text-sm font-semibold text-green-400">LIVE</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">•</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">{bubbles.length} Markets</span>
             </div>
           </div>
 
           {/* Market Bubbles with Enhanced Background */}
-          <div className="relative w-full min-h-[600px] p-8">
+          <div className="relative w-full min-h-[400px] sm:min-h-[500px] md:min-h-[600px] p-4 sm:p-6 md:p-8">
             {/* Background Zones */}
             <div className="absolute inset-0">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-background/50 to-rose-500/5" />
@@ -154,20 +154,20 @@ const MarketMapLive = memo(() => {
             </div>
 
             {/* Side Labels */}
-            <div className="absolute left-8 top-8 z-10">
-              <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                <span className="text-sm font-bold text-emerald-400">YES TREND</span>
+            <div className="absolute left-2 sm:left-4 md:left-8 top-2 sm:top-4 md:top-8 z-10">
+              <div className="bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 backdrop-blur-sm px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-md sm:rounded-lg border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                <span className="text-[10px] sm:text-xs md:text-sm font-bold text-emerald-400">YES</span>
               </div>
             </div>
-            <div className="absolute right-8 top-8 z-10">
-              <div className="bg-gradient-to-l from-rose-500/20 to-rose-500/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-rose-500/30 shadow-lg shadow-rose-500/10">
-                <span className="text-sm font-bold text-rose-400">NO TREND</span>
+            <div className="absolute right-2 sm:right-4 md:right-8 top-2 sm:top-4 md:top-8 z-10">
+              <div className="bg-gradient-to-l from-rose-500/20 to-rose-500/10 backdrop-blur-sm px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-md sm:rounded-lg border border-rose-500/30 shadow-lg shadow-rose-500/10">
+                <span className="text-[10px] sm:text-xs md:text-sm font-bold text-rose-400">NO</span>
               </div>
             </div>
             {bubbles.map((market) => (
               <div
                 key={market.id}
-                className="absolute cursor-pointer group"
+                className="absolute cursor-pointer group touch-manipulation"
                 style={{
                   left: `${market.x}%`,
                   top: `${market.y}%`,
@@ -177,68 +177,69 @@ const MarketMapLive = memo(() => {
                 }}
                 onMouseEnter={() => setHoveredMarket(market)}
                 onMouseLeave={() => setHoveredMarket(null)}
+                onTouchStart={() => setHoveredMarket(market)}
                 onClick={() => navigate(`/market/${market.market_id}`)}
               >
                 <div
                   className={`rounded-full bg-gradient-to-br ${market.color} 
                     flex items-center justify-center shadow-lg
                     transition-all duration-300 ease-out
-                    group-hover:scale-110 group-hover:shadow-2xl
+                    group-hover:scale-110 active:scale-95 group-hover:shadow-2xl
                     border-2 border-white/20 group-hover:border-white/50
                     animate-fade-in backdrop-blur-sm`}
                   style={{
-                    width: `${market.size}px`,
-                    height: `${market.size}px`,
+                    width: `${Math.max(40, market.size * 0.7)}px`,
+                    height: `${Math.max(40, market.size * 0.7)}px`,
                     boxShadow: hoveredMarket?.id === market.id 
                       ? `0 0 40px ${market.isPositive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)'}`
                       : `0 0 20px ${market.isPositive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`,
                     opacity: hoveredMarket?.id === market.id ? 1 : 0.85,
                   }}
                 >
-                  <Activity className="w-5 h-5 text-white drop-shadow-lg" />
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-lg" />
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Hover Info Panel */}
+          {/* Hover Info Panel - Mobile Optimized */}
           {hoveredMarket && (
-            <div className="absolute bottom-6 left-6 right-6 glass-strong p-6 rounded-xl animate-fade-in border-2 border-primary/50 backdrop-blur-xl">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-3 py-1 rounded-lg bg-primary/20 border border-primary/30 text-xs font-bold uppercase">
+            <div className="absolute bottom-2 sm:bottom-4 md:bottom-6 left-2 sm:left-4 md:left-6 right-2 sm:right-4 md:right-6 glass-strong p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl animate-fade-in border-2 border-primary/50 backdrop-blur-xl">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
+                    <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg bg-primary/20 border border-primary/30 text-[10px] sm:text-xs font-bold uppercase">
                       Polymarket
                     </span>
                     {hoveredMarket.category && (
-                      <span className="px-3 py-1 rounded-lg glass text-xs">
+                      <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg glass text-[10px] sm:text-xs">
                         {hoveredMarket.category}
                       </span>
                     )}
                   </div>
-                  <h3 className="text-xl font-bold mb-4">{hoveredMarket.title}</h3>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">24h Volume</div>
-                      <div className="text-lg font-bold">${(hoveredMarket.volume_24h / 1000).toFixed(1)}K</div>
+                  <h3 className="text-sm sm:text-base md:text-xl font-bold mb-3 sm:mb-4 line-clamp-2">{hoveredMarket.title}</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">24h Vol</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold">${(hoveredMarket.volume_24h / 1000).toFixed(1)}K</div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Liquidity</div>
-                      <div className="text-lg font-bold">${(hoveredMarket.liquidity / 1000).toFixed(1)}K</div>
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Liquidity</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold">${(hoveredMarket.liquidity / 1000).toFixed(1)}K</div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Volatility</div>
-                      <div className="text-lg font-bold">{hoveredMarket.volatility.toFixed(1)}%</div>
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Volatility</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold">{hoveredMarket.volatility.toFixed(1)}%</div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Yes Price</div>
-                      <div className={`text-lg font-bold flex items-center gap-1 ${
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Yes Price</div>
+                      <div className={`text-sm sm:text-base md:text-lg font-bold flex items-center gap-1 ${
                         parseFloat(hoveredMarket.change) > 0 ? 'text-green-400' : 'text-red-400'
                       }`}>
                         {parseFloat(hoveredMarket.change) > 0 ? (
-                          <TrendingUp className="w-4 h-4" />
+                          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                         ) : (
-                          <TrendingDown className="w-4 h-4" />
+                          <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />
                         )}
                         {(hoveredMarket.yes_price * 100).toFixed(1)}¢
                       </div>
@@ -251,23 +252,23 @@ const MarketMapLive = memo(() => {
         </div>
 
         {/* Stats */}
-        <div className="mt-8 grid grid-cols-3 gap-4">
-          <div className="glass-strong rounded-xl p-5 text-center border border-border/50">
-            <div className="text-3xl font-bold gradient-text">{bubbles.length}</div>
-            <div className="text-sm text-muted-foreground mt-1">Active Markets</div>
+        <div className="mt-4 sm:mt-6 md:mt-8 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+          <div className="glass-strong rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 text-center border border-border/50">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold gradient-text">{bubbles.length}</div>
+            <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">Active Markets</div>
           </div>
-          <div className="glass-strong rounded-xl p-5 text-center border border-border/50">
-            <div className="text-3xl font-bold gradient-text">
+          <div className="glass-strong rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 text-center border border-border/50">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold gradient-text">
               ${((allMarkets?.reduce((sum, m) => sum + m.volume_24h, 0) || 0) / 1000000).toFixed(1)}M
             </div>
-            <div className="text-sm text-muted-foreground mt-1">24h Volume</div>
+            <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">24h Volume</div>
           </div>
-          <div className="glass-strong rounded-xl p-5 text-center border border-green-500/20">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-semibold text-green-400">LIVE DATA</span>
+          <div className="glass-strong rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 text-center border border-green-500/20">
+            <div className="flex items-center justify-center gap-1 sm:gap-2">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-[10px] sm:text-xs md:text-sm font-semibold text-green-400">LIVE</span>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Updates every second</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Updates every sec</div>
           </div>
         </div>
       </div>
