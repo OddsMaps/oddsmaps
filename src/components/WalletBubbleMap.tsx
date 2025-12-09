@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, TrendingDown, Users, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, RotateCcw } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { WalletProfileModal } from "./WalletProfileModal";
@@ -38,10 +38,12 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [error, setError] = useState<string | null>(null);
   const [positions, setPositions] = useState<Map<string, BubblePosition>>(new Map());
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  
+  // Bubblemaps-style zoom & pan
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -375,32 +377,130 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return `$${amount.toFixed(0)}`;
   };
 
-  // Zoom controls
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
-  const handleResetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  // Bubblemaps-style zoom & pan handlers
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 4;
 
-  // Pan handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom > 1) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning && zoom > 1) {
-      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
-    }
-  };
-
-  const handleMouseUp = () => setIsPanning(false);
-
-  const handleWheel = (e: React.WheelEvent) => {
+  // Handle mouse wheel zoom (centered on cursor)
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, transform.scale * zoomFactor));
+    
+    // Zoom towards cursor position
+    const scaleChange = newScale / transform.scale;
+    const newX = mouseX - (mouseX - transform.x) * scaleChange;
+    const newY = mouseY - (mouseY - transform.y) * scaleChange;
+
+    setTransform({ scale: newScale, x: newX, y: newY });
+  }, [transform]);
+
+  // Handle double-click to zoom in
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    const newScale = Math.min(MAX_SCALE, transform.scale * 1.5);
+    const scaleChange = newScale / transform.scale;
+    const newX = mouseX - (mouseX - transform.x) * scaleChange;
+    const newY = mouseY - (mouseY - transform.y) * scaleChange;
+
+    setTransform({ scale: newScale, x: newX, y: newY });
+  }, [transform]);
+
+  // Pan handlers - works at any zoom level like Bubblemaps
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left click
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+  }, [transform]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setTransform(prev => ({
+      ...prev,
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    }));
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch handlers for pinch-to-zoom
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return null;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   };
+
+  const getTouchCenter = (touches: React.TouchList, rect: DOMRect) => {
+    if (touches.length < 2) {
+      return { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left,
+      y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top
+    };
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      setLastTouchDistance(getTouchDistance(e.touches));
+    } else if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - transform.x, y: e.touches[0].clientY - transform.y });
+    }
+  }, [transform]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    if (e.touches.length === 2 && lastTouchDistance) {
+      e.preventDefault();
+      const newDistance = getTouchDistance(e.touches);
+      if (newDistance) {
+        const center = getTouchCenter(e.touches, rect);
+        const zoomFactor = newDistance / lastTouchDistance;
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, transform.scale * zoomFactor));
+        
+        const scaleChange = newScale / transform.scale;
+        const newX = center.x - (center.x - transform.x) * scaleChange;
+        const newY = center.y - (center.y - transform.y) * scaleChange;
+
+        setTransform({ scale: newScale, x: newX, y: newY });
+        setLastTouchDistance(newDistance);
+      }
+    } else if (e.touches.length === 1 && isDragging) {
+      setTransform(prev => ({
+        ...prev,
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y
+      }));
+    }
+  }, [lastTouchDistance, isDragging, dragStart, transform]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    setLastTouchDistance(null);
+  }, []);
+
+  // Reset transform
+  const handleReset = useCallback(() => {
+    setTransform({ scale: 1, x: 0, y: 0 });
+  }, []);
 
   if (market && market.source.toLowerCase() !== 'polymarket') {
     return (
@@ -450,59 +550,45 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         </div>
       </div>
 
-      {/* Main Bubble Map */}
+      {/* Main Bubble Map - Bubblemaps style */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[350px] sm:h-[450px] md:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden border border-border/20 cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y"
+        className={`relative w-full h-[350px] sm:h-[450px] md:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden border border-border/20 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
-          background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)'
+          background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)',
+          touchAction: 'none' // Prevent default touch behaviors for custom gestures
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onDoubleClick={handleDoubleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {/* Zoom Controls - Mobile Optimized */}
-        <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-1 sm:gap-2">
-          <div 
-            className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1 rounded-full backdrop-blur-md border border-border/30"
-            style={{ background: 'rgba(10, 10, 15, 0.9)' }}
-          >
+        {/* Minimal zoom indicator - bottom right like Bubblemaps */}
+        {transform.scale !== 1 && (
+          <div className="absolute bottom-3 right-3 z-30">
             <button
-              onClick={handleZoomOut}
-              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
-              title="Zoom out"
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg backdrop-blur-md border border-border/40 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
+              style={{ background: 'rgba(10, 10, 15, 0.85)' }}
             >
-              <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-            <span className="text-[10px] sm:text-xs text-muted-foreground min-w-[2rem] sm:min-w-[3rem] text-center font-medium">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={handleZoomIn}
-              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
-              title="Zoom in"
-            >
-              <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-            <div className="w-px h-3 sm:h-4 bg-border/30 mx-0.5 sm:mx-1" />
-            <button
-              onClick={handleResetZoom}
-              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
-              title="Reset zoom"
-            >
-              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <RotateCcw className="w-3 h-3" />
+              <span>{Math.round(transform.scale * 100)}%</span>
             </button>
           </div>
-        </div>
+        )}
         
         {/* Zoomable Content Container */}
         <div 
-          className="absolute inset-0 transition-transform duration-150 ease-out"
+          className="absolute inset-0"
           style={{
-            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-            transformOrigin: 'center center',
+            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+            transformOrigin: '0 0',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
           }}
         >
           {/* Background gradients */}
