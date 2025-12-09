@@ -207,51 +207,51 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 gap-0 bg-background/95 backdrop-blur-xl border-border shadow-2xl">
+      <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 bg-background/95 backdrop-blur-xl border-border shadow-2xl">
         <DialogTitle className="sr-only">Search Markets and Bets</DialogTitle>
-        <div className="rounded-2xl overflow-hidden">
+        <div className="rounded-xl sm:rounded-2xl overflow-hidden">
           {/* Search Input */}
-          <div className="p-4 border-b border-border/50 bg-background space-y-3">
-            <div className="flex items-center gap-3">
-              <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          <div className="p-3 sm:p-4 border-b border-border/50 bg-background space-y-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
               <Input
-                placeholder="Search markets and bets..."
+                placeholder="Search markets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="bg-transparent border-0 text-lg focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 px-0"
+                className="bg-transparent border-0 text-base sm:text-lg focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 px-0"
                 autoFocus
               />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
+                className="gap-1 sm:gap-2 px-2 sm:px-3"
               >
                 <Filter className="w-4 h-4" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
               </Button>
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="p-1 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors touch-manipulation"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
             </div>
 
-            {/* Advanced Filters */}
+            {/* Advanced Filters - Mobile Optimized */}
             {showFilters && (
               <div className="space-y-3 pt-3 border-t border-border/50">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Wallet Address</label>
                     <Input
                       placeholder="0x..."
                       value={walletFilter}
                       onChange={(e) => setWalletFilter(e.target.value)}
-                      className="h-9"
+                      className="h-10 sm:h-9"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -260,16 +260,16 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                       placeholder="e.g., Trump, Bitcoin"
                       value={marketKeyword}
                       onChange={(e) => setMarketKeyword(e.target.value)}
-                      className="h-9"
+                      className="h-10 sm:h-9"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Bet Side</label>
+                    <label className="text-[10px] sm:text-xs font-medium text-muted-foreground">Side</label>
                     <Select value={betSideFilter} onValueChange={setBetSideFilter}>
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-10 sm:h-9 text-xs sm:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -280,40 +280,40 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">From Date</label>
+                    <label className="text-[10px] sm:text-xs font-medium text-muted-foreground">From</label>
                     <Input
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-9"
+                      className="h-10 sm:h-9 text-xs sm:text-sm"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">To Date</label>
+                    <label className="text-[10px] sm:text-xs font-medium text-muted-foreground">To</label>
                     <Input
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className="h-9"
+                      className="h-10 sm:h-9 text-xs sm:text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex-1 space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                       <ArrowUpDown className="w-3 h-3" />
                       Sort By
                     </label>
                     <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-10 sm:h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="time-desc">Time (Newest First)</SelectItem>
-                        <SelectItem value="time-asc">Time (Oldest First)</SelectItem>
-                        <SelectItem value="amount-desc">Amount (High to Low)</SelectItem>
-                        <SelectItem value="amount-asc">Amount (Low to High)</SelectItem>
+                        <SelectItem value="time-desc">Time (Newest)</SelectItem>
+                        <SelectItem value="time-asc">Time (Oldest)</SelectItem>
+                        <SelectItem value="amount-desc">Amount (High)</SelectItem>
+                        <SelectItem value="amount-asc">Amount (Low)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -328,7 +328,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                       setDateTo("");
                       setSortBy("time-desc");
                     }}
-                    className="mt-auto"
+                    className="sm:mt-auto h-10 sm:h-9"
                   >
                     Clear Filters
                   </Button>
@@ -338,22 +338,22 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
           </div>
 
           {/* Search Results */}
-          <div className="max-h-[500px] overflow-y-auto bg-background">
+          <div className="max-h-[60vh] sm:max-h-[500px] overflow-y-auto bg-background">
             {searchQuery ? (
               allResults.length > 0 ? (
                 <div className="p-2">
                   {/* Transactions - Show First */}
                   {filteredTransactions.length > 0 && (
                     <div className="mb-4">
-                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase flex items-center justify-between">
+                      <div className="px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                         <div className="flex items-center gap-2">
                           <Activity className="w-3 h-3" />
                           Live Polymarket Bets
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                          <span className="text-xs normal-case">
-                            Showing {filteredTransactions.length} of {transactions.length} total
+                          <span className="text-[10px] sm:text-xs normal-case">
+                            {filteredTransactions.length} of {transactions.length}
                           </span>
                         </div>
                       </div>
@@ -365,43 +365,42 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                               navigate(`/bet/${tx.id}`);
                               onOpenChange(false);
                             }}
-                            className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                            className={`w-full text-left p-3 sm:p-4 rounded-lg sm:rounded-xl transition-all duration-200 touch-manipulation active:scale-[0.98] ${
                               txIndex === selectedIndex
-                                ? "bg-muted scale-[1.02]"
+                                ? "bg-muted scale-[1.01]"
                                 : "hover:bg-muted/30"
                             }`}
                             onMouseEnter={() => setSelectedIndex(txIndex)}
                           >
-                            <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start justify-between gap-3 sm:gap-4">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1.5">
-                                  <Badge className={`text-xs font-bold ${
+                                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                                  <Badge className={`text-[10px] sm:text-xs font-bold ${
                                     tx.side === 'yes' 
                                       ? 'bg-green-500/20 text-green-500 border-green-500/30' 
                                       : 'bg-red-500/20 text-red-500 border-red-500/30'
                                   }`}>
                                     {tx.side.toUpperCase()}
                                   </Badge>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-[10px] sm:text-xs text-muted-foreground">
                                     {new Date(tx.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </span>
                                 </div>
-                                <h3 className="font-semibold mb-1.5 line-clamp-1 text-sm leading-snug">
+                                <h3 className="font-semibold mb-1 sm:mb-1.5 line-clamp-2 sm:line-clamp-1 text-xs sm:text-sm leading-snug">
                                   {tx.market?.title}
                                 </h3>
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  {tx.wallet_address.slice(0, 8)}...{tx.wallet_address.slice(-6)}
+                                <p className="text-[10px] sm:text-xs text-muted-foreground font-mono">
+                                  {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
                                 </p>
                               </div>
                               
-                              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                <div className="text-xs text-muted-foreground font-medium">
+                              <div className="flex flex-col items-end gap-1 sm:gap-1.5 flex-shrink-0">
+                                <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
                                   ${tx.amount.toLocaleString()}
                                 </div>
-                                <div className={`text-base font-bold flex items-center gap-1 ${
+                                <div className={`text-sm sm:text-base font-bold flex items-center gap-1 ${
                                   tx.side === 'yes' ? 'text-green-500' : 'text-red-500'
                                 }`}>
-                                  <span className="text-xs font-medium opacity-80">{tx.side.toUpperCase()}</span>
                                   <span>{(tx.price * 100).toFixed(1)}¢</span>
                                 </div>
                               </div>

@@ -17,25 +17,25 @@ const MarketHeader = memo(({ market, onBack }: any) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <Button
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="glass hover:glass-strong"
+        className="glass hover:glass-strong touch-manipulation"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
 
       {/* Main Header Card */}
-      <div className="data-card p-4 sm:p-5">
-        <div className="flex gap-4">
+      <div className="data-card p-3 sm:p-4 md:p-5">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           {/* Image */}
           <img 
             src={getMarketImage()} 
             alt={market.title}
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-border/50"
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl object-cover shrink-0 border border-border/50 self-start"
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(market.title.slice(0, 2))}&background=random&size=100`;
             }}
@@ -44,15 +44,15 @@ const MarketHeader = memo(({ market, onBack }: any) => {
           {/* Title & Badges */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className="px-2 py-0.5 rounded bg-primary/20 border border-primary/30 text-xs font-bold uppercase">
+              <span className="px-2 py-0.5 rounded bg-primary/20 border border-primary/30 text-[10px] sm:text-xs font-bold uppercase">
                 {market.source}
               </span>
               {market.category && (
-                <span className="px-2 py-0.5 glass rounded text-xs">
+                <span className="px-2 py-0.5 glass rounded text-[10px] sm:text-xs">
                   {market.category}
                 </span>
               )}
-              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+              <span className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold ${
                 market.status === 'active' 
                   ? 'bg-green-500/20 text-green-400' 
                   : 'bg-red-500/20 text-red-400'
@@ -60,22 +60,22 @@ const MarketHeader = memo(({ market, onBack }: any) => {
                 {market.status}
               </span>
             </div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
+            <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold leading-tight line-clamp-3 sm:line-clamp-2">
               {market.title}
             </h1>
           </div>
 
           {/* YES/NO Prices */}
-          <div className="flex gap-3 shrink-0">
-            <div className="text-center px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-              <div className="text-[10px] text-emerald-400 font-medium uppercase">Yes</div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+          <div className="flex gap-2 sm:gap-3 shrink-0 self-start sm:self-auto">
+            <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div className="text-[9px] sm:text-[10px] text-emerald-400 font-medium uppercase">Yes</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold font-mono text-emerald-400">
                 {Math.round(market.yes_price * 100)}¢
               </div>
             </div>
-            <div className="text-center px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
-              <div className="text-[10px] text-rose-400 font-medium uppercase">No</div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-rose-400">
+            <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
+              <div className="text-[9px] sm:text-[10px] text-rose-400 font-medium uppercase">No</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold font-mono text-rose-400">
                 {Math.round(market.no_price * 100)}¢
               </div>
             </div>
@@ -83,17 +83,17 @@ const MarketHeader = memo(({ market, onBack }: any) => {
         </div>
 
         {/* Stats Row */}
-        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-border/30 text-sm">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 mt-3 sm:mt-4 pt-3 border-t border-border/30 text-xs sm:text-sm">
           <div>
             <span className="text-muted-foreground">24h Vol: </span>
             <span className="font-bold font-mono">${(market.volume_24h / 1000).toFixed(1)}K</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Liquidity: </span>
+            <span className="text-muted-foreground">Liq: </span>
             <span className="font-bold font-mono">${(market.liquidity / 1000).toFixed(1)}K</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Volatility: </span>
+            <span className="text-muted-foreground">Vol: </span>
             <span className="font-bold font-mono">{market.volatility.toFixed(1)}%</span>
           </div>
         </div>
@@ -245,21 +245,21 @@ const MarketDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div className="pt-20 pb-8 px-4">
-        <div className="max-w-6xl mx-auto space-y-4">
+      <div className="pt-16 sm:pt-20 pb-6 sm:pb-8 px-3 sm:px-4">
+        <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4">
           <MarketHeader market={market} onBack={() => navigate("/markets")} />
 
-          {/* Two Column Layout */}
-          <div className="grid lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
+          {/* Mobile: Stack, Desktop: Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="lg:col-span-2 order-2 lg:order-1">
               <WalletBubbleMap market={market} />
             </div>
-            <div>
+            <div className="order-1 lg:order-2">
               <MarketWhaleTransactions marketId={market.market_id} />
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3 sm:mt-4">
             <TransactionTimeline market={market} />
           </div>
         </div>

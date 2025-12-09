@@ -214,52 +214,52 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
 
       {/* Whale Transactions Section */}
       {whaleTransactions.length > 0 && (
-        <div className="glass-strong rounded-3xl p-6 border-2 border-primary/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
-              <Activity className="w-6 h-6 text-primary-foreground" />
+        <div className="glass-strong rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-5 md:p-6 border-2 border-primary/30">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-primary to-secondary">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="text-xl font-bold gradient-text">Whale Transactions</h3>
-              <p className="text-sm text-muted-foreground">Trades ≥ $10,000</p>
+              <h3 className="text-base sm:text-lg md:text-xl font-bold gradient-text">Whale Transactions</h3>
+              <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">Trades ≥ $10,000</p>
             </div>
           </div>
-          <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[400px] overflow-y-auto custom-scrollbar">
             {whaleTransactions.map((tx, index) => (
               <div
                 key={tx.id}
-                className="glass border-2 border-primary/30 rounded-xl p-4 hover:border-primary/60 transition-all duration-300 group"
+                className="glass border-2 border-primary/30 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-primary/60 transition-all duration-300 group touch-manipulation"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
                   {/* Timeline Indicator */}
                   <div className="flex flex-col items-center">
-                    <div className={`p-2 rounded-lg border-2 ${getSideColor(tx.side)} group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`p-1.5 sm:p-2 rounded-lg border-2 ${getSideColor(tx.side)} group-hover:scale-110 transition-transform duration-300`}>
                       {getSideIcon(tx.side)}
                     </div>
                   </div>
 
                   {/* Transaction Details */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                       <div className="flex-1 min-w-0">
                         <div 
-                          className="font-mono text-sm text-muted-foreground hover:text-primary cursor-pointer transition-colors truncate"
+                          className="font-mono text-[10px] sm:text-xs md:text-sm text-muted-foreground hover:text-primary cursor-pointer transition-colors truncate"
                           onClick={() => navigate(`/wallet/${tx.address}`)}
                           title={tx.address}
                         >
                           {tx.address.slice(0, 6)}...{tx.address.slice(-4)}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">{formatTimestamp(tx.timestamp)}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">{formatTimestamp(tx.timestamp)}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold gradient-text">${(tx.amount / 1000).toFixed(1)}K</div>
-                        <div className={`text-xs font-semibold px-2 py-1 rounded ${getSideColor(tx.side)}`}>
+                      <div className="text-right shrink-0">
+                        <div className="text-lg sm:text-xl md:text-2xl font-bold gradient-text">${(tx.amount / 1000).toFixed(1)}K</div>
+                        <div className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${getSideColor(tx.side)}`}>
                           {tx.side.toUpperCase()}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <span className="opacity-60">Type:</span>
                         <span className="capitalize">{tx.type}</span>
@@ -271,7 +271,8 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
                           rel="noopener noreferrer"
                           className="flex items-center gap-1 hover:text-primary transition-colors"
                         >
-                          <span>View on Polygonscan</span>
+                          <span className="hidden sm:inline">Polygonscan</span>
+                          <span className="sm:hidden">View</span>
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
@@ -285,66 +286,66 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
       )}
 
       {/* All Transactions Timeline */}
-      <div className="glass-strong rounded-3xl p-6">
-        <h3 className="text-xl font-bold mb-4">All Transactions</h3>
-        <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar">
+      <div className="glass-strong rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-5 md:p-6">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4">All Transactions</h3>
+        <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[600px] md:max-h-[800px] overflow-y-auto custom-scrollbar">
           {transactions.map((tx, index) => (
             <div
               key={tx.id}
-              className="glass border border-border/50 rounded-xl p-4 hover:border-primary/50 transition-all duration-300 group"
+              className="glass border border-border/50 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-primary/50 transition-all duration-300 group touch-manipulation"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
                 {/* Timeline Indicator */}
                 <div className="flex flex-col items-center">
-                  <div className={`p-2 rounded-lg border-2 ${getSideColor(tx.side)} group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`p-1.5 sm:p-2 rounded-lg border-2 ${getSideColor(tx.side)} group-hover:scale-110 transition-transform duration-300`}>
                     {getSideIcon(tx.side)}
                   </div>
                   {index < transactions.length - 1 && (
-                    <div className="w-px h-full bg-gradient-to-b from-border to-transparent mt-2" />
+                    <div className="w-px h-full bg-gradient-to-b from-border to-transparent mt-2 hidden sm:block" />
                   )}
                 </div>
 
                 {/* Transaction Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase border ${getSideColor(tx.side)}`}>
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-wrap">
+                        <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase border ${getSideColor(tx.side)}`}>
                           {tx.side}
                         </span>
-                        <span className="px-2 py-1 glass rounded text-xs">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 glass rounded text-[10px] sm:text-xs">
                           {tx.type}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-3 h-3" />
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm text-muted-foreground flex-wrap">
+                        <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
                         <span>{formatTimestamp(tx.timestamp)}</span>
-                        <span className="text-muted-foreground/50">•</span>
-                        <span className="truncate">Block #{tx.blockNumber.toLocaleString()}</span>
+                        <span className="text-muted-foreground/50 hidden sm:inline">•</span>
+                        <span className="truncate hidden sm:inline">Block #{tx.blockNumber.toLocaleString()}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold gradient-text">
-                        ${tx.amount.toFixed(2)}
+                    <div className="text-right shrink-0">
+                      <div className="text-base sm:text-lg md:text-xl font-bold gradient-text">
+                        ${tx.amount.toFixed(0)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
                         {(tx.amount / market.yes_price).toFixed(0)} shares
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-4 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground">Wallet:</span>
+                  <div className="flex items-center justify-between gap-2 sm:gap-4 pt-2 sm:pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:inline">Wallet:</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/wallet/${tx.address}`);
                         }}
-                        className="flex items-center gap-1 text-xs font-mono text-foreground/80 hover:text-primary transition-colors truncate"
+                        className="flex items-center gap-1 text-[10px] sm:text-xs font-mono text-foreground/80 hover:text-primary transition-colors truncate"
                       >
-                        {tx.address}
-                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate max-w-[80px] sm:max-w-none">{tx.address.slice(0, 6)}...{tx.address.slice(-4)}</span>
+                        <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />
                       </button>
                     </div>
                     {isPolymarket && tx.hash && (
@@ -352,11 +353,11 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
                         href={`https://polygonscan.com/tx/${tx.hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                        className="flex items-center gap-1 text-[10px] sm:text-xs text-primary hover:text-primary/80 transition-colors shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        View on explorer
-                        <ArrowUpRight className="w-3 h-3" />
+                        <span className="hidden sm:inline">View</span>
+                        <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       </a>
                     )}
                   </div>

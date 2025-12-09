@@ -404,18 +404,18 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   if (market && market.source.toLowerCase() !== 'polymarket') {
     return (
-      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
-        <p className="text-muted-foreground">Live wallet distribution only available for Polymarket markets</p>
+      <div className="w-full h-[300px] sm:h-[400px] md:h-[600px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center p-4">
+        <p className="text-muted-foreground text-center text-sm sm:text-base">Live wallet distribution only available for Polymarket markets</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-background to-muted/5 border border-border/30 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading wallet data...</p>
+      <div className="w-full h-[300px] sm:h-[400px] md:h-[600px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-background to-muted/5 border border-border/30 flex items-center justify-center">
+        <div className="text-center space-y-3 sm:space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground text-sm sm:text-base">Loading wallet data...</p>
         </div>
       </div>
     );
@@ -423,8 +423,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   if (error || wallets.length === 0) {
     return (
-      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
-        <p className="text-muted-foreground">{error || 'No wallet data available yet'}</p>
+      <div className="w-full h-[300px] sm:h-[400px] md:h-[600px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center p-4">
+        <p className="text-muted-foreground text-center text-sm sm:text-base">{error || 'No wallet data available yet'}</p>
       </div>
     );
   }
@@ -432,18 +432,20 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const allDisplayedWallets = [...yesWallets, ...noWallets];
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3 sm:space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
             Live Wallet Distribution
           </h2>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            {wallets.length} wallets • {stats.whaleCount} whales
-            <span className="text-primary ml-2">●</span> {stats.yesWallets} YES
-            <span className="text-secondary ml-2">●</span> {stats.noWallets} NO
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-1 sm:gap-2">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>{wallets.length} wallets</span>
+            <span className="hidden xs:inline">•</span>
+            <span className="hidden xs:inline">{stats.whaleCount} whales</span>
+            <span className="text-primary ml-1 sm:ml-2">●</span> <span>{stats.yesWallets} YES</span>
+            <span className="text-secondary ml-1 sm:ml-2">●</span> <span>{stats.noWallets} NO</span>
           </p>
         </div>
       </div>
@@ -451,7 +453,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       {/* Main Bubble Map */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[600px] rounded-2xl overflow-hidden border border-border/20 cursor-grab active:cursor-grabbing"
+        className="relative w-full h-[350px] sm:h-[450px] md:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden border border-border/20 cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y"
         style={{
           background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)'
         }}
@@ -461,36 +463,36 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
-        {/* Zoom Controls */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-2">
+        {/* Zoom Controls - Mobile Optimized */}
+        <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-1 sm:gap-2">
           <div 
-            className="flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-md border border-border/30"
+            className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-1 rounded-full backdrop-blur-md border border-border/30"
             style={{ background: 'rgba(10, 10, 15, 0.9)' }}
           >
             <button
               onClick={handleZoomOut}
-              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
               title="Zoom out"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-xs text-muted-foreground min-w-[3rem] text-center font-medium">
+            <span className="text-[10px] sm:text-xs text-muted-foreground min-w-[2rem] sm:min-w-[3rem] text-center font-medium">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={handleZoomIn}
-              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
               title="Zoom in"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <div className="w-px h-4 bg-border/30 mx-1" />
+            <div className="w-px h-3 sm:h-4 bg-border/30 mx-0.5 sm:mx-1" />
             <button
               onClick={handleResetZoom}
-              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              className="p-1 sm:p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all touch-manipulation"
               title="Reset zoom"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
