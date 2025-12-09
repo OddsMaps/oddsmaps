@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, TrendingDown, Users } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import type { Market } from "@/hooks/useMarkets";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { WalletProfileModal } from "./WalletProfileModal";
@@ -38,6 +38,10 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [error, setError] = useState<string | null>(null);
   const [positions, setPositions] = useState<Map<string, BubblePosition>>(new Map());
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -371,6 +375,33 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return `$${amount.toFixed(0)}`;
   };
 
+  // Zoom controls
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleResetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom > 1) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning && zoom > 1) {
+      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    }
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  };
+
   if (market && market.source.toLowerCase() !== 'polymarket') {
     return (
       <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
@@ -420,13 +451,60 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       {/* Main Bubble Map */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[600px] rounded-2xl overflow-hidden border border-border/20"
+        className="relative w-full h-[600px] rounded-2xl overflow-hidden border border-border/20 cursor-grab active:cursor-grabbing"
         style={{
           background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)'
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       >
-        {/* Background gradients */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Zoom Controls */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-2">
+          <div 
+            className="flex items-center gap-1 px-2 py-1 rounded-full backdrop-blur-md border border-border/30"
+            style={{ background: 'rgba(10, 10, 15, 0.9)' }}
+          >
+            <button
+              onClick={handleZoomOut}
+              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              title="Zoom out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-xs text-muted-foreground min-w-[3rem] text-center font-medium">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={handleZoomIn}
+              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              title="Zoom in"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <div className="w-px h-4 bg-border/30 mx-1" />
+            <button
+              onClick={handleResetZoom}
+              className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
+              title="Reset zoom"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Zoomable Content Container */}
+        <div 
+          className="absolute inset-0 transition-transform duration-150 ease-out"
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            transformOrigin: 'center center',
+          }}
+        >
+          {/* Background gradients */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* YES side glow - green */}
           <div 
             className="absolute left-0 top-0 bottom-0 w-1/2"
@@ -581,65 +659,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           <text x="50%" y="8%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.6)" fontSize="10" fontWeight="700">$10k+ 🐋</text>
         </svg>
 
-        {/* Tier Filter & Legend - 3 tiers */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-          <div 
-            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full backdrop-blur-md border border-border/30"
-            style={{ background: 'rgba(10, 10, 15, 0.9)' }}
-          >
-            <button
-              onClick={() => setTierFilter('all')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
-                tierFilter === 'all' 
-                  ? 'bg-foreground/20 text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              <span className="text-[10px] sm:text-xs font-medium">All</span>
-            </button>
-            <div className="w-px h-4 bg-border/30" />
-            <button
-              onClick={() => setTierFilter('small')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
-                tierFilter === 'small' 
-                  ? 'bg-foreground/20 text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-muted-foreground/50 to-muted-foreground/30 border border-muted-foreground/40" />
-              <span className="text-[10px] sm:text-xs">$0-1k</span>
-            </button>
-            <button
-              onClick={() => setTierFilter('large')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
-                tierFilter === 'large' 
-                  ? 'bg-foreground/20 text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-muted-foreground/70 to-muted-foreground/50 border border-muted-foreground/60" />
-              <span className="text-[10px] sm:text-xs">$1k-10k</span>
-            </button>
-            <button
-              onClick={() => setTierFilter('whale')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
-                tierFilter === 'whale' 
-                  ? 'bg-foreground/20 text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              <div 
-                className="w-4 h-4 rounded-full border animate-pulse"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.15))',
-                  borderColor: 'rgba(255,255,255,0.5)',
-                  boxShadow: '0 0 8px rgba(255,255,255,0.25)'
-                }}
-              />
-              <span className="text-[10px] sm:text-xs font-medium">$10k+ 🐋</span>
-            </button>
-          </div>
-        </div>
 
         {/* Center divider */}
         <div className="absolute left-1/2 top-8 bottom-8 w-px transform -translate-x-1/2 z-10"
@@ -799,6 +818,8 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             );
           })}
         </AnimatePresence>
+        </div>
+        {/* End of Zoomable Content Container */}
 
         {/* Hover Tooltip */}
         <AnimatePresence>
