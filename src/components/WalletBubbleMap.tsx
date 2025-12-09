@@ -34,7 +34,6 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [realWallets, setRealWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [draggedWallet, setDraggedWallet] = useState<string | null>(null);
   const [positions, setPositions] = useState<Map<string, BubblePosition>>(new Map());
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,21 +119,22 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return 'small';
   };
 
-  const getSize = (amount: number, tier: string): number => {
-    // Smaller, cleaner bubble sizes
+  // Dynamic sizing based on amount - larger range for better visual differentiation
+  const getSize = (amount: number, tier: string, maxAmount: number): number => {
+    // Normalize based on the maximum amount in the dataset
+    const normalized = Math.min(amount / Math.max(maxAmount, 1), 1);
+    
+    // Size range: 18px (smallest) to 90px (largest whale)
     if (tier === 'whale') {
-      const normalized = Math.min(amount / 50000, 1);
-      return 45 + normalized * 35; // 45-80px
+      return 50 + normalized * 40; // 50-90px
     }
     if (tier === 'large') {
-      const normalized = Math.min((amount - 1000) / 9000, 1);
-      return 32 + normalized * 18; // 32-50px
+      return 35 + (amount / 10000) * 20; // 35-55px
     }
     if (tier === 'medium') {
-      const normalized = Math.min((amount - 100) / 900, 1);
-      return 22 + normalized * 12; // 22-34px
+      return 24 + (amount / 1000) * 12; // 24-36px
     }
-    return 14 + Math.min(amount / 100, 1) * 8; // 14-22px
+    return 18 + Math.min(amount / 100, 1) * 8; // 18-26px
   };
 
   const wallets = useMemo<WalletData[]>(() => {
@@ -142,12 +142,15 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
     const yesPrice = market?.yes_price || 0.5;
     const noPrice = market?.no_price || 0.5;
+    
+    // Find max amount for normalization
+    const maxAmount = Math.max(...realWallets.map(w => w.volume));
 
     return realWallets.map((w, index) => {
       const tier = getTier(w.volume);
       const currentPrice = w.side === 'yes' ? yesPrice : noPrice;
       const pnl = (currentPrice - w.avgPrice) * w.volume;
-      const size = getSize(w.volume, tier);
+      const size = getSize(w.volume, tier, maxAmount);
 
       return {
         id: `${w.address}-${index}`,
@@ -164,75 +167,78 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     }).sort((a, b) => b.amount - a.amount);
   }, [realWallets, market]);
 
-  // Organize wallets into quadrants
-  const organizedWallets = useMemo(() => {
-    const yesWhales = wallets.filter(w => w.side === 'yes' && (w.tier === 'whale' || w.tier === 'large')).sort((a, b) => b.amount - a.amount);
-    const yesSmall = wallets.filter(w => w.side === 'yes' && (w.tier === 'medium' || w.tier === 'small')).sort((a, b) => b.amount - a.amount);
-    const noWhales = wallets.filter(w => w.side === 'no' && (w.tier === 'whale' || w.tier === 'large')).sort((a, b) => b.amount - a.amount);
-    const noSmall = wallets.filter(w => w.side === 'no' && (w.tier === 'medium' || w.tier === 'small')).sort((a, b) => b.amount - a.amount);
-
-    return { yesWhales, yesSmall, noWhales, noSmall };
+  // Separate YES and NO wallets - take top 100 each
+  const { yesWallets, noWallets } = useMemo(() => {
+    const yes = wallets.filter(w => w.side === 'yes').slice(0, 100);
+    const no = wallets.filter(w => w.side === 'no').slice(0, 100);
+    return { yesWallets: yes, noWallets: no };
   }, [wallets]);
 
-  // Grid-based organized positioning algorithm - no overlaps
-  const calculateOrganizedPositions = useCallback((
+  // Radial positioning: smallest in center, largest on outside
+  const calculateRadialPositions = useCallback((
     bubbles: WalletData[],
-    containerWidth: number,
-    containerHeight: number,
-    offsetX: number = 0,
-    offsetY: number = 0
+    centerX: number,
+    centerY: number,
+    maxRadius: number,
+    side: 'left' | 'right'
   ): Map<string, BubblePosition> => {
     const newPositions = new Map<string, BubblePosition>();
     if (bubbles.length === 0) return newPositions;
 
-    const sorted = [...bubbles].sort((a, b) => b.size - a.size);
-    const minPadding = 12; // Minimum space between bubbles
+    // Sort by amount ASCENDING - smallest first (center), largest last (outside)
+    const sorted = [...bubbles].sort((a, b) => a.amount - b.amount);
     
-    // Calculate total area needed and determine grid layout
-    const totalBubbles = sorted.length;
-    
-    // Use a force-directed layout with strong separation
-    const placed: { id: string; x: number; y: number; r: number; size: number }[] = [];
-    
-    // Calculate rows based on container aspect ratio
-    const aspectRatio = containerWidth / containerHeight;
-    const cols = Math.ceil(Math.sqrt(totalBubbles * aspectRatio));
-    const rows = Math.ceil(totalBubbles / cols);
-    
-    // Calculate cell sizes with generous padding
-    const cellWidth = containerWidth / cols;
-    const cellHeight = containerHeight / rows;
-    
-    // Place bubbles in a grid pattern, largest first
+    const placed: { id: string; x: number; y: number; r: number }[] = [];
+    const padding = 4;
+
     sorted.forEach((bubble, index) => {
-      const row = Math.floor(index / cols);
-      const col = index % cols;
+      const r = bubble.size / 2;
       
-      // Center each bubble in its cell
-      const cellCenterX = cellWidth * (col + 0.5);
-      const cellCenterY = cellHeight * (row + 0.5);
+      // Calculate target distance from center based on position in sorted array
+      // Smallest (index 0) -> center, largest (last) -> edge
+      const normalizedIndex = index / Math.max(sorted.length - 1, 1);
+      const targetRadius = normalizedIndex * (maxRadius - r - 20);
       
-      // Add slight offset for visual interest (honeycomb effect)
-      const honeycombOffset = row % 2 === 0 ? 0 : cellWidth * 0.15;
+      // Spread angle based on side
+      const angleRange = side === 'left' ? { min: Math.PI * 0.6, max: Math.PI * 1.4 } : { min: -Math.PI * 0.4, max: Math.PI * 0.4 };
       
-      const x = Math.max(bubble.size / 2 + minPadding, 
-                Math.min(containerWidth - bubble.size / 2 - minPadding, 
-                cellCenterX + honeycombOffset));
-      const y = Math.max(bubble.size / 2 + minPadding,
-                Math.min(containerHeight - bubble.size / 2 - minPadding,
-                cellCenterY));
+      // Try to find a position
+      let bestPos = { x: centerX, y: centerY };
+      let minOverlap = Infinity;
       
-      placed.push({ 
-        id: bubble.id, 
-        x, 
-        y, 
-        r: bubble.size / 2,
-        size: bubble.size
-      });
+      // Try multiple angles at the target radius
+      for (let attempt = 0; attempt < 60; attempt++) {
+        const angleSpread = angleRange.max - angleRange.min;
+        const angle = angleRange.min + (attempt / 60) * angleSpread + (Math.random() - 0.5) * 0.2;
+        const radiusVariation = targetRadius + (Math.random() - 0.5) * 40;
+        
+        const testX = centerX + Math.cos(angle) * radiusVariation;
+        const testY = centerY + Math.sin(angle) * radiusVariation;
+        
+        // Check overlap with all placed bubbles
+        let totalOverlap = 0;
+        for (const p of placed) {
+          const dx = testX - p.x;
+          const dy = testY - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = r + p.r + padding;
+          if (dist < minDist) {
+            totalOverlap += minDist - dist;
+          }
+        }
+        
+        if (totalOverlap < minOverlap) {
+          minOverlap = totalOverlap;
+          bestPos = { x: testX, y: testY };
+          if (totalOverlap === 0) break;
+        }
+      }
+      
+      placed.push({ id: bubble.id, x: bestPos.x, y: bestPos.y, r });
     });
-    
-    // Force-directed separation to ensure no overlaps
-    for (let iteration = 0; iteration < 100; iteration++) {
+
+    // Force-directed refinement to eliminate overlaps
+    for (let iteration = 0; iteration < 150; iteration++) {
       let maxOverlap = 0;
       
       for (let i = 0; i < placed.length; i++) {
@@ -246,123 +252,79 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDist = p1.r + p2.r + minPadding;
+          const minDist = p1.r + p2.r + padding;
           
-          if (distance < minDist) {
+          if (distance < minDist && distance > 0.1) {
             const overlap = minDist - distance;
             maxOverlap = Math.max(maxOverlap, overlap);
-            
-            if (distance > 0.1) {
-              // Push bubbles apart proportionally
-              const force = overlap * 0.5;
-              fx += (dx / distance) * force;
-              fy += (dy / distance) * force;
-            } else {
-              // If bubbles are at same position, push in random direction
-              const angle = Math.random() * Math.PI * 2;
-              fx += Math.cos(angle) * minDist * 0.5;
-              fy += Math.sin(angle) * minDist * 0.5;
-            }
+            const force = overlap * 0.4;
+            fx += (dx / distance) * force;
+            fy += (dy / distance) * force;
           }
         }
         
-        // Apply forces
+        // Apply forces with boundary constraints
         p1.x += fx;
         p1.y += fy;
         
-        // Keep strictly in bounds
-        p1.x = Math.max(p1.r + minPadding, Math.min(containerWidth - p1.r - minPadding, p1.x));
-        p1.y = Math.max(p1.r + minPadding, Math.min(containerHeight - p1.r - minPadding, p1.y));
+        // Keep within the side's bounds
+        const minX = side === 'left' ? p1.r + 10 : centerX - maxRadius + p1.r;
+        const maxX = side === 'left' ? centerX + maxRadius - p1.r : containerRef.current?.getBoundingClientRect().width || 800 - p1.r - 10;
+        const minY = p1.r + 50;
+        const maxY = (containerRef.current?.getBoundingClientRect().height || 600) - p1.r - 10;
+        
+        p1.x = Math.max(minX, Math.min(maxX, p1.x));
+        p1.y = Math.max(minY, Math.min(maxY, p1.y));
       }
       
-      // Stop if no significant overlaps remain
-      if (maxOverlap < 1) break;
+      if (maxOverlap < 0.5) break;
     }
-    
-    // Set final positions
+
     placed.forEach(p => {
-      newPositions.set(p.id, { x: p.x + offsetX, y: p.y + offsetY });
+      newPositions.set(p.id, { x: p.x, y: p.y });
     });
 
     return newPositions;
   }, []);
 
-  // Calculate positions for all quadrants
+  // Calculate positions for both sides
   useEffect(() => {
     if (!containerRef.current || wallets.length === 0) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const halfWidth = rect.width / 2 - 2;
-    const halfHeight = rect.height / 2 - 20;
-
+    const halfWidth = rect.width / 2;
+    const height = rect.height;
+    
     const allPositions = new Map<string, BubblePosition>();
 
-    // YES Whales - Top Left
-    const yesWhalePos = calculateOrganizedPositions(
-      organizedWallets.yesWhales,
-      halfWidth - 20,
-      halfHeight - 20,
-      10,
-      30
-    );
-    yesWhalePos.forEach((v, k) => allPositions.set(k, v));
+    // YES side - left, center point in middle of left half
+    const yesCenterX = halfWidth * 0.5;
+    const yesCenterY = height * 0.5;
+    const yesMaxRadius = Math.min(halfWidth * 0.45, height * 0.4);
+    
+    const yesPos = calculateRadialPositions(yesWallets, yesCenterX, yesCenterY, yesMaxRadius, 'left');
+    yesPos.forEach((v, k) => allPositions.set(k, v));
 
-    // NO Whales - Top Right
-    const noWhalePos = calculateOrganizedPositions(
-      organizedWallets.noWhales,
-      halfWidth - 20,
-      halfHeight - 20,
-      halfWidth + 10,
-      30
-    );
-    noWhalePos.forEach((v, k) => allPositions.set(k, v));
-
-    // YES Small - Bottom Left
-    const yesSmallPos = calculateOrganizedPositions(
-      organizedWallets.yesSmall.slice(0, 30),
-      halfWidth - 20,
-      halfHeight - 20,
-      10,
-      halfHeight + 30
-    );
-    yesSmallPos.forEach((v, k) => allPositions.set(k, v));
-
-    // NO Small - Bottom Right
-    const noSmallPos = calculateOrganizedPositions(
-      organizedWallets.noSmall.slice(0, 30),
-      halfWidth - 20,
-      halfHeight - 20,
-      halfWidth + 10,
-      halfHeight + 30
-    );
-    noSmallPos.forEach((v, k) => allPositions.set(k, v));
+    // NO side - right, center point in middle of right half
+    const noCenterX = halfWidth * 1.5;
+    const noCenterY = height * 0.5;
+    const noMaxRadius = Math.min(halfWidth * 0.45, height * 0.4);
+    
+    const noPos = calculateRadialPositions(noWallets, noCenterX, noCenterY, noMaxRadius, 'right');
+    noPos.forEach((v, k) => allPositions.set(k, v));
 
     setPositions(allPositions);
-  }, [wallets, organizedWallets, calculateOrganizedPositions]);
+  }, [wallets, yesWallets, noWallets, calculateRadialPositions]);
 
   const stats = useMemo(() => {
     const yesVolume = wallets.filter(w => w.side === "yes").reduce((sum, w) => sum + w.amount, 0);
     const noVolume = wallets.filter(w => w.side === "no").reduce((sum, w) => sum + w.amount, 0);
-    const yesWallets = wallets.filter(w => w.side === "yes").length;
-    const noWallets = wallets.filter(w => w.side === "no").length;
+    const yesCount = wallets.filter(w => w.side === "yes").length;
+    const noCount = wallets.filter(w => w.side === "no").length;
     const whaleCount = wallets.filter(w => w.tier === 'whale').length;
     
-    return { yesVolume, noVolume, yesWallets, noWallets, whaleCount };
+    return { yesVolume, noVolume, yesWallets: yesCount, noWallets: noCount, whaleCount };
   }, [wallets]);
-
-  const handleDrag = useCallback((walletId: string, x: number, y: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    
-    setPositions(prev => {
-      const newPositions = new Map(prev);
-      newPositions.set(walletId, {
-        x: Math.max(20, Math.min(rect.width - 20, x)),
-        y: Math.max(20, Math.min(rect.height - 20, y))
-      });
-      return newPositions;
-    });
-  }, []);
 
   const formatAmount = (amount: number) => {
     if (amount >= 1000) {
@@ -373,7 +335,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   if (market && market.source.toLowerCase() !== 'polymarket') {
     return (
-      <div className="w-full h-[700px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
+      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
         <p className="text-muted-foreground">Live wallet distribution only available for Polymarket markets</p>
       </div>
     );
@@ -381,7 +343,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   if (loading) {
     return (
-      <div className="w-full h-[700px] rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-border/30 flex items-center justify-center">
+      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-background to-muted/5 border border-border/30 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="text-muted-foreground">Loading wallet data...</p>
@@ -392,18 +354,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
   if (error || wallets.length === 0) {
     return (
-      <div className="w-full h-[700px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
+      <div className="w-full h-[600px] rounded-2xl bg-gradient-to-br from-muted/20 to-muted/5 border border-border/30 flex items-center justify-center">
         <p className="text-muted-foreground">{error || 'No wallet data available yet'}</p>
       </div>
     );
   }
 
-  const allDisplayedWallets = [
-    ...organizedWallets.yesWhales,
-    ...organizedWallets.noWhales,
-    ...organizedWallets.yesSmall.slice(0, 30),
-    ...organizedWallets.noSmall.slice(0, 30)
-  ];
+  const allDisplayedWallets = [...yesWallets, ...noWallets];
 
   return (
     <div className="w-full space-y-4">
@@ -425,88 +382,88 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
       {/* Main Bubble Map */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[700px] rounded-2xl overflow-hidden border border-border/20"
+        className="relative w-full h-[600px] rounded-2xl overflow-hidden border border-border/20"
         style={{
-          background: 'linear-gradient(135deg, hsl(224 71% 4%) 0%, hsl(224 71% 6%) 100%)'
+          background: 'linear-gradient(180deg, hsl(224 71% 3%) 0%, hsl(224 71% 6%) 50%, hsl(224 71% 4%) 100%)'
         }}
       >
-        {/* Background with quadrant gradients */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* YES side (left) - Green gradient */}
+        {/* Background gradients */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* YES side glow - green */}
           <div 
             className="absolute left-0 top-0 bottom-0 w-1/2"
             style={{
-              background: 'radial-gradient(ellipse 80% 80% at 20% 50%, hsla(142, 76%, 42%, 0.15) 0%, transparent 70%)'
+              background: 'radial-gradient(ellipse 100% 100% at 30% 50%, hsla(142, 76%, 36%, 0.2) 0%, hsla(142, 76%, 36%, 0.05) 40%, transparent 70%)'
             }}
           />
           
-          {/* NO side (right) - Red gradient */}
+          {/* NO side glow - red */}
           <div 
             className="absolute right-0 top-0 bottom-0 w-1/2"
             style={{
-              background: 'radial-gradient(ellipse 80% 80% at 80% 50%, hsla(0, 72%, 51%, 0.15) 0%, transparent 70%)'
+              background: 'radial-gradient(ellipse 100% 100% at 70% 50%, hsla(0, 72%, 45%, 0.2) 0%, hsla(0, 72%, 45%, 0.05) 40%, transparent 70%)'
             }}
           />
 
-          {/* Subtle stars/particles */}
-          {[...Array(20)].map((_, i) => (
+          {/* Stars/particles for depth */}
+          {[...Array(40)].map((_, i) => (
             <div
               key={i}
-              className="absolute rounded-full bg-white/20"
+              className="absolute rounded-full"
               style={{
-                width: Math.random() * 2 + 1,
-                height: Math.random() * 2 + 1,
+                width: Math.random() * 2 + 0.5,
+                height: Math.random() * 2 + 0.5,
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
+                background: `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`,
               }}
             />
           ))}
+          
+          {/* Subtle grid lines */}
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px'
+            }}
+          />
         </div>
 
         {/* Center divider */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/50 to-transparent transform -translate-x-1/2" />
+        <div className="absolute left-1/2 top-8 bottom-8 w-px transform -translate-x-1/2 z-10"
+          style={{
+            background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.2), rgba(255,255,255,0.3), rgba(255,255,255,0.2), transparent)'
+          }}
+        />
 
-        {/* Horizontal divider */}
-        <div className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-border/30 to-transparent transform -translate-y-1/2" />
-
-        {/* Side Labels */}
-        <div className="absolute top-4 left-4 z-20">
+        {/* YES Label */}
+        <div className="absolute top-4 left-6 z-20">
           <span 
-            className="text-2xl sm:text-3xl font-black tracking-tight"
+            className="text-3xl sm:text-4xl font-black tracking-tight"
             style={{ 
               color: 'hsl(142, 76%, 42%)',
-              textShadow: '0 0 30px hsla(142, 76%, 42%, 0.5)'
+              textShadow: '0 0 40px hsla(142, 76%, 42%, 0.6), 0 0 80px hsla(142, 76%, 42%, 0.3)'
             }}
           >
             YES
           </span>
         </div>
-        <div className="absolute top-4 right-4 z-20">
+        
+        {/* NO Label */}
+        <div className="absolute top-4 right-6 z-20">
           <span 
-            className="text-2xl sm:text-3xl font-black tracking-tight"
+            className="text-3xl sm:text-4xl font-black tracking-tight"
             style={{ 
               color: 'hsl(0, 72%, 51%)',
-              textShadow: '0 0 30px hsla(0, 72%, 51%, 0.5)'
+              textShadow: '0 0 40px hsla(0, 72%, 51%, 0.6), 0 0 80px hsla(0, 72%, 51%, 0.3)'
             }}
           >
             NO
           </span>
-        </div>
-
-        {/* Tier Labels */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
-          <div className="text-center">
-            <div className="absolute -top-[calc(50%-40px)] left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-              <span className="text-sm font-semibold text-foreground/60 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full border border-border/30">
-                $10,000+
-              </span>
-            </div>
-            <div className="absolute top-[calc(50%-20px)] left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-              <span className="text-xs font-medium text-muted-foreground bg-background/60 backdrop-blur-sm px-3 py-1 rounded-full border border-border/20">
-                $1,000-$10,000
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Wallet Bubbles */}
@@ -516,11 +473,13 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             if (!pos) return null;
 
             const isYes = wallet.side === 'yes';
-            const baseColor = isYes ? 'hsl(142, 76%, 42%)' : 'hsl(0, 72%, 51%)';
-            const glowColor = isYes ? 'hsla(142, 76%, 42%, 0.6)' : 'hsla(0, 72%, 51%, 0.6)';
-            const isWhale = wallet.tier === 'whale' || wallet.tier === 'large';
+            const baseColor = isYes ? 'hsl(142, 70%, 40%)' : 'hsl(0, 70%, 48%)';
+            const lightColor = isYes ? 'hsl(142, 80%, 55%)' : 'hsl(0, 80%, 60%)';
+            const darkColor = isYes ? 'hsl(142, 70%, 25%)' : 'hsl(0, 70%, 30%)';
+            const glowColor = isYes ? 'hsla(142, 76%, 42%, 0.5)' : 'hsla(0, 72%, 51%, 0.5)';
             const isHovered = hoveredWallet?.id === wallet.id;
-            const isDragging = draggedWallet === wallet.id;
+            const isWhale = wallet.tier === 'whale';
+            const isLarge = wallet.tier === 'large';
 
             return (
               <motion.div
@@ -528,90 +487,103 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ 
                   opacity: 1, 
-                  scale: isDragging ? 1.1 : isHovered ? 1.08 : 1,
+                  scale: isHovered ? 1.15 : 1,
                   x: pos.x - wallet.size / 2,
                   y: pos.y - wallet.size / 2,
                 }}
                 exit={{ opacity: 0, scale: 0 }}
                 transition={{ 
                   type: 'spring',
-                  stiffness: 300,
-                  damping: 25,
-                  delay: index * 0.02
+                  stiffness: 200,
+                  damping: 20,
+                  delay: Math.min(index * 0.008, 0.8)
                 }}
-                drag
-                dragMomentum={false}
-                onDragStart={() => setDraggedWallet(wallet.id)}
-                onDrag={(_, info) => {
-                  handleDrag(wallet.id, info.point.x - (containerRef.current?.getBoundingClientRect().left || 0), info.point.y - (containerRef.current?.getBoundingClientRect().top || 0));
-                }}
-                onDragEnd={() => setDraggedWallet(null)}
                 onMouseEnter={() => setHoveredWallet(wallet)}
                 onMouseLeave={() => setHoveredWallet(null)}
                 onClick={() => setSelectedWallet(wallet)}
-                className="absolute cursor-grab active:cursor-grabbing select-none"
+                className="absolute cursor-pointer select-none"
                 style={{
                   width: wallet.size,
                   height: wallet.size,
-                  zIndex: isDragging ? 100 : isHovered ? 50 : isWhale ? 20 : 10,
+                  zIndex: isHovered ? 100 : isWhale ? 30 : isLarge ? 20 : 10,
                 }}
               >
-                {/* Outer glow */}
-                <div
-                  className="absolute inset-0 rounded-full transition-all duration-300"
+                {/* Outer glow ring */}
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  animate={{
+                    scale: isHovered ? 1.6 : 1.3,
+                    opacity: isHovered ? 0.8 : (isWhale ? 0.5 : isLarge ? 0.3 : 0.15)
+                  }}
+                  transition={{ duration: 0.2 }}
                   style={{
                     background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
-                    transform: isHovered || isDragging ? 'scale(1.5)' : 'scale(1.2)',
-                    opacity: isWhale ? 0.8 : 0.4,
                   }}
                 />
 
-                {/* Main bubble */}
-                <div
-                  className="absolute inset-0 rounded-full transition-all duration-300"
+                {/* Main bubble with 3D effect */}
+                <motion.div
+                  className="absolute inset-0 rounded-full overflow-hidden"
+                  animate={{
+                    boxShadow: isHovered 
+                      ? `0 0 ${wallet.size}px ${glowColor}, inset 0 -4px 20px rgba(0,0,0,0.4), inset 0 4px 15px ${lightColor}`
+                      : `0 0 ${isWhale ? 30 : isLarge ? 20 : 10}px ${glowColor}, inset 0 -2px 10px rgba(0,0,0,0.3), inset 0 2px 10px ${lightColor}`
+                  }}
+                  transition={{ duration: 0.2 }}
                   style={{
-                    background: `radial-gradient(circle at 30% 30%, ${isYes ? 'hsla(142, 80%, 60%, 0.9)' : 'hsla(0, 80%, 65%, 0.9)'} 0%, ${baseColor} 50%, ${isYes ? 'hsl(142, 76%, 30%)' : 'hsl(0, 72%, 35%)'} 100%)`,
-                    boxShadow: `
-                      inset 0 -2px 10px rgba(0,0,0,0.3),
-                      inset 0 2px 10px ${isYes ? 'rgba(142, 255, 142, 0.3)' : 'rgba(255, 142, 142, 0.3)'},
-                      0 0 ${isWhale ? '40px' : '20px'} ${glowColor}
-                    `,
-                    border: `${isWhale ? '3px' : '2px'} solid ${isYes ? 'rgba(142, 255, 142, 0.4)' : 'rgba(255, 142, 142, 0.4)'}`,
+                    background: `radial-gradient(circle at 35% 30%, ${lightColor} 0%, ${baseColor} 40%, ${darkColor} 100%)`,
+                    border: `${isWhale ? 2 : 1}px solid ${isYes ? 'rgba(134, 239, 172, 0.4)' : 'rgba(252, 165, 165, 0.4)'}`,
                   }}
                 >
+                  {/* Highlight shine */}
+                  <div 
+                    className="absolute rounded-full opacity-60"
+                    style={{
+                      width: '40%',
+                      height: '25%',
+                      top: '10%',
+                      left: '15%',
+                      background: `radial-gradient(ellipse, rgba(255,255,255,0.6) 0%, transparent 70%)`,
+                    }}
+                  />
+
                   {/* Amount label */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span 
-                      className="font-bold text-white drop-shadow-lg text-center leading-none"
+                      className="font-bold text-white text-center leading-none"
                       style={{ 
-                        fontSize: wallet.size > 80 ? '14px' : wallet.size > 50 ? '11px' : wallet.size > 35 ? '9px' : '7px',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                        fontSize: wallet.size > 70 ? '13px' : wallet.size > 50 ? '11px' : wallet.size > 35 ? '9px' : wallet.size > 25 ? '7px' : '6px',
+                        textShadow: '0 1px 4px rgba(0,0,0,0.7), 0 0 10px rgba(0,0,0,0.5)',
+                        letterSpacing: '-0.02em'
                       }}
                     >
                       {formatAmount(wallet.amount)}
                     </span>
                   </div>
-                </div>
+                </motion.div>
 
-                {/* Connection lines for whales (decorative) */}
-                {isWhale && (
+                {/* Decorative orbit ring for whales */}
+                {(isWhale || isLarge) && (
                   <svg 
-                    className="absolute pointer-events-none opacity-30"
+                    className="absolute pointer-events-none"
                     style={{
-                      width: wallet.size * 2,
-                      height: wallet.size * 2,
-                      left: -wallet.size / 2,
-                      top: -wallet.size / 2,
+                      width: wallet.size * 1.4,
+                      height: wallet.size * 1.4,
+                      left: -wallet.size * 0.2,
+                      top: -wallet.size * 0.2,
+                      opacity: isHovered ? 0.5 : 0.2,
+                      transition: 'opacity 0.3s'
                     }}
                   >
                     <circle
-                      cx={wallet.size}
-                      cy={wallet.size}
-                      r={wallet.size * 0.8}
+                      cx={wallet.size * 0.7}
+                      cy={wallet.size * 0.7}
+                      r={wallet.size * 0.6}
                       fill="none"
                       stroke={baseColor}
                       strokeWidth="0.5"
-                      strokeDasharray="4 4"
+                      strokeDasharray="3 6"
+                      className="animate-[spin_20s_linear_infinite]"
                     />
                   </svg>
                 )}
@@ -622,39 +594,53 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
 
         {/* Hover Tooltip */}
         <AnimatePresence>
-          {hoveredWallet && !draggedWallet && (
+          {hoveredWallet && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
               className="fixed z-[200] pointer-events-none"
               style={{
-                left: (positions.get(hoveredWallet.id)?.x || 0) + (containerRef.current?.getBoundingClientRect().left || 0),
-                top: (positions.get(hoveredWallet.id)?.y || 0) + (containerRef.current?.getBoundingClientRect().top || 0) - hoveredWallet.size / 2 - 80,
+                left: Math.min(
+                  Math.max((positions.get(hoveredWallet.id)?.x || 0) + (containerRef.current?.getBoundingClientRect().left || 0), 100),
+                  window.innerWidth - 220
+                ),
+                top: (positions.get(hoveredWallet.id)?.y || 0) + (containerRef.current?.getBoundingClientRect().top || 0) - hoveredWallet.size / 2 - 90,
               }}
             >
-              <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl p-3 shadow-2xl min-w-[180px] transform -translate-x-1/2">
-                <div className="text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
+              <div 
+                className="backdrop-blur-xl border rounded-xl p-3.5 shadow-2xl min-w-[200px] transform -translate-x-1/2"
+                style={{
+                  background: 'rgba(15, 15, 20, 0.95)',
+                  borderColor: hoveredWallet.side === 'yes' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <div className="text-xs space-y-2">
+                  <div className="flex items-center justify-between gap-3">
                     <span className="font-mono text-foreground/80">
                       {hoveredWallet.address.slice(0, 6)}...{hoveredWallet.address.slice(-4)}
                     </span>
                     <Badge 
                       variant="outline" 
-                      className={`text-[10px] ${hoveredWallet.side === 'yes' ? 'border-primary text-primary' : 'border-secondary text-secondary'}`}
+                      className={`text-[10px] px-2 ${hoveredWallet.side === 'yes' ? 'border-primary/50 text-primary bg-primary/10' : 'border-secondary/50 text-secondary bg-secondary/10'}`}
                     >
                       {hoveredWallet.side.toUpperCase()}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 border-t border-border/30">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-border/30">
                     <div className="text-muted-foreground">Position</div>
-                    <div className="text-right font-medium">${hoveredWallet.amount.toLocaleString()}</div>
+                    <div className="text-right font-semibold text-foreground">${hoveredWallet.amount.toLocaleString()}</div>
                     <div className="text-muted-foreground">Trades</div>
-                    <div className="text-right font-medium">{hoveredWallet.trades}</div>
+                    <div className="text-right font-medium text-foreground">{hoveredWallet.trades}</div>
+                    <div className="text-muted-foreground">Avg Entry</div>
+                    <div className="text-right font-medium text-foreground">{(hoveredWallet.avgPrice * 100).toFixed(1)}¢</div>
                     <div className="text-muted-foreground">P&L</div>
-                    <div className={`text-right font-medium ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                    <div className={`text-right font-semibold ${hoveredWallet.profit >= 0 ? 'text-primary' : 'text-destructive'}`}>
                       {hoveredWallet.profit >= 0 ? '+' : ''}{hoveredWallet.profit.toFixed(2)}
                     </div>
+                  </div>
+                  <div className="pt-2 border-t border-border/30 text-center text-muted-foreground text-[10px]">
+                    Click to view full profile
                   </div>
                 </div>
               </div>
