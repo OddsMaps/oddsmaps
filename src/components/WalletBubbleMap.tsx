@@ -28,7 +28,7 @@ interface BubblePosition {
   y: number;
 }
 
-type TierFilter = 'all' | 'whale' | 'large' | 'medium' | 'small';
+type TierFilter = 'all' | 'whale' | 'large' | 'small';  // $10k+, $1k-10k, $0-1k
 
 const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
   const [hoveredWallet, setHoveredWallet] = useState<WalletData | null>(null);
@@ -115,29 +115,28 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return () => clearInterval(interval);
   }, [market?.market_id]);
 
+  // 3 tiers: $10k+ (whale), $1k-10k (large), $0-1k (small)
   const getTier = (volume: number): WalletData['tier'] => {
-    if (volume >= 10000) return 'whale';
-    if (volume >= 1000) return 'large';
-    if (volume >= 100) return 'medium';
-    return 'small';
+    if (volume >= 10000) return 'whale';    // $10k+
+    if (volume >= 1000) return 'large';     // $1k-10k
+    return 'small';                          // $0-1k
   };
 
-  // Dynamic sizing based on amount - larger range for better visual differentiation
+  // Dynamic sizing based on amount - 3 tier system
   const getSize = (amount: number, tier: string, maxAmount: number): number => {
-    // Normalize based on the maximum amount in the dataset
-    const normalized = Math.min(amount / Math.max(maxAmount, 1), 1);
-    
-    // Size range: 18px (smallest) to 90px (largest whale)
-    if (tier === 'whale') {
-      return 50 + normalized * 40; // 50-90px
+    // Size range based on 3 tiers
+    if (tier === 'whale') {  // $10k+
+      const normalized = Math.min(amount / Math.max(maxAmount, 10000), 1);
+      return 55 + normalized * 35; // 55-90px
     }
-    if (tier === 'large') {
-      return 35 + (amount / 10000) * 20; // 35-55px
+    if (tier === 'large') {  // $1k-10k
+      const normalized = (amount - 1000) / 9000;
+      return 30 + normalized * 25; // 30-55px
     }
-    if (tier === 'medium') {
-      return 24 + (amount / 1000) * 12; // 24-36px
-    }
-    return 18 + Math.min(amount / 100, 1) * 8; // 18-26px
+    // small: $0-1k
+    const normalized = amount / 1000;
+    return 16 + normalized * 14; // 16-30px
+  };
   };
 
   const wallets = useMemo<WalletData[]>(() => {
@@ -178,7 +177,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     return { yesWallets: yes, noWallets: no };
   }, [wallets, tierFilter]);
 
-  // Perfect radial positioning: smallest in center, largest on outside
+  // Perfect radial positioning: 3-tier zones ($0-1k center, $1k-10k middle, $10k+ outer)
   const calculateRadialPositions = useCallback((
     bubbles: WalletData[],
     centerX: number,
@@ -195,15 +194,25 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
     const placed: { id: string; x: number; y: number; r: number; targetRadius: number }[] = [];
     const padding = 6;
 
-    // Place bubbles in concentric rings from center outward
-    sorted.forEach((bubble, index) => {
+    // Place bubbles based on their tier in the correct zone
+    sorted.forEach((bubble) => {
       const r = bubble.size / 2;
       
-      // Calculate target radius - exponential distribution pushes larger bubbles further out
-      const normalizedIndex = index / Math.max(sorted.length - 1, 1);
-      // Use exponential curve for more dramatic center-to-edge distribution
-      const radiusFactor = Math.pow(normalizedIndex, 0.7);
-      const targetRadius = radiusFactor * (maxRadius - r - 10);
+      // Calculate target radius based on 3-tier zones
+      let targetRadius: number;
+      if (bubble.tier === 'small') {
+        // $0-1k: center zone (0-33% of max radius)
+        const normalized = bubble.amount / 1000;
+        targetRadius = normalized * maxRadius * 0.32;
+      } else if (bubble.tier === 'large') {
+        // $1k-10k: middle zone (33-66% of max radius)
+        const normalized = (bubble.amount - 1000) / 9000;
+        targetRadius = maxRadius * 0.33 + normalized * maxRadius * 0.33;
+      } else {
+        // $10k+ (whale): outer zone (66-100% of max radius)
+        const normalized = Math.min((bubble.amount - 10000) / 40000, 1);
+        targetRadius = maxRadius * 0.66 + normalized * maxRadius * 0.34;
+      }
       
       // Full circle for each side
       const angleRange = side === 'left' 
@@ -463,7 +472,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           />
         </div>
 
-        {/* Concentric ring guides - YES side */}
+        {/* Concentric ring guides - YES side - 3 zones */}
         <svg className="absolute left-0 top-0 w-1/2 h-full pointer-events-none" style={{ overflow: 'visible' }}>
           <defs>
             <radialGradient id="yesRingGradient" cx="50%" cy="50%" r="50%">
@@ -471,42 +480,37 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(142, 76%, 42%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[
-            { scale: 0.15, label: '$100' },
-            { scale: 0.3, label: '$500' },
-            { scale: 0.5, label: '$1,000' },
-            { scale: 0.7, label: '$5,000' },
-            { scale: 0.85, label: '$10,000' },
-          ].map((ring, i) => (
-            <g key={`yes-ring-${i}`}>
-              <circle
-                cx="50%"
-                cy="50%"
-                r={`${ring.scale * 40}%`}
-                fill="none"
-                stroke="hsla(142, 76%, 42%, 0.15)"
-                strokeWidth="1"
-                strokeDasharray="4 8"
-              />
-              <text 
-                x="50%" 
-                y={`${50 - ring.scale * 38}%`} 
-                textAnchor="middle" 
-                fill="hsla(142, 76%, 50%, 0.35)" 
-                fontSize="8" 
-                fontWeight="500"
-              >
-                {ring.label}
-              </text>
-            </g>
-          ))}
-          {/* Outer pulsing ring for whales */}
+          {/* Zone 1: $0-1k (center) */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="13%"
+            fill="none"
+            stroke="hsla(142, 76%, 42%, 0.2)"
+            strokeWidth="1"
+            strokeDasharray="4 6"
+          />
+          <text x="50%" y="52%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="9" fontWeight="600">$0-1k</text>
+          
+          {/* Zone 2: $1k-10k (middle) */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="27%"
+            fill="none"
+            stroke="hsla(142, 76%, 42%, 0.2)"
+            strokeWidth="1"
+            strokeDasharray="4 6"
+          />
+          <text x="50%" y="35%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.45)" fontSize="9" fontWeight="600">$1k-10k</text>
+          
+          {/* Zone 3: $10k+ outer pulsing ring */}
           <circle
             cx="50%"
             cy="50%"
             r="40%"
             fill="none"
-            stroke="hsla(142, 76%, 42%, 0.25)"
+            stroke="hsla(142, 76%, 42%, 0.3)"
             strokeWidth="2"
             className="animate-[pulse_2s_ease-in-out_infinite]"
           />
@@ -516,14 +520,14 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             r="40%"
             fill="none"
             stroke="hsla(142, 76%, 50%, 0.15)"
-            strokeWidth="6"
+            strokeWidth="8"
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          <text x="50%" y="8%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.5)" fontSize="10" fontWeight="600">$10k+ 🐋</text>
+          <text x="50%" y="8%" textAnchor="middle" fill="hsla(142, 76%, 50%, 0.6)" fontSize="10" fontWeight="700">$10k+ 🐋</text>
         </svg>
 
-        {/* Concentric ring guides - NO side */}
+        {/* Concentric ring guides - NO side - 3 zones */}
         <svg className="absolute right-0 top-0 w-1/2 h-full pointer-events-none" style={{ overflow: 'visible' }}>
           <defs>
             <radialGradient id="noRingGradient" cx="50%" cy="50%" r="50%">
@@ -531,42 +535,37 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
               <stop offset="100%" stopColor="hsl(0, 72%, 51%)" stopOpacity="0.15" />
             </radialGradient>
           </defs>
-          {[
-            { scale: 0.15, label: '$100' },
-            { scale: 0.3, label: '$500' },
-            { scale: 0.5, label: '$1,000' },
-            { scale: 0.7, label: '$5,000' },
-            { scale: 0.85, label: '$10,000' },
-          ].map((ring, i) => (
-            <g key={`no-ring-${i}`}>
-              <circle
-                cx="50%"
-                cy="50%"
-                r={`${ring.scale * 40}%`}
-                fill="none"
-                stroke="hsla(0, 72%, 51%, 0.15)"
-                strokeWidth="1"
-                strokeDasharray="4 8"
-              />
-              <text 
-                x="50%" 
-                y={`${50 - ring.scale * 38}%`} 
-                textAnchor="middle" 
-                fill="hsla(0, 72%, 60%, 0.35)" 
-                fontSize="8" 
-                fontWeight="500"
-              >
-                {ring.label}
-              </text>
-            </g>
-          ))}
-          {/* Outer pulsing ring for whales */}
+          {/* Zone 1: $0-1k (center) */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="13%"
+            fill="none"
+            stroke="hsla(0, 72%, 51%, 0.2)"
+            strokeWidth="1"
+            strokeDasharray="4 6"
+          />
+          <text x="50%" y="52%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="9" fontWeight="600">$0-1k</text>
+          
+          {/* Zone 2: $1k-10k (middle) */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r="27%"
+            fill="none"
+            stroke="hsla(0, 72%, 51%, 0.2)"
+            strokeWidth="1"
+            strokeDasharray="4 6"
+          />
+          <text x="50%" y="35%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.45)" fontSize="9" fontWeight="600">$1k-10k</text>
+          
+          {/* Zone 3: $10k+ outer pulsing ring */}
           <circle
             cx="50%"
             cy="50%"
             r="40%"
             fill="none"
-            stroke="hsla(0, 72%, 51%, 0.25)"
+            stroke="hsla(0, 72%, 51%, 0.3)"
             strokeWidth="2"
             className="animate-[pulse_2s_ease-in-out_infinite]"
           />
@@ -576,14 +575,14 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             r="40%"
             fill="none"
             stroke="hsla(0, 72%, 60%, 0.15)"
-            strokeWidth="6"
+            strokeWidth="8"
             className="animate-[pulse_2s_ease-in-out_infinite_0.5s]"
             style={{ filter: 'blur(4px)' }}
           />
-          <text x="50%" y="8%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.5)" fontSize="10" fontWeight="600">$10k+ 🐋</text>
+          <text x="50%" y="8%" textAnchor="middle" fill="hsla(0, 72%, 60%, 0.6)" fontSize="10" fontWeight="700">$10k+ 🐋</text>
         </svg>
 
-        {/* Tier Filter & Legend */}
+        {/* Tier Filter & Legend - 3 tiers */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
           <div 
             className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full backdrop-blur-md border border-border/30"
@@ -591,7 +590,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
           >
             <button
               onClick={() => setTierFilter('all')}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
                 tierFilter === 'all' 
                   ? 'bg-foreground/20 text-foreground' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
@@ -602,29 +601,18 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             <div className="w-px h-4 bg-border/30" />
             <button
               onClick={() => setTierFilter('small')}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
                 tierFilter === 'small' 
                   ? 'bg-foreground/20 text-foreground' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
               }`}
             >
               <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-muted-foreground/50 to-muted-foreground/30 border border-muted-foreground/40" />
-              <span className="text-[10px] sm:text-xs">$0-100</span>
-            </button>
-            <button
-              onClick={() => setTierFilter('medium')}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
-                tierFilter === 'medium' 
-                  ? 'bg-foreground/20 text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
-              }`}
-            >
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-muted-foreground/60 to-muted-foreground/40 border border-muted-foreground/50" />
-              <span className="text-[10px] sm:text-xs">$100-1k</span>
+              <span className="text-[10px] sm:text-xs">$0-1k</span>
             </button>
             <button
               onClick={() => setTierFilter('large')}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
                 tierFilter === 'large' 
                   ? 'bg-foreground/20 text-foreground' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
@@ -635,7 +623,7 @@ const WalletBubbleMap = ({ market }: WalletBubbleMapProps) => {
             </button>
             <button
               onClick={() => setTierFilter('whale')}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all ${
                 tierFilter === 'whale' 
                   ? 'bg-foreground/20 text-foreground' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-foreground/10'
