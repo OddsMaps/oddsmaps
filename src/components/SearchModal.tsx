@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { formatVolume } from "@/lib/utils";
 
 interface SearchModalProps {
   open: boolean;
@@ -446,7 +447,7 @@ const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
                               )}
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Activity className="w-3 h-3" />
-                                ${(market.volume_24h / 1000).toFixed(0)}K
+                                {formatVolume(market.volume_24h)}
                               </div>
                             </div>
                           </div>

@@ -1,4 +1,5 @@
 import { AlertTriangle, Shield, TrendingUp, Clock, DollarSign, Activity, ExternalLink } from "lucide-react";
+import { formatVolume } from "@/lib/utils";
 import type { Market } from "@/hooks/useMarkets";
 import { useMemo, useEffect, useState } from "react";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
@@ -188,8 +189,8 @@ const InsiderAnalysis = ({ market }: InsiderAnalysisProps) => {
                 <div className="text-xl font-bold gradient-text">{suspiciousActivities.length}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Suspicious Volume</div>
-                <div className="text-xl font-bold gradient-text">${(totalSuspiciousVolume / 1000).toFixed(1)}K</div>
+              <div className="text-sm text-muted-foreground">Suspicious Volume</div>
+                <div className="text-xl font-bold gradient-text">{formatVolume(totalSuspiciousVolume)}</div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Avg Confidence</div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { fetchPriceHistory, type PriceHistoryPoint } from "@/lib/polymarket-api";
+import { formatVolume } from "@/lib/utils";
 
 type TimeInterval = '1h' | '6h' | '1d' | '1w' | '1m' | 'max';
 
@@ -108,12 +109,7 @@ const PriceChartModal = ({ open, onOpenChange, market }: PriceChartModalProps) =
 
   const isPositive = stats.change >= 0 || market.price_change_24h >= 0;
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000000) {
-      return `$${(volume / 1000000).toFixed(1)}M`;
-    }
-    return `$${(volume / 1000).toFixed(0)}K`;
-  };
+  // Use shared formatVolume from utils
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
