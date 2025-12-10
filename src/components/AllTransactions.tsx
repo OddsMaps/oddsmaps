@@ -166,24 +166,6 @@ export const AllTransactions = () => {
         </motion.p>
       </div>
 
-      {/* Stats Badge */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="flex justify-center mb-8"
-      >
-        <div className="inline-flex items-center gap-3 bg-card/50 backdrop-blur-sm border border-border/50 rounded-full px-6 py-3">
-          <div className="flex items-center gap-2">
-            <Waves className="w-5 h-5 text-cyan-400" />
-            <span className="text-2xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              {transactions.length}
-            </span>
-            <span className="text-muted-foreground font-medium">Whales Tracked</span>
-          </div>
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        </div>
-      </motion.div>
 
       {/* Transactions List */}
       <div className="space-y-3">
