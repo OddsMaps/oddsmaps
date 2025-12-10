@@ -166,39 +166,22 @@ export const AllTransactions = () => {
         </motion.p>
       </div>
 
-      {/* Stats Bar */}
+      {/* Stats Badge */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="grid grid-cols-3 gap-4 mb-8"
+        className="flex justify-center mb-8"
       >
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-cyan-400 mb-2">
-            <Waves className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Whales</span>
+        <div className="inline-flex items-center gap-3 bg-card/50 backdrop-blur-sm border border-border/50 rounded-full px-6 py-3">
+          <div className="flex items-center gap-2">
+            <Waves className="w-5 h-5 text-cyan-400" />
+            <span className="text-2xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              {transactions.length}
+            </span>
+            <span className="text-muted-foreground font-medium">Whales Tracked</span>
           </div>
-          <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            {transactions.length}
-          </div>
-        </div>
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 mb-2">
-            <DollarSign className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">Volume</span>
-          </div>
-          <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
-            {formatVolume(totalVolume)}
-          </div>
-        </div>
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-purple-400 mb-2">
-            <Activity className="w-4 h-4 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider">Status</span>
-          </div>
-          <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            LIVE
-          </div>
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </div>
       </motion.div>
 
