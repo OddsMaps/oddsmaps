@@ -497,24 +497,27 @@ const Markets = () => {
                   {filteredMarkets?.map((market, index) => {
                     const yesPrice = ((market.yes_price || 0) * 100).toFixed(0);
                     const x = useMotionValue(0);
-                    const background = useTransform(
-                      x,
-                      [-100, 0, 100],
-                      ['rgba(239, 68, 68, 0.2)', 'transparent', 'rgba(34, 197, 94, 0.2)']
-                    );
+                    const leftOpacity = useTransform(x, [0, 60], [0, 1]);
+                    const rightOpacity = useTransform(x, [-60, 0], [1, 0]);
                     
                     return (
                       <div key={market.id} className="relative overflow-hidden">
-                        {/* Swipe action indicators (mobile only) */}
-                        <div className="md:hidden absolute inset-y-0 left-0 w-20 flex items-center justify-center bg-primary/20 pointer-events-none">
+                        {/* Swipe action indicators - only visible during swipe */}
+                        <motion.div 
+                          style={{ opacity: leftOpacity }}
+                          className="md:hidden absolute inset-y-0 left-0 w-16 flex items-center justify-center bg-primary/20 pointer-events-none"
+                        >
                           <Star className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="md:hidden absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-destructive/20 pointer-events-none">
+                        </motion.div>
+                        <motion.div 
+                          style={{ opacity: rightOpacity }}
+                          className="md:hidden absolute inset-y-0 right-0 w-16 flex items-center justify-center bg-destructive/20 pointer-events-none"
+                        >
                           <Trash2 className="w-5 h-5 text-destructive" />
-                        </div>
+                        </motion.div>
                         
                         <motion.div
-                          style={{ x, background }}
+                          style={{ x }}
                           drag="x"
                           dragConstraints={{ left: 0, right: 0 }}
                           dragElastic={0.3}
