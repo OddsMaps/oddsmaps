@@ -227,7 +227,7 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
           <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[400px] overflow-y-auto custom-scrollbar">
             {whaleTransactions.map((tx, index) => (
               <div
-                key={tx.id}
+                key={`whale-${tx.id}-${index}`}
                 className="glass border-2 border-primary/30 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-primary/60 transition-all duration-300 group touch-manipulation"
               >
                 <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
@@ -291,7 +291,7 @@ const TransactionTimeline = ({ market }: TransactionTimelineProps) => {
         <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[600px] md:max-h-[800px] overflow-y-auto custom-scrollbar">
           {transactions.map((tx, index) => (
             <div
-              key={tx.id}
+              key={`tx-${tx.id}-${index}`}
               className="glass border border-border/50 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-primary/50 transition-all duration-300 group touch-manipulation"
             >
               <div className="flex items-start gap-2 sm:gap-3 md:gap-4">

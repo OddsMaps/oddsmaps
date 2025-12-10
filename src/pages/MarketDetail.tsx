@@ -247,20 +247,26 @@ const MarketDetail = () => {
       <Header />
       
       <div className="pt-16 sm:pt-20 pb-6 sm:pb-8 px-3 sm:px-4">
-        <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4">
+        <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
           <MarketHeader market={market} onBack={() => navigate("/markets")} />
 
-          {/* Mobile: Stack, Desktop: Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="lg:col-span-2 order-2 lg:order-1">
+          {/* Mobile: Show whale activity first, then map */}
+          <div className="lg:hidden space-y-4">
+            <MarketWhaleTransactions marketId={market.market_id} />
+            <WalletBubbleMap market={market} />
+          </div>
+
+          {/* Desktop: Two Column Layout */}
+          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
               <WalletBubbleMap market={market} />
             </div>
-            <div className="order-1 lg:order-2">
+            <div>
               <MarketWhaleTransactions marketId={market.market_id} />
             </div>
           </div>
 
-          <div className="mt-3 sm:mt-4">
+          <div className="mt-4 sm:mt-6">
             <TransactionTimeline market={market} />
           </div>
         </div>
