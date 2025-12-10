@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useMarkets } from "@/hooks/useMarkets";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown, TrendingUp, TrendingDown, Activity, Search } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronRight, Bell, ChevronDown, TrendingUp, Search, X } from "lucide-react";
 import MiniSparkline from "@/components/MiniSparkline";
 import PriceChartModal from "@/components/PriceChartModal";
 import type { Market } from "@/lib/polymarket-api";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const Markets = () => {
   const navigate = useNavigate();
@@ -189,11 +189,114 @@ const Markets = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-24 md:pt-28">
-        {/* Top Navigation Tabs */}
-        <div className="border-b border-border/50">
+      <main className="pt-20 md:pt-28">
+        {/* Mobile Search & Filter Bar */}
+        <div className="md:hidden sticky top-16 z-30 bg-background/95 backdrop-blur-md border-b border-border/50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search markets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 h-10 bg-muted/30 border-border/50 text-sm"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+            
+            {/* Category Filter Sheet */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <button className="h-10 px-3 rounded-lg border border-border/50 bg-muted/30 flex items-center gap-1.5 text-sm font-medium shrink-0">
+                  {selectedCategory === "All" ? "Filter" : selectedCategory}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-2xl">
+                <SheetHeader className="pb-4">
+                  <SheetTitle>Filter Markets</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 pb-6">
+                  {/* Tab Selection */}
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Sort by</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {mainTabs.map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSelectedTab(tab.id)}
+                          className={`py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                            selectedTab === tab.id 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Category Selection */}
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Category</p>
+                    <div className="flex flex-wrap gap-2">
+                      {filterCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedCategory(cat)}
+                          className={`py-2.5 px-4 rounded-full text-sm font-medium transition-all border ${
+                            selectedCategory === cat
+                              ? "bg-foreground text-background border-foreground"
+                              : "bg-transparent text-muted-foreground border-border hover:border-foreground/50"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+          
+          {/* Active filters indicator */}
+          {(selectedCategory !== "All" || selectedTab !== "trending") && (
+            <div className="flex items-center gap-2 mt-2 overflow-x-auto scrollbar-hide">
+              {selectedTab !== "trending" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  {mainTabs.find(t => t.id === selectedTab)?.label}
+                  <button onClick={() => setSelectedTab("trending")}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedCategory !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  {selectedCategory}
+                  <button onClick={() => setSelectedCategory("All")}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Top Navigation Tabs */}
+        <div className="hidden md:block border-b border-border/50">
           <div className="container mx-auto px-4">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {mainTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -221,19 +324,16 @@ const Markets = () => {
                   {cat}
                 </button>
               ))}
-              <button className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all whitespace-nowrap flex items-center gap-1">
-                More <ChevronDown className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-4 md:py-6">
           <div className="flex gap-8">
             {/* Main Content */}
             <div className="flex-1 min-w-0">
-              {/* Hero Banner */}
-              <div className="relative rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-muted/80 via-card to-muted/60 border border-border/50">
+              {/* Hero Banner - Hidden on mobile for cleaner experience */}
+              <div className="hidden md:block relative rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-muted/80 via-card to-muted/60 border border-border/50">
                 <div className="p-6 md:p-8 relative z-10">
                   <p className="text-sm text-muted-foreground mb-1">{currentDate}</p>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -248,24 +348,24 @@ const Markets = () => {
                   </p>
                 </div>
                 {/* Decorative arrows */}
-                <div className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 flex items-center gap-4">
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-4">
                   <div className="relative">
                     <div className="absolute inset-0 rounded-xl bg-secondary/40 blur-xl scale-150" />
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center rotate-12 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
-                      <ArrowDown className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                    <div className="relative w-20 h-20 rounded-xl bg-secondary/20 border border-secondary/30 flex items-center justify-center rotate-12 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                      <ArrowDown className="w-10 h-10 text-secondary" />
                     </div>
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 rounded-xl bg-primary/40 blur-xl scale-150" />
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center -rotate-12 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                      <ArrowUp className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+                    <div className="relative w-20 h-20 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center -rotate-12 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                      <ArrowUp className="w-10 h-10 text-primary" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Category Filter Pills */}
-              <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+              {/* Category Filter Pills - Desktop only */}
+              <div className="hidden md:flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
                 {filterCategories.map((cat) => (
                   <button
                     key={cat}
@@ -283,28 +383,27 @@ const Markets = () => {
 
               {/* Markets List */}
               {isLoading ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-20 rounded-xl" />
+                    <Skeleton key={i} className="h-20 md:h-16 rounded-xl" />
                   ))}
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0">
                   {filteredMarkets?.map((market, index) => {
                     const yesPrice = ((market.yes_price || 0) * 100).toFixed(0);
-                    const yesPercentage = (market.yes_price || 0) * 100;
                     
                     return (
                       <div
                         key={market.id}
-                        className="flex items-center gap-4 py-4 px-2 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group border-b border-border/30 last:border-0"
+                        className="flex items-start md:items-center gap-3 py-3.5 px-1 md:px-2 active:bg-muted/40 md:hover:bg-muted/30 rounded-lg transition-colors cursor-pointer group border-b border-border/30 last:border-0"
                         onClick={() => navigate(`/market/${market.market_id}`)}
                       >
-                        {/* Rank Number */}
-                        <span className="text-muted-foreground text-sm w-6 shrink-0">{index + 1}</span>
+                        {/* Rank Number - Hidden on mobile */}
+                        <span className="hidden md:block text-muted-foreground text-sm w-6 shrink-0">{index + 1}</span>
                         
                         {/* Market Image */}
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
+                        <div className="w-11 h-11 md:w-12 md:h-12 rounded-full overflow-hidden bg-muted shrink-0 mt-0.5 md:mt-0">
                           {market.image_url ? (
                             <img 
                               src={market.image_url} 
@@ -326,52 +425,52 @@ const Markets = () => {
                         
                         {/* Market Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                              {market.title}
-                            </h3>
-                            <Badge variant="outline" className={`shrink-0 text-xs px-2 py-0.5 border ${getCategoryColor(normalizeCategory(market.category, market.title))}`}>
+                          <h3 className="font-medium text-foreground text-sm md:text-base line-clamp-2 md:line-clamp-1 group-hover:text-primary transition-colors leading-snug">
+                            {market.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className={`shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0 md:py-0.5 border ${getCategoryColor(normalizeCategory(market.category, market.title))}`}>
                               {normalizeCategory(market.category, market.title)}
                             </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-semibold text-foreground">{yesPrice}%</span>
-                            <span className="text-sm text-primary flex items-center gap-0.5">
-                              <TrendingUp className="w-3 h-3" />
-                              0%
+                            <span className="text-xs text-muted-foreground">
+                              ${((market.volume_24h || 0) / 1000).toFixed(0)}K vol
                             </span>
                           </div>
                         </div>
                         
-                        {/* Price Sparkline - Clickable */}
-                        <div 
-                          className="hidden md:flex items-center w-24 cursor-pointer group/chart relative"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMarket(market);
-                            setChartModalOpen(true);
-                          }}
-                          title="Click to view full chart"
-                        >
-                          <div className="relative p-1.5 rounded-lg hover:bg-muted/50 transition-all border border-transparent hover:border-border/50">
-                            <MiniSparkline 
-                              currentPrice={market.yes_price || 0.5}
-                              priceChange={market.price_change_24h || 0}
-                              tokenId={market.clob_token_ids?.[0]}
-                              width={72}
-                              height={28}
-                            />
-                            {/* Expand icon overlay on hover */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg opacity-0 group-hover/chart:opacity-100 transition-opacity">
-                              <svg className="w-4 h-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                              </svg>
+                        {/* Price & Arrow */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <span className="text-lg md:text-xl font-bold text-foreground">{yesPrice}%</span>
+                            <div className="text-xs text-primary flex items-center justify-end gap-0.5">
+                              <TrendingUp className="w-3 h-3" />
+                              <span>Yes</span>
                             </div>
                           </div>
+                          
+                          {/* Price Sparkline - Desktop only */}
+                          <div 
+                            className="hidden md:flex items-center w-20 cursor-pointer group/chart relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMarket(market);
+                              setChartModalOpen(true);
+                            }}
+                            title="Click to view full chart"
+                          >
+                            <div className="relative p-1 rounded-lg hover:bg-muted/50 transition-all border border-transparent hover:border-border/50">
+                              <MiniSparkline 
+                                currentPrice={market.yes_price || 0.5}
+                                priceChange={market.price_change_24h || 0}
+                                tokenId={market.clob_token_ids?.[0]}
+                                width={64}
+                                height={24}
+                              />
+                            </div>
+                          </div>
+                          
+                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                         </div>
-                        
-                        {/* Arrow */}
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                       </div>
                     );
                   })}
