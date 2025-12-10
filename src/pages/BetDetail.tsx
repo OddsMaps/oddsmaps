@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMarkets } from "@/hooks/useMarkets";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import WalletBubbleMap from "@/components/WalletBubbleMap";
+import { formatVolume } from "@/lib/utils";
 
 interface BetDetails {
   id: string;
@@ -337,15 +338,15 @@ const BetDetail = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Total Volume</div>
-                    <div className="font-semibold">${(currentMarket.total_volume / 1000).toFixed(1)}K</div>
+                    <div className="font-semibold">{formatVolume(currentMarket.total_volume)}</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">24h Volume</div>
-                    <div className="font-semibold">${(currentMarket.volume_24h / 1000).toFixed(1)}K</div>
+                    <div className="font-semibold">{formatVolume(currentMarket.volume_24h)}</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Liquidity</div>
-                    <div className="font-semibold">${(currentMarket.liquidity / 1000).toFixed(1)}K</div>
+                    <div className="font-semibold">{formatVolume(currentMarket.liquidity)}</div>
                   </div>
                 </div>
                 <Button

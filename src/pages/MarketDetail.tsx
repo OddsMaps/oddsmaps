@@ -9,6 +9,7 @@ import TransactionTimeline from "@/components/TransactionTimeline";
 import Header from "@/components/Header";
 import { fetchMarketTransactions } from "@/lib/polymarket-api";
 import { Button } from "@/components/ui/button";
+import { formatVolume } from "@/lib/utils";
 
 const MarketHeader = memo(({ market, onBack }: any) => {
   const getMarketImage = () => {
@@ -86,11 +87,11 @@ const MarketHeader = memo(({ market, onBack }: any) => {
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 mt-3 sm:mt-4 pt-3 border-t border-border/30 text-xs sm:text-sm">
           <div>
             <span className="text-muted-foreground">24h Vol: </span>
-            <span className="font-bold font-mono">${(market.volume_24h / 1000).toFixed(1)}K</span>
+            <span className="font-bold font-mono">{formatVolume(market.volume_24h)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Liq: </span>
-            <span className="font-bold font-mono">${(market.liquidity / 1000).toFixed(1)}K</span>
+            <span className="font-bold font-mono">{formatVolume(market.liquidity)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Vol: </span>

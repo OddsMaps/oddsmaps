@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useMarkets } from "@/hooks/useMarkets";
+import { formatVolume } from "@/lib/utils";
 
 const AnalyticsLive = memo(() => {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ const AnalyticsLive = memo(() => {
                   <div className="space-y-2">
                     <div className="text-xs sm:text-sm text-muted-foreground font-medium whitespace-nowrap">Volume 24h</div>
                     <div className="text-lg sm:text-xl md:text-2xl font-black gradient-text-premium whitespace-nowrap font-mono">
-                      ${(market.volume_24h / 1000).toFixed(1)}K
+                      {formatVolume(market.volume_24h)}
                     </div>
                   </div>
                   <div className="space-y-2">

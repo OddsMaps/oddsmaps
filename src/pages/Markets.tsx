@@ -12,6 +12,7 @@ import PriceChartModal from "@/components/PriceChartModal";
 import type { Market } from "@/lib/polymarket-api";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { formatVolume } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
 const Markets = () => {
@@ -232,12 +233,7 @@ const Markets = () => {
     return (market.yes_price || 0) > 0.5 ? "bullish" : "bearish";
   };
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000000) {
-      return `$${(volume / 1000000).toFixed(1)}M`;
-    }
-    return `$${(volume / 1000).toFixed(0)}K`;
-  };
+  // Use shared formatVolume from utils
 
   // Mock news items for sidebar
   const newsItems = [
@@ -559,7 +555,7 @@ const Markets = () => {
                                 {normalizeCategory(market.category, market.title)}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                ${((market.volume_24h || 0) / 1000).toFixed(0)}K vol
+                                {formatVolume(market.volume_24h || 0)} vol
                               </span>
                             </div>
                           </div>

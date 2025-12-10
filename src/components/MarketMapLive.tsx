@@ -2,6 +2,7 @@ import { memo, useState, useMemo } from "react";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useNavigate } from "react-router-dom";
+import { formatVolume } from "@/lib/utils";
 
 const MarketMapLive = memo(() => {
   const navigate = useNavigate();
@@ -221,11 +222,11 @@ const MarketMapLive = memo(() => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                     <div className="space-y-0.5 sm:space-y-1">
                       <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">24h Vol</div>
-                      <div className="text-sm sm:text-base md:text-lg font-bold">${(hoveredMarket.volume_24h / 1000).toFixed(1)}K</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold">{formatVolume(hoveredMarket.volume_24h)}</div>
                     </div>
                     <div className="space-y-0.5 sm:space-y-1">
                       <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Liquidity</div>
-                      <div className="text-sm sm:text-base md:text-lg font-bold">${(hoveredMarket.liquidity / 1000).toFixed(1)}K</div>
+                      <div className="text-sm sm:text-base md:text-lg font-bold">{formatVolume(hoveredMarket.liquidity)}</div>
                     </div>
                     <div className="space-y-0.5 sm:space-y-1">
                       <div className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">Volatility</div>
@@ -259,7 +260,7 @@ const MarketMapLive = memo(() => {
           </div>
           <div className="glass-strong rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-5 text-center border border-border/50">
             <div className="text-xl sm:text-2xl md:text-3xl font-bold gradient-text">
-              ${((allMarkets?.reduce((sum, m) => sum + m.volume_24h, 0) || 0) / 1000000).toFixed(1)}M
+              {formatVolume(allMarkets?.reduce((sum, m) => sum + m.volume_24h, 0) || 0)}
             </div>
             <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">24h Volume</div>
           </div>

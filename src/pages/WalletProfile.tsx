@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWalletProfileFromTheGraph } from "@/lib/polymarket-api-thegraph";
+import { formatVolume } from "@/lib/utils";
 
 interface WalletProfile {
   wallet_address: string;
@@ -180,7 +181,7 @@ const WalletProfile = () => {
                   <span className="text-xs text-muted-foreground">Volume</span>
                 </div>
                 <div className="text-xl font-bold gradient-text">
-                  ${(profile.total_volume / 1000).toFixed(1)}K
+                  {formatVolume(profile.total_volume)}
                 </div>
               </div>
 
