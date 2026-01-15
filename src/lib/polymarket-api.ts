@@ -121,15 +121,16 @@ export interface Transaction {
 }
 
 /**
- * Helper to fetch with CORS proxy
- * Uses proxy services since Polymarket APIs block direct browser requests
+ * Helper to fetch with our edge function proxy
+ * Uses our own edge function to bypass CORS and avoid third-party proxy limits
  */
 async function fetchWithProxy(url: string, retries = 1): Promise<Response> {
-  // Use corsproxy.io - the only working proxy
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  // Use our edge function proxy
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://pllmtyxxencsqegkdzqi.supabase.co";
+  const proxyUrl = `${SUPABASE_URL}/functions/v1/polymarket-proxy?url=${encodeURIComponent(url)}`;
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
   
   try {
     const response = await fetch(proxyUrl, {
@@ -150,15 +151,16 @@ async function fetchWithProxy(url: string, retries = 1): Promise<Response> {
     // Return response even if not ok - let caller handle it
     // This allows graceful degradation (e.g., continue without prices)
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
+    const err = error as { name?: string };
+    if (err.name === "AbortError") {
       // Retry once if we have retries left
       if (retries > 0) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         return fetchWithProxy(url, retries - 1);
       }
-      throw new Error("Proxy request timed out after 15 seconds");
+      throw new Error("Proxy request timed out after 30 seconds");
     }
     throw error;
   }
