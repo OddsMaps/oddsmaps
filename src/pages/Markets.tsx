@@ -15,6 +15,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import MarketListItem from "@/components/MarketListItem";
 import { formatVolume } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 const Markets = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const Markets = () => {
   const [chartModalOpen, setChartModalOpen] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
   const { data: markets, isLoading, refetch } = useMarkets("polymarket");
+  const { watchlist, toggleWatchlist, isInWatchlist } = useWatchlist();
   
   // Pull to refresh state
   const [isPulling, setIsPulling] = useState(false);
@@ -87,8 +89,13 @@ const Markets = () => {
     const threshold = 80;
     if (Math.abs(info.offset.x) > threshold) {
       if (info.offset.x > 0) {
-        // Swipe right - favorite
-        toast({ title: "Added to watchlist", description: "Market saved to your favorites" });
+        // Swipe right - toggle watchlist
+        toggleWatchlist(marketId);
+        if (isInWatchlist(marketId)) {
+          toast({ title: "Removed from watchlist", description: "Market removed from your favorites" });
+        } else {
+          toast({ title: "Added to watchlist", description: "Market saved to your favorites" });
+        }
       } else {
         // Swipe left - hide
         toast({ title: "Market hidden", description: "You won't see this market anymore" });
@@ -96,6 +103,17 @@ const Markets = () => {
       setSwipedMarketId(null);
     } else {
       setSwipedMarketId(null);
+    }
+  };
+
+  // Handle watchlist toggle with toast
+  const handleToggleWatchlist = (marketId: string) => {
+    const wasInWatchlist = isInWatchlist(marketId);
+    toggleWatchlist(marketId);
+    if (wasInWatchlist) {
+      toast({ title: "Removed from watchlist", description: "Market removed from your favorites" });
+    } else {
+      toast({ title: "Added to watchlist", description: "Market saved to your favorites" });
     }
   };
 
@@ -187,7 +205,10 @@ const Markets = () => {
     let result = [...markets];
     
     // Filter by tab first
-    if (selectedTab === "trending") {
+    if (selectedTab === "watchlist") {
+      // Watchlist: Only show favorited markets
+      result = result.filter(m => watchlist.includes(m.id));
+    } else if (selectedTab === "trending") {
       // Trending: Sort by 24h volume (highest first)
       result = result.sort((a, b) => b.volume_24h - a.volume_24h);
     } else if (selectedTab === "breaking") {
@@ -218,7 +239,7 @@ const Markets = () => {
     });
     
     return result;
-  }, [markets, searchQuery, selectedCategory, selectedTab]);
+  }, [markets, searchQuery, selectedCategory, selectedTab, watchlist]);
 
   // Get top 6 trending markets by 24h volume
   const trendingMarkets = useMemo(() => {
@@ -245,11 +266,12 @@ const Markets = () => {
 
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Navigation tabs - matching Polymarket
+  // Navigation tabs - matching Polymarket + Watchlist
   const mainTabs = [
     { id: "trending", label: "Trending" },
     { id: "breaking", label: "Breaking" },
     { id: "new", label: "New" },
+    { id: "watchlist", label: "Watchlist", icon: Star },
   ];
 
   // Navigation categories - matching Polymarket exactly
@@ -330,17 +352,18 @@ const Markets = () => {
                   {/* Tab Selection */}
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Sort by</p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {mainTabs.map((tab) => (
                         <button
                           key={tab.id}
                           onClick={() => setSelectedTab(tab.id)}
-                          className={`py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                          className={`py-3 px-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
                             selectedTab === tab.id 
                               ? "bg-primary text-primary-foreground" 
                               : "bg-muted/50 text-muted-foreground hover:bg-muted"
                           }`}
                         >
+                          {tab.icon && <tab.icon className={`w-4 h-4 ${selectedTab === tab.id && tab.id === 'watchlist' ? 'fill-current' : ''}`} />}
                           {tab.label}
                         </button>
                       ))}
@@ -402,13 +425,19 @@ const Markets = () => {
                 <button
                   key={tab.id}
                   onClick={() => setSelectedTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
                     selectedTab === tab.id 
                       ? "text-foreground border-primary" 
                       : "text-muted-foreground hover:text-foreground border-transparent"
                   }`}
                 >
+                  {tab.icon && <tab.icon className={`w-4 h-4 ${selectedTab === tab.id && tab.id === 'watchlist' ? 'fill-current' : ''}`} />}
                   {tab.label}
+                  {tab.id === 'watchlist' && watchlist.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/20 text-primary">
+                      {watchlist.length}
+                    </span>
+                  )}
                 </button>
               ))}
               <div className="h-5 w-px bg-border/60 mx-2 shrink-0" />
@@ -503,6 +532,8 @@ const Markets = () => {
                       }}
                       getCategoryColor={getCategoryColor}
                       normalizeCategory={normalizeCategory}
+                      isInWatchlist={isInWatchlist(market.id)}
+                      onToggleWatchlist={handleToggleWatchlist}
                     />
                   ))}
                 </div>
@@ -510,7 +541,23 @@ const Markets = () => {
 
               {filteredMarkets?.length === 0 && !isLoading && (
                 <div className="text-center py-12">
-                  <p className="text-muted-foreground">No markets found matching your criteria.</p>
+                  {selectedTab === "watchlist" ? (
+                    <div className="space-y-3">
+                      <Star className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                      <p className="text-muted-foreground">Your watchlist is empty.</p>
+                      <p className="text-sm text-muted-foreground/70">
+                        Click the star icon on any market to add it to your watchlist.
+                      </p>
+                      <button
+                        onClick={() => setSelectedTab("trending")}
+                        className="mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        Browse Markets
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No markets found matching your criteria.</p>
+                  )}
                 </div>
               )}
             </div>

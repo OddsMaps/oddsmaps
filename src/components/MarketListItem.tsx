@@ -13,6 +13,8 @@ interface MarketListItemProps {
   onChartClick: (market: Market) => void;
   getCategoryColor: (category: string) => string;
   normalizeCategory: (category: string | undefined, title?: string) => string;
+  isInWatchlist?: boolean;
+  onToggleWatchlist?: (marketId: string) => void;
 }
 
 const MarketListItem = ({
@@ -22,6 +24,8 @@ const MarketListItem = ({
   onChartClick,
   getCategoryColor,
   normalizeCategory,
+  isInWatchlist = false,
+  onToggleWatchlist,
 }: MarketListItemProps) => {
   const navigate = useNavigate();
   const yesPrice = ((market.yes_price || 0) * 100).toFixed(0);
@@ -95,7 +99,7 @@ const MarketListItem = ({
           </div>
         </div>
         
-        {/* Price & Arrow */}
+        {/* Price & Actions */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-right">
             <span className="text-lg md:text-xl font-bold text-foreground">{yesPrice}%</span>
@@ -124,6 +128,24 @@ const MarketListItem = ({
               />
             </div>
           </div>
+          
+          {/* Watchlist Star Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWatchlist?.(market.id);
+            }}
+            className="hidden md:flex p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+            title={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+          >
+            <Star 
+              className={`w-5 h-5 transition-colors ${
+                isInWatchlist 
+                  ? "fill-yellow-400 text-yellow-400" 
+                  : "text-muted-foreground hover:text-yellow-400"
+              }`} 
+            />
+          </button>
           
           <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
         </div>
